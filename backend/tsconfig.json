@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    /* Estructura */
+    "rootDir": "src",
+    "outDir": "dist",
+
+    /* JS generado */
+    "target": "ES2020",
+    "module": "CommonJS",
+
+    /* TypeScript */
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+
+    /* Calidad */
+    "sourceMap": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
