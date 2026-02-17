@@ -1,6 +1,7 @@
-import { Dentista } from "./Dentista";
-import { Role } from "./Role";
 import { Usuario } from "./Usuario";
+import { Role } from "./Role";
+import { Dentista } from "./Dentista";
+import { Asistente } from "./Asistente";
 
 Usuario.belongsTo(Role, {
   foreignKey: 'id_rol',
@@ -13,11 +14,21 @@ Role.hasMany(Usuario, {
 });
 
 Dentista.belongsTo(Usuario,{
-    foreignKey:'id_usuario',
-    as:'usuario'
+  foreignKey:'id_usuario',
+  as:'usuario'
 });
 
 Usuario.hasOne(Dentista,{
-    foreignKey:'id_usuario',
-    as:'dentista'
-})
+  foreignKey:'id_usuario',
+  as:'dentista'
+});
+
+Asistente.belongsTo(Usuario,{
+  foreignKey:'id_usuario',
+  as: 'usuario'
+});
+
+Usuario.hasOne(Asistente,{
+  foreignKey:'id_usuario',
+  as:'asistente'
+});

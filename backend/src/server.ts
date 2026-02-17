@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import {connectBD} from './config/database'
+import {connectBD, sequelize} from './config/database'
 
 dotenv.config();
 
@@ -11,12 +11,23 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-connectBD();
-app.get("/",(req,res) =>{
-    res.json({mensaje:"Servidor funcionando"})
-});
+async function startServer() {
+  try {
+    await connectBD();
 
+    await sequelize.sync({ alter: true });
 
-app.listen(PORT, async() =>{
-    console.log(`Servidor corriendo en http://localhost:${PORT}`)
-});
+    app.get("/", (req, res) => {
+      res.json({ mensaje: "Servidor funcionando" });
+    });
+
+    app.listen(PORT, () => {
+      console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    });
+
+  } catch (error) {
+    console.error("Error al iniciar servidor:", error);
+  }
+}
+
+startServer();
