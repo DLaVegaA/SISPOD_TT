@@ -11,7 +11,7 @@ export class Usuario extends Model {
     declare correo:string;
     declare contrasena:string;
     declare telefono:string;
-    declare fecha_nacimiento: Date;
+    declare fecha_nacimiento: string;
     declare curp:string;
     declare genero:string;
 }
@@ -58,6 +58,10 @@ Usuario.init(
         telefono:{
             type:DataTypes.STRING(10),
             allowNull: false
+        },
+        fecha_nacimiento:{
+            type:DataTypes.DATEONLY,
+            allowNull:false
         },
         curp:{
             type:DataTypes.STRING(18),
