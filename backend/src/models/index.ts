@@ -32,3 +32,11 @@ Usuario.hasOne(Asistente,{
   foreignKey:'id_usuario',
   as:'asistente'
 });
+
+
+export {
+  Usuario, 
+  Dentista,
+  Role,
+  Asistente
+}
