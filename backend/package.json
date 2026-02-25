@@ -9,7 +9,9 @@
     "start": "node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint \"src/**/*.{ts,js}\"",
-    "format": "prettier --write \"src/**/*.{ts,js,json,md}\""
+    "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
+    "db:importar":"ts-node ./src/seed/seeder.ts -i",
+    "db:eliminar":"ts-node ./src/seed/seeder.ts -e"
   },
   "keywords": [],
   "author": "",
