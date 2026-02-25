@@ -10,7 +10,7 @@ Role.init(
     {
         id_rol:{
             type: DataTypes.INTEGER,
-            autoIncrement:true,
+            autoIncrement:false,
             primaryKey: true,
         },
         nombre_rol:{
