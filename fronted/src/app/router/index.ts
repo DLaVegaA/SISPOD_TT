@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 // Importamos usando el alias @ y apuntando a la carpeta de la página
 import { HomePage } from '@/pages/home'; 
+import { LoginPage } from '@/pages/login';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,6 +13,11 @@ const router = createRouter({
     },
     // Aquí irás agregando las rutas de los actores después
     // { path: '/login', component: () => import('@/pages/login/ui/LoginPage.vue') }
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginPage, // Esta es la ruta para tu formulario
+    },
   ],
 });
 
