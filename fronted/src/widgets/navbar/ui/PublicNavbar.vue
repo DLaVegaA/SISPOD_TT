@@ -9,9 +9,9 @@
       <a href="#" class="text-white border-b-2 border-white">Inicio</a>
       <a href="#" class="text-white/80 hover:text-white transition">Sobre Nosotros</a>
       <a href="#" class="text-white/80 hover:text-white transition">Servicios</a>
-      <button class="bg-white text-blue-900 px-6 py-2 rounded-lg font-bold hover:bg-blue-50 transition cursor-pointer shadow-lg">
+      <router-link to="/login" class="bg-white text-blue-900 px-7 py-2.5 rounded-xl font-bold hover:bg-blue-50 transition shadow-lg shadow-blue-900/20 inline-block cursor-pointer">
         Iniciar Sesión
-      </button>
+      </router-link>
     </div>
   </nav>
 </template>
