@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import {connectBD, sequelize} from './config/database'
+import {connectBD, sequelize} from './config/database';
+import authRoutes from './routes/authRoutes';
 
 dotenv.config();
 
@@ -29,5 +30,6 @@ async function startServer() {
     console.error("Error al iniciar servidor:", error);
   }
 }
+app.use('/auth',authRoutes)
 
 startServer();

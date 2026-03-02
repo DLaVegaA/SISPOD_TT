@@ -1,6 +1,7 @@
 import { DataTypes, Model} from 'sequelize';
 import { sequelize } from '../config/database'; 
-
+import bcrypt from "bcryptjs";
+import usuarios from '../seed/usuarios';
 
 export class Usuario extends Model {
     declare id_usuario: number;
@@ -14,6 +15,10 @@ export class Usuario extends Model {
     declare fecha_nacimiento: string;
     declare curp:string;
     declare genero:string;
+
+    public async validarPassword(password:string): Promise<boolean>{
+        return await bcrypt.compare(password, this.contrasena);
+    }
 }
 
 Usuario.init(
@@ -80,3 +85,15 @@ Usuario.init(
         tableName: 'usuarios'
     }
 );
+
+Usuario.beforeCreate(async (usuario:Usuario)=>{
+    const salt = await bcrypt.genSalt(10);
+    usuario.contrasena = await bcrypt.hash(usuario.contrasena,salt);
+});
+
+Usuario.beforeUpdate(async (usuario:Usuario)=>{
+    if(usuario.changed("contrasena")){
+        const salt = await bcrypt.genSalt(10);
+        usuario.contrasena = await bcrypt.hash(usuario.contrasena,salt);
+    }
+});
