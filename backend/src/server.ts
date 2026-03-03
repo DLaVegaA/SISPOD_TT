@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from "cookie-parser";
 import dotenv from 'dotenv';
 import {connectBD, sequelize} from './config/database';
 import authRoutes from './routes/authRoutes';
@@ -9,7 +10,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({
+  origin:true,
+  credentials:true
+})); //Aun no se en donde esta corriendo el frontend
+
+app.use(cookieParser());
 app.use(express.json());
 
 async function startServer() {
