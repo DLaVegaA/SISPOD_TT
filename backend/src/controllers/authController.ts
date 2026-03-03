@@ -6,8 +6,13 @@ import jwt from 'jsonwebtoken';
 export const login = async (req:Request, res:Response) =>{
     try{
         const {correo, password} = req.body;
+        if(!correo || !password){
+            return res.status(400).json({message:'Datos incompletos'})
+        }
 
         const usuario = await Usuario.findOne({where:{correo:correo}});
+
+
 
         if(!usuario){
             return res.status(404).json({message:'Credenciales Inválidas'});
@@ -22,14 +27,21 @@ export const login = async (req:Request, res:Response) =>{
         const token= jwt.sign(
             {
                 id:usuario.id_usuario,
-                rol:usuario.id_rol
+                id_rol:usuario.id_rol
             },
             process.env.JWT_SECRET as string,
             {expiresIn: '2h'},
         );
+
+        res.cookie("token",token,{
+            httpOnly:true,
+            secure:false, //Investigar si al hostear se cambia a true
+            sameSite:true,
+            maxAge: 2 * 60 * 60 * 1000
+        });
+
         return res.json({
-            token,
-            role:usuario.id_rol
+            message: "Login exitoso"
         });
     }catch(error){
         console.log('Error login: ', error)
