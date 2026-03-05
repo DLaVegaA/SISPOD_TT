@@ -2,6 +2,7 @@ import { Usuario } from "./Usuario";
 import { Role } from "./Role";
 import { Dentista } from "./Dentista";
 import { Asistente } from "./Asistente";
+import { Paciente } from "./Paciente";
 
 Usuario.belongsTo(Role, {
   foreignKey: 'id_rol',
@@ -31,6 +32,16 @@ Asistente.belongsTo(Usuario,{
 Usuario.hasOne(Asistente,{
   foreignKey:'id_usuario',
   as:'asistente'
+});
+
+Paciente.belongsTo(Usuario,{
+  foreignKey:'id_usuario',
+  as:'usuario'
+});
+
+Usuario.hasOne(Paciente,{
+  foreignKey:'id_usuario',
+  as:'paciente'
 });
 
 
