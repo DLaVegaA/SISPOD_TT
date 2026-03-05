@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import axios from 'axios';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-// import { loginRequest } from '../api/authApi'; // Descomentar cuando el back funcione
+import { loginRequest } from '../api/authApi'; // Descomentar cuando el back funcione
 
 const router = useRouter();
 const email = ref('');
@@ -13,19 +14,28 @@ const handleSubmit = async () => {
   isLoading.value = true;
   errorMsg.value = '';
   
-  try {
-    console.log('Enviando a validación...');
-    // Simulación de espera de red
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Aquí iría la llamada real:
-    // const data = await loginRequest({ correo: email.value, password: password.value });
+  try {    
+    // Llamada:
+    const data = await loginRequest({ 
+      correo: email.value, 
+      password: password.value 
+    });
+
+    console.log('Login exitoso:', data);
     
     // Si el login es exitoso, mandamos al actor a su dashboard
-    // Por ahora, mandémoslo al home
     router.push('/'); 
   } catch (err) {
-    errorMsg.value = 'Credenciales incorrectas. Intenta de nuevo.';
+    // Verificamos si el error viene de Axios (del backend)
+    if (axios.isAxiosError(err)) {
+      const mensajeBackend = err.response?.data?.message || 'Credenciales incorrectas. Intenta de nuevo.';
+      errorMsg.value = mensajeBackend;
+    } else {
+      // Si es otro tipo de error (ej. se cayó el internet)
+      errorMsg.value = 'Ocurrió un error inesperado. Intenta de nuevo.';
+    }
+    
+    console.error('Error en login:', err);
   } finally {
     isLoading.value = false;
   }
