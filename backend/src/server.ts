@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import dotenv from 'dotenv';
 import {connectBD, sequelize} from './config/database';
 import authRoutes from './routes/authRoutes';
+import userRoutes from './routes/userRoutes';
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ async function startServer() {
     console.error("Error al iniciar servidor:", error);
   }
 }
-app.use('/auth',authRoutes)
+app.use('/auth',authRoutes);
+app.use('/admin',userRoutes);
 
 startServer();
