@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { Usuario,Role } from '../models/index';
+import { Usuario,Role,Paciente, Token } from '../models/index';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { error } from 'node:console';
 import {generarContra} from '../helpers/generarContra';
 import { sequelize } from '../config/database';
-import { Paciente } from '../models/Paciente';
+import {generarToken} from '../helpers/generarToken';
 
 
 export const registrarUsuario = async (req:Request, res:Response) =>{
@@ -55,6 +55,18 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
                 {id_usuario: usuarioNuevo.id_usuario},
                 {transaction:t}
             );
+            const token = generarToken();
+            const expira = new Date();
+            expira.setHours(expira.getHours()+24);
+            const tokenPaciente = await Token.create({
+                id_usuario: usuarioNuevo.id_usuario,
+                token:token,
+                tipo:"activacion",
+                expira_en:expira
+            },{
+                transaction:t
+            });
+            console.log("El token de paciente es: ", token, " y expira en: ", expira);
         }
 
         await t.commit()
@@ -67,7 +79,6 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
                 correo:usuarioNuevo.correo,
                 id_rol:usuarioNuevo.id_rol
             },
-            id_paciente: pacienteNuevo?.id_paciente //Pensar si esto es util
         });
 
 
