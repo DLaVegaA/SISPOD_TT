@@ -1,0 +1,1 @@
+export { default as DentistCalendar } from './ui/DentistCalendar.vue';

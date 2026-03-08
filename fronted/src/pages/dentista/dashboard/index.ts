@@ -1,0 +1,1 @@
+export { default as DentistaDashboard } from './ui/DentistDashboard.vue';
