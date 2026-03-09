@@ -71,7 +71,7 @@ const diasCalendario = ref(Array.from({ length: 35 }, (_, i) => {
           <div 
             v-for="(dia, index) in diasCalendario" 
             :key="index"
-            class="min-h-[120px] p-2 border-r border-b border-slate-100 last:border-r-0 hover:bg-slate-50/50 transition-colors cursor-pointer group"
+            class="min-h-30 p-2 border-r border-b border-slate-100 last:border-r-0 hover:bg-slate-50/50 transition-colors cursor-pointer group"
           >
             <div class="flex justify-end mb-2">
               <span :class="[
