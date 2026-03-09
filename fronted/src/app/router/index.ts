@@ -5,6 +5,7 @@ import { LoginPage } from '@/pages/login';
 import { DentistaDashboard } from '@/pages/dentista/dashboard';
 import { DentistCalendar } from '@/pages/dentista/calendar';
 import { DentistPatient } from '@/pages/dentista/patient';
+import { ClinicalHistory } from '@/pages/dentista/clinicalHistory';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -35,6 +36,11 @@ const router = createRouter({
       path: '/dentista/patient',
       name: 'dentista-patient',
       component: DentistPatient, // Ruta para la gestión de pacientes del dentista
+    },
+    {
+      path: '/dentista/clinical-history',
+      name: 'dentista-clinical-history',
+      component: ClinicalHistory, // Ruta para la historia clínica del dentista
     },
   ],
 });

@@ -75,10 +75,10 @@ const alertas = ref([
         </div>
       </section>
 
-      <section class="bg-blue-50/40 rounded-3xl p-6 border border-blue-100 min-h-[300px] flex flex-col">
+      <section class="bg-blue-50/40 rounded-3xl p-6 border border-blue-100 min-h-75 flex flex-col">
         <h2 class="text-center font-bold text-slate-900 mb-6 text-xl">Alertas</h2>
         
-        <div class="space-y-3 lg:w-1/2 mb-6 flex-grow">
+        <div class="space-y-3 lg:w-1/2 mb-6 grow">
           <div v-for="(alerta, index) in alertas" :key="index" 
                :class="['rounded-full px-6 py-2 flex justify-between items-center text-xs font-bold shadow-sm', alerta.color]">
             <span class="w-1/3 truncate">{{ alerta.tipo }}</span>

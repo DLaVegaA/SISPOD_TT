@@ -1,0 +1,1 @@
+export { default as ClinicalHistory } from './ui/DentistClinicalHistory.vue';
