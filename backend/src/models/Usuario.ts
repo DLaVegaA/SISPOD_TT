@@ -1,7 +1,6 @@
 import { DataTypes, Model} from 'sequelize';
 import { sequelize } from '../config/database'; 
 import bcrypt from "bcryptjs";
-import usuarios from '../seed/usuarios';
 
 export class Usuario extends Model {
     declare id_usuario: number;
@@ -15,6 +14,7 @@ export class Usuario extends Model {
     declare fecha_nacimiento: string;
     declare curp:string;
     declare genero:string;
+    declare estado:string;
 
     public async validarPassword(password:string): Promise<boolean>{
         return await bcrypt.compare(password, this.contrasena);
@@ -75,6 +75,14 @@ Usuario.init(
         },
         genero:{
             type:DataTypes.STRING(20),
+            allowNull:false
+        },
+        estado:{
+            type:DataTypes.ENUM(
+                "pendiente",
+                "activo",
+                "eliminado"
+            ),
             allowNull:false
         }
 

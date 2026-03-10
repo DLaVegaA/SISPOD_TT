@@ -6,11 +6,12 @@ import { error } from 'node:console';
 import {generarContra} from '../helpers/generarContra';
 import { sequelize } from '../config/database';
 import {generarToken} from '../helpers/generarToken';
-
+import transporter from '../helpers/mailer'
 
 export const registrarUsuario = async (req:Request, res:Response) =>{
     const t = await sequelize.transaction();
     
+    let committed = false;
     try {
         
         const {nombre, id_rol,apellido_paterno,apellido_materno,correo,telefono, fecha_nacimiento, curp, genero} = req.body;
@@ -28,7 +29,7 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
             await t.rollback();
             return res.status(400).json({message:"La CURP ya está registrada"})
         }
-
+        const  estado = id_rol === 3 ? 'pendiente' : 'activo';
         if(id_rol==3){
             contrasena = generarContra();
             console.log("Contraseña para el paciente: ", contrasena);
@@ -44,18 +45,20 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
                 telefono,
                 fecha_nacimiento,
                 curp,
-                genero
+                genero,
+                estado
             },{transaction:t}
         )
 
         let pacienteNuevo;
+        let token;
         if(id_rol === 3){
             //Crear el paciente 
             pacienteNuevo = await Paciente.create(
                 {id_usuario: usuarioNuevo.id_usuario},
                 {transaction:t}
             );
-            const token = generarToken();
+            token = generarToken();
             const expira = new Date();
             expira.setHours(expira.getHours()+24);
             const tokenPaciente = await Token.create({
@@ -67,9 +70,24 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
                 transaction:t
             });
             console.log("El token de paciente es: ", token, " y expira en: ", expira);
+
+
         }
 
-        await t.commit()
+        await t.commit();
+        committed = true;
+        if(id_rol === 3){
+            await transporter.sendMail({
+                to: usuarioNuevo.correo,
+                subject: "Activar cuenta",
+                template: "activarCuentaPaciente",
+                context: {
+                    nombre: usuarioNuevo.nombre,
+                    link: `http://localhost:3000/auth/activar-cuenta?token=${token}`,
+                    year: new Date().getFullYear()
+                }
+            } as any);
+        }
 
         return res.status(201).json({
             message:"Usuario creado correctamente",
@@ -84,7 +102,9 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
 
 
     } catch(error){
-        await t.rollback();
+        if(!committed){
+            await t.rollback();
+        }
         console.log("Error al registrar usuario: ", error)
         res.status(500).json({message:"Error del servidor"});
     } 
