@@ -5,6 +5,6 @@ import {permitirRoles} from '../middleware/rolesMiddleware'
 
 const router = Router();
 
-router.post('/usuarios', registrarUsuario);
-router.get('/usuarios', listarUsuarios)
+router.post('/', registrarUsuario);
+router.get('/', listarUsuarios)
 export default router;

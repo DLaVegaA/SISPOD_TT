@@ -38,6 +38,5 @@ async function startServer() {
   }
 }
 app.use('/auth',authRoutes);
-app.use('/admin',userRoutes);
-
+app.use('/usuarios',userRoutes);
 startServer();
