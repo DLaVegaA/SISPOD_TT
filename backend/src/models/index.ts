@@ -4,6 +4,7 @@ import { Dentista } from "./Dentista";
 import { Asistente } from "./Asistente";
 import { Paciente } from "./Paciente";
 import { Token } from "./Token";
+import {Direccion} from "./Direccion";
 
 Usuario.belongsTo(Role, {
   foreignKey: 'id_rol',
@@ -47,7 +48,7 @@ Usuario.hasOne(Paciente,{
 
 Usuario.hasMany(Token,{
   foreignKey:'id_usuario',
-  as: 'tokens'
+  as: 'token'
 });
 
 Token.belongsTo(Usuario,{
@@ -55,6 +56,15 @@ Token.belongsTo(Usuario,{
   as:'usuario'
 });
 
+Direccion.belongsTo(Paciente,{
+  foreignKey:'id_paciente',
+  as:'paciente'
+})
+
+Paciente.hasOne(Direccion,{
+  foreignKey:'id_paciente',
+  as:'direccion'
+})
 
 export {
   Usuario, 
@@ -62,5 +72,6 @@ export {
   Paciente,
   Role,
   Asistente,
-  Token
+  Token, 
+  Direccion
 }

@@ -55,7 +55,8 @@ export const login = async (req:Request, res:Response) =>{
 
 export const activarCuenta = async (req:Request, res:Response) =>{
     try{
-        const {token,password} = req.body;
+        const token = req.params.token;
+        const {password} = req.body;
 
         const tokenBD = await Token.findOne({
             where:{
