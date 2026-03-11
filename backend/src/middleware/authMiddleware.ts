@@ -28,6 +28,9 @@ export const verificarToken = (req: CustomRequest, res:Response, next:NextFuncti
         next();
         
     } catch (error) {
-        
+        console.log('Error al verificar JWT: ', error);
+        return res.status(401).json({
+            messaage:'Token inválido o expirado'
+        });
     }
 }

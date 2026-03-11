@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import {connectBD, sequelize} from './config/database';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
+import pacienteRoutes from './routes/pacienteRoutes';
 
 dotenv.config();
 
@@ -39,4 +40,5 @@ async function startServer() {
 }
 app.use('/auth',authRoutes);
 app.use('/usuarios',userRoutes);
+app.use('/pacientes', pacienteRoutes);
 startServer();

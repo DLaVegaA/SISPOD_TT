@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Usuario,Role,Paciente, Token } from '../models/index';
+import { Usuario,Role,Paciente, Token, Direccion } from '../models/index';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { error } from 'node:console';
@@ -15,9 +15,16 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
     try {
         
         const {nombre, id_rol,apellido_paterno,apellido_materno,correo,telefono, fecha_nacimiento, curp, genero} = req.body;
-
+        
         const correoExiste = await Usuario.findOne({where:{correo}, transaction:t});
         let {contrasena} = req.body;
+        
+        if(id_rol !== 3 && !contrasena){
+            await t.rollback();
+            return res.status(400).json({
+                message:"La contraseña es obligatoria"
+            });
+        }
 
         if(correoExiste){
             await t.rollback();
@@ -140,6 +147,49 @@ export const listarUsuarios = async (req:Request, res:Response) =>{
         console.log("Error al listar usuarios: ", error);
         return res.status(500).json({
             message:"Error del Servidor"
+        });
+    }
+}
+
+export const obtenerUsuario = async(req:Request, res:Response) =>{
+    try {
+        const id = Number(req.params.id);
+        
+        if(isNaN(id)){
+            return res.status(400).json({
+                message: 'ID inválido'
+            });
+        }
+    
+        const usuario = await Usuario.findByPk(id,{
+            attributes:{exclude:['contrasena']},
+            include:[
+                {
+                    model:Paciente,
+                    as: 'paciente',
+                    include:[
+                        {
+                            model:Direccion,
+                            as: 'direccion'
+                        }
+                    ]
+                }
+            ]
+        });
+    
+    
+        if(!usuario){
+            return res.status(404).json({
+                message:'Usuario no encontrado'
+            });
+        }
+    
+        return res.status(200).json(usuario);
+
+    } catch (error) {
+        console.log('Error al obtener usuario: ', error);
+        return res.status(500).json({
+            message: 'Error al obtener usuario'
         });
     }
 }
