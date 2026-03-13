@@ -53,6 +53,31 @@ export const login = async (req:Request, res:Response) =>{
     }
 }
 
+
+export const cerrarSesion = async(req:Request, res:Response) => {
+    try {
+
+        res.clearCookie('token',{
+            httpOnly:true,
+            sameSite:'lax',
+            secure:false
+        });
+
+        return res.json({
+            message:'Sesión cerrada correctamente'
+        });
+    } catch (error) {
+        console.log('Error al cerrar sesión:',error);
+        return res.status(500).json({
+            message:'Error al cerrar sesión'
+        });
+    }
+}
+
+/**
+ * POST  /auth/activar-cuenta/:token
+ * Cambia el estado del pacienta a activo, mediante el token enviado por correo despues de crearse un paciente 
+ */
 export const activarCuenta = async (req:Request, res:Response) =>{
     try{
         const token = req.params.token;

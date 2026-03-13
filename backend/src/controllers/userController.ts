@@ -8,6 +8,11 @@ import { sequelize } from '../config/database';
 import {generarToken} from '../helpers/generarToken';
 import transporter from '../helpers/mailer'
 
+
+/**
+ * POST /usuarios/
+ * Registra al usario con los datos necesarios y en caso de ser paciente envia correo con token
+ */
 export const registrarUsuario = async (req:Request, res:Response) =>{
     const t = await sequelize.transaction();
     
@@ -117,6 +122,12 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
     } 
 }
 
+/**
+ * GET /usuarios/
+ * Lista todos los usuarios registrados en el sistema
+ * (Solo lo debe usar el admin)
+ */
+
 export const listarUsuarios = async (req:Request, res:Response) =>{
     console.log(req.query.pagina);
     const pagina = Number(req.query.pagina) || 1;
@@ -151,6 +162,10 @@ export const listarUsuarios = async (req:Request, res:Response) =>{
     }
 }
 
+/**
+ * GET /usuarios/:id
+ *  Lista un usuario en especifico mediante su id
+ */
 export const obtenerUsuario = async(req:Request, res:Response) =>{
     try {
         const id = Number(req.params.id);
@@ -190,6 +205,47 @@ export const obtenerUsuario = async(req:Request, res:Response) =>{
         console.log('Error al obtener usuario: ', error);
         return res.status(500).json({
             message: 'Error al obtener usuario'
+        });
+    }
+}
+
+
+const editarUsuario = async(req:Request, res:Response) => {
+
+}
+
+export const eliminarUsuario = async(req:Request, res:Response) => {
+    try {
+        const id = Number(req.params.id);
+        if(isNaN(id)){
+            return res.status(400).json({
+                message: 'ID inválido'
+            });
+        }
+
+        const usuario= await Usuario.findByPk(id,{
+            attributes:{exclude:['contrasena']}
+        });
+
+        if(!usuario){
+            return res.status(404).json({
+                message:'Usuario no encontrado'
+            });
+        }
+
+        await usuario.update({
+            estado:'eliminado'
+        });
+
+        return res.status(200).json({
+            message:'Usuario eliminado'
+        });
+
+        
+    } catch (error) {
+        console.log('Error al eliminar Usuario: ', error);
+        return res.status(500).json({
+            message:'Error al eliminar usuario'
         });
     }
 }
