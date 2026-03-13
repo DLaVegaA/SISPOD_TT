@@ -1,7 +1,10 @@
 import {Request, Response} from 'express';
 import {Paciente, Direccion} from '../models/index';
 
-
+/**
+ * POST /paciente/:id/direccion
+ * Permite crear la direccion de un paciente en especifico
+ */
 export const crearDireccionPaciente = async(req:Request, res:Response) =>{
     try {
         const id = Number(req.params.id);

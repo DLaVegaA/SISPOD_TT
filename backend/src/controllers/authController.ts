@@ -53,6 +53,11 @@ export const login = async (req:Request, res:Response) =>{
     }
 }
 
+
+/**
+ * POST  /auth/activar-cuenta/:token
+ * Cambia el estado del pacienta a activo, mediante el token enviado por correo despues de crearse un paciente 
+ */
 export const activarCuenta = async (req:Request, res:Response) =>{
     try{
         const token = req.params.token;
