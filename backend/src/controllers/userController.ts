@@ -6,12 +6,38 @@ import { error } from 'node:console';
 import {generarContra} from '../helpers/generarContra';
 import { sequelize } from '../config/database';
 import {generarToken} from '../helpers/generarToken';
-import transporter from '../helpers/mailer'
-
+import transporter from '../helpers/mailer';
 
 /**
  * POST /usuarios/
  * Registra al usario con los datos necesarios y en caso de ser paciente envia correo con token
+ * body{
+ *  correo string
+ *  nombre string",
+ *  id_rol number,
+ *  apellido_paterno string,
+ *  apellido_materno string,
+ *  telefono string(10 caracteres),
+ *  fecha_nacimiento date,
+ *  curp  string (18 caracteres),
+ *  genero string,
+ *  contrasena string (si es paciente no se manda)
+ * }
+ * res 201
+ * {
+ *  message : Usuario creado correctamente,
+ *  usuario{
+ *  id,
+ *  nombre,
+ *  correo,
+ *  id_rol
+ * }
+ * 
+ * errores
+ *  400 - El correo ya está registrado
+ *  400 - La CURP ya está registrada
+ *  400 - La contraseña es obligatoria
+ *  500 - Error del servidor
  */
 export const registrarUsuario = async (req:Request, res:Response) =>{
     const t = await sequelize.transaction();
@@ -42,7 +68,7 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
             return res.status(400).json({message:"La CURP ya está registrada"})
         }
         const  estado = id_rol === 3 ? 'pendiente' : 'activo';
-        if(id_rol==3){
+        if(id_rol===3){
             contrasena = generarContra();
             console.log("Contraseña para el paciente: ", contrasena);
         }
@@ -126,6 +152,15 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
  * GET /usuarios/
  * Lista todos los usuarios registrados en el sistema
  * (Solo lo debe usar el admin)
+ * query{
+ *  pagina (pagina?=)
+ * }
+ * res{
+ *  total,
+ *  pagina,
+ *  totalPaginas,
+ *  usuarios (arreglo)
+ * }
  */
 
 export const listarUsuarios = async (req:Request, res:Response) =>{
@@ -165,6 +200,42 @@ export const listarUsuarios = async (req:Request, res:Response) =>{
 /**
  * GET /usuarios/:id
  *  Lista un usuario en especifico mediante su id
+ * params
+ * {
+ *  id
+ * }
+ * res 200
+ * {
+ * id_usuario,
+ *   nombre,
+ *   apellido_paterno,
+ *   apellido_materno,
+ *   correo,
+ *   telefono,
+ *   fecha_nacimiento,
+ *   curp,
+ *   genero,
+ *   estado,
+ *   id_rol,
+ *   paciente: { (opcional)
+ *      id_paciente,
+ *      id_usuario,
+ *      direccion: {
+ *          id_direccion,
+ *          calle,
+ *          numero,
+ *          colonia,
+ *          ciudad,
+ *          estado,
+ *          codigo_postal
+ *      }
+ *   }
+ * }
+ * 
+ * errores
+ * 400 - ID inválido
+ * 404 - Usuario no encontrado
+ * 500 - Error del servidor
  */
 export const obtenerUsuario = async(req:Request, res:Response) =>{
     try {
@@ -214,6 +285,24 @@ const editarUsuario = async(req:Request, res:Response) => {
 
 }
 
+/**
+ * DELETE /usuarios/:id
+ * Elimina un usuario del sistema de forma lógica
+ * 
+ * params
+ * {
+ *  id
+ * }
+ * 
+ * res 200
+ * {
+ *  message Usuario eliminado
+ * }
+ * errores
+ *  400 - ID inválido
+ *  404 - Usuario no encontrado
+ *  500 - Error del servidor
+ */
 export const eliminarUsuario = async(req:Request, res:Response) => {
     try {
         const id = Number(req.params.id);
