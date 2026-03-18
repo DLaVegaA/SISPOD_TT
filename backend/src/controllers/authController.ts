@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { Usuario, Token, Paciente } from '../models/index';
+import {generarToken} from '../helpers/generarToken';
+import transporter from '../helpers/mailer';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -128,6 +130,111 @@ export const activarCuenta = async (req:Request, res:Response) =>{
 
     }catch(error){
         console.log('Error al activar cuenta: ', error);
+        return res.status(500).json({
+            message:'Error del servidor'
+        });
+    }
+}
+
+export const olvidoContrasena =async (req:Request, res:Response) =>{
+    try {
+        const {correo} = req.body;
+    
+        if(!correo){
+            return res.status(400).json({message:'Ingresa un correo'});
+        }
+
+        const usuarioExiste = await Usuario.findOne({where:{correo}});
+
+        if(!usuarioExiste){
+            return res.status(400).json({message:'Usuario no encontrado'});
+        }
+
+        const token = generarToken();
+        const expira = new Date();
+        expira.setHours(expira.getHours()+1);
+        await Token.create({
+            id_usuario:usuarioExiste.id_usuario,
+            token,
+            tipo:'recuperacion',
+            expira_en:expira
+        });
+
+        await transporter.sendMail({
+            to:usuarioExiste.correo,
+            subject: 'Olvidaste tu contraseña',
+            template: 'recuperarPassword',
+            context:{
+                nombre:usuarioExiste.nombre,
+                link:`http://localhost:3000/auth/reset-password?token=${token}`,
+                year: new Date().getFullYear()
+            }
+        } as any);
+
+        return res.status(200).json({message:'Se envio un correo con las instrucciones'});
+        
+        
+    } catch (error) {
+        console.log('Error en olvido contraseña: ',error);
+        return res.status(500).json({message: 'Error del servidor'});
+    }
+}
+
+
+export const resetPassword = async(req:Request, res:Response) =>{
+    const token = req.params.token;
+    const {contrasena} = req.body
+
+    try {
+        if(!token){
+            return res.status(200).json({
+                message: 'Token requerido'
+            });
+        }
+
+        if(!contrasena){
+            return res.status(400).json({message:'La contraseña es obligatoria'});
+        }
+        
+        const tokenBD = await Token.findOne({
+            where:{
+                token,
+                tipo:'recuperacion'
+            }
+        });
+
+        if(!tokenBD){
+            return res.status(400).json({
+                message: 'Token inválido'
+            });
+        }
+
+        if(tokenBD.expira_en< new Date()){
+            return res.status(400).json({
+                message:'Token expirado'
+            });
+        }
+
+        const usuario= await Usuario.findByPk(tokenBD.id_usuario);
+
+        if(!usuario){
+            return res.status(404).json({
+                message:'Usuario no encontrado'
+            });
+        }
+
+        await usuario.update({
+            contrasena
+        });
+
+        await tokenBD.destroy();
+
+        return res.json({
+            message:'Contraseña actualizada correctamente'
+        })
+
+    } catch (error) {
+        console.log('Error al resetear contraseña: ', error);
         return res.status(500).json({
             message:'Error del servidor'
         });
