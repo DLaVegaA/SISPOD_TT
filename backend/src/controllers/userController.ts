@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Usuario,Role,Paciente, Token, Direccion } from '../models/index';
+import { Usuario,Role,Paciente, Token, Direccion, Dentista } from '../models/index';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { error } from 'node:console';
@@ -30,7 +30,8 @@ import transporter from '../helpers/mailer';
  *  id,
  *  nombre,
  *  correo,
- *  id_rol
+ *  id_rol,
+ *  cedula en caso de que id_rol sea 2
  * }
  * 
  * errores
@@ -45,7 +46,7 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
     let committed = false;
     try {
         
-        const {nombre, id_rol,apellido_paterno,apellido_materno,correo,telefono, fecha_nacimiento, curp, genero} = req.body;
+        const {nombre, id_rol,apellido_paterno,apellido_materno,correo,telefono, fecha_nacimiento, curp, genero, no_cedula} = req.body;
         
         const correoExiste = await Usuario.findOne({where:{correo}, transaction:t});
         let {contrasena} = req.body;
@@ -54,6 +55,13 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
             await t.rollback();
             return res.status(400).json({
                 message:"La contraseña es obligatoria"
+            });
+        }
+
+        if(id_rol === 2 && !no_cedula){
+            await t.rollback();
+            return res.status(400).json({
+                message:"La cedula es obligatoria para dentista"
             });
         }
 
@@ -68,6 +76,7 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
             return res.status(400).json({message:"La CURP ya está registrada"})
         }
         const  estado = id_rol === 3 ? 'pendiente' : 'activo';
+
         if(id_rol===3){
             contrasena = generarContra();
             console.log("Contraseña para el paciente: ", contrasena);
@@ -112,8 +121,17 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
 
         }
 
+        if(id_rol === 2){
+            await Dentista.create({
+                id_usuario:usuarioNuevo.id_usuario,
+                no_cedula
+            },{transaction:t});
+        }
+
         await t.commit();
         committed = true;
+
+
         if(id_rol === 3){
             await transporter.sendMail({
                 to: usuarioNuevo.correo,
