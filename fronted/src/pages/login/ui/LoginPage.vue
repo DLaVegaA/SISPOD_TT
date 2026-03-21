@@ -1,22 +1,40 @@
 <script setup lang="ts">
 import { LoginForm } from '@/features/auth'
+import logoUrl from '@/shared/assets/logo_diente.png'
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-    <div class="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
-      <div class="text-center mb-8">
-        <h1 class="text-2xl font-black text-blue-900 leading-tight">Bienvenido de nuevo</h1>
-        <p class="text-slate-500 mt-2">Ingresa tus credenciales para acceder al sistema</p>
-      </div>
+  <!-- Fondo con imagen de clínica -->
+  <div class="min-h-screen flex items-center justify-center px-4 relative">
+    <img 
+      src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80"
+      class="absolute inset-0 w-full h-full object-cover z-0"
+      alt="Clínica Dental"
+    />
+    <!-- Overlay oscuro -->
+    <div class="absolute inset-0 bg-black/40 z-10"></div>
+
+    <!-- Botón regresar -->
+    <router-link to="/"
+      class="absolute top-6 left-6 z-30 flex items-center gap-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-xl text-sm font-medium transition">
+      ← Regresar
+    </router-link>
+
+    <!-- Card glassmorphism -->
+    <div class="relative z-20 bg-white/20 backdrop-blur-xl border border-white/30 shadow-2xl rounded-3xl p-10 w-full max-w-md">
       
+      <!-- Logo y nombre -->
+      <div class="flex flex-col items-center mb-6 gap-1">
+        <div class="flex items-center gap-2">
+          <img :src="logoUrl" alt="Logo" class="h-7 w-auto brightness-0 invert" />
+          <span class="text-white font-semibold text-sm">Consultorio Gonzalez</span>
+        </div>
+      </div>
+
+      <!-- Título -->
+      <h1 class="text-2xl font-bold text-white text-center mb-8">Inicio de Sesión</h1>
+
       <LoginForm />
-      
-      <div class="mt-8 text-center">
-        <router-link to="/" class="text-sm text-blue-600 hover:underline font-medium">
-          ← Volver al inicio
-        </router-link>
-      </div>
     </div>
   </div>
 </template>
