@@ -20,7 +20,7 @@ const isOpen = ref(false)
         <a href="#inicio" class="text-white border-b-2 border-white">Inicio</a>
         <a href="#sobre-nosotros" class="text-white/80 hover:text-white transition">Sobre Nosotros</a>
         <a href="#servicios" class="text-white/80 hover:text-white transition">Servicios</a>
-        <router-link to="/login" class="bg-[#4382b59d] text-white px-7 py-2.5 rounded-xl font-bold hover:bg-blue-50 transition shadow-lg shadow-blue-900/20 inline-block cursor-pointer">
+        <router-link to="/login" class="bg-[#4382b59d] text-white px-7 py-2.5 rounded-xl font-bold hover:bg-[#3a6d9c] transition shadow-lg shadow-blue-900/20 inline-block cursor-pointer">
           Iniciar Sesión
         </router-link>
       </div>
@@ -45,7 +45,7 @@ const isOpen = ref(false)
         <a href="#sobre-nosotros" class="text-white/80 hover:text-white hover:bg-white/10 px-4 py-3 rounded-xl transition">Sobre Nosotros</a>
         <a href="#servicios" class="text-white/80 hover:text-white hover:bg-white/10 px-4 py-3 rounded-xl transition">Servicios</a>
         <router-link to="/login"
-                     class="mt-2 bg-[#4382b59d] text-white px-4 py-3 rounded-xl font-bold hover:bg-blue-50 transition text-center"
+                     class="mt-2 bg-[#4382b59d] text-white px-4 py-3 rounded-xl font-bold hover:bg-[#3a6d9c] transition text-center"
                      @click="isOpen = false">
           Iniciar Sesión
         </router-link>
