@@ -4,6 +4,7 @@ import {generarToken} from '../helpers/generarToken';
 import transporter from '../helpers/mailer';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { where } from 'sequelize';
 
 export const login = async (req:Request, res:Response) =>{
     try{
@@ -150,17 +151,31 @@ export const olvidoContrasena =async (req:Request, res:Response) =>{
             return res.status(400).json({message:'Usuario no encontrado'});
         }
 
-        const token = generarToken();
+        const tokenFinal = generarToken();
         const expira = new Date();
         expira.setHours(expira.getHours()+1);
         
         //Hacer logica para cuando ya tiene token
-        await Token.create({
-            id_usuario:usuarioExiste.id_usuario,
-            token,
-            tipo:'recuperacion',
-            expira_en:expira
+        const tokenActivo = await Token.findOne({
+            where:{
+                id_usuario:usuarioExiste.id_usuario,
+                tipo: 'recuperacion'
+            }
         });
+    
+        if(tokenActivo){
+            await tokenActivo.update({
+                token:tokenFinal,
+                expira_en:expira
+            })
+        }else{
+            await Token.create({
+                id_usuario:usuarioExiste.id_usuario,
+                token:tokenFinal,
+                tipo:'recuperacion',
+                expira_en:expira
+            });
+        }
 
 
         await transporter.sendMail({
@@ -169,7 +184,7 @@ export const olvidoContrasena =async (req:Request, res:Response) =>{
             template: 'recuperarPassword',
             context:{
                 nombre:usuarioExiste.nombre,
-                link:`http://localhost:3000/auth/reset-password?token=${token}`,
+                link:`http://localhost:3000/auth/reset-password?token=${tokenFinal}`,
                 year: new Date().getFullYear()
             }
         } as any);
@@ -214,7 +229,7 @@ export const resetPassword = async(req:Request, res:Response) =>{
 
         if(tokenBD.expira_en< new Date()){
             return res.status(400).json({
-                message:'Token expirado'
+                message:'Token expirado, solicta uno nuevo'
             });
         }
 
