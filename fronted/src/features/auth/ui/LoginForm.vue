@@ -94,14 +94,16 @@ const handleSubmit = async () => {
 
     <!-- ¿Olvidé mi contraseña? -->
     <div class="text-right">
-      <a href="#" class="text-xs text-blue-200 hover:text-white transition">¿Olvidé mi contraseña?</a>
+      <router-link to="/recuperar-contrasena" class="text-xs text-blue-200 hover:text-white transition">
+        ¿Olvidé mi contraseña?
+      </router-link>
     </div>
 
     <!-- Botón submit -->
     <button 
       type="submit"
       :disabled="isLoading"
-      class="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-bold transition shadow-lg flex justify-center items-center gap-2 disabled:opacity-50 mt-2"
+      class="w-full bg-[#4382b59d] hover:bg-[#3a6d9c] text-white py-3 rounded-xl font-bold transition shadow-lg flex justify-center items-center gap-2 disabled:opacity-50 mt-2"
     >
       <span v-if="isLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
       {{ isLoading ? 'Validando...' : 'Iniciar Sesión' }}

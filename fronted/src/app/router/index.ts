@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 // Importamos usando el alias @ y apuntando a la carpeta de la página
 import { HomePage } from '@/pages/home'; 
 import { LoginPage } from '@/pages/login';
+import { RecoverPasswordPage } from '@/pages/recuperarContrasena';
 import { DentistaDashboard } from '@/pages/dentista/dashboard';
 import { DentistCalendar } from '@/pages/dentista/calendar';
 import { DentistPatient } from '@/pages/dentista/patient';
@@ -21,6 +22,11 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginPage, // Esta es la ruta para tu formulario
+    },
+    {
+      path: '/recuperar-contrasena',
+      name: 'recuperar-contrasena',
+      component: RecoverPasswordPage, // Ruta para la página de recuperación de contraseña
     },
     {
       path: '/dentista/dashboard',

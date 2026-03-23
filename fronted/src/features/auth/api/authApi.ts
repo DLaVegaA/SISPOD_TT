@@ -6,3 +6,8 @@ export const loginRequest = async (credentials: Record<string, string>) => {
   const response = await api.post('/auth/login', credentials);
   return response.data;
 };
+
+export const recoverPasswordRequest = async (data: { correo: string }) => {
+  const response = await api.post('/auth/forgot-password', data);
+  return response.data;
+};
