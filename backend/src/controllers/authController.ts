@@ -153,12 +153,15 @@ export const olvidoContrasena =async (req:Request, res:Response) =>{
         const token = generarToken();
         const expira = new Date();
         expira.setHours(expira.getHours()+1);
+        
+        //Hacer logica para cuando ya tiene token
         await Token.create({
             id_usuario:usuarioExiste.id_usuario,
             token,
             tipo:'recuperacion',
             expira_en:expira
         });
+
 
         await transporter.sendMail({
             to:usuarioExiste.correo,
