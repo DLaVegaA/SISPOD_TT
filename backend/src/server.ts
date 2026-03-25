@@ -6,16 +6,16 @@ import {connectBD, sequelize} from './config/database';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import pacienteRoutes from './routes/pacienteRoutes';
+import citasRoutes from './routes/citasRoutes';
+import dentistaRoutes from './routes/dentistaRoutes';
 
 dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 app.use(cors({
-  origin:true,
+  origin:process.env.FRONTEND_URL,
   credentials:true
-})); //Aun no se en donde esta corriendo el frontend
+})); 
 
 app.use(cookieParser());
 app.use(express.json());
@@ -41,4 +41,6 @@ async function startServer() {
 app.use('/auth',authRoutes);
 app.use('/usuarios',userRoutes);
 app.use('/pacientes', pacienteRoutes);
+app.use('/dentistas',dentistaRoutes);
+app.use('/citas', citasRoutes);
 startServer();

@@ -2,6 +2,8 @@ import {Request, Response} from 'express';
 import {Usuario,Role,Dentista} from '../models/index';
 import { sequelize } from '../config/database';
 
+
+
 export const registrarDentista =async(req:Request, res:Response)=>{
     const{nombre, id_rol,apellido_paterno,apellido_materno,correo,contrasena,telefono, fecha_nacimiento, curp, genero, no_cedula} = req.body;
     if(!nombre || !id_rol || !apellido_paterno || !apellido_materno || !correo || !contrasena || !telefono || !fecha_nacimiento || !curp || !genero || !no_cedula){
@@ -22,7 +24,7 @@ export const registrarDentista =async(req:Request, res:Response)=>{
         if(correoExiste){
             await t.rollback();
             return res.status(400).json({
-                message:'El correo electrónico ya esat registrado'
+                message:'El correo electrónico ya está registrado'
             });
         }
 
