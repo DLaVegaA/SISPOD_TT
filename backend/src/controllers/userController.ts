@@ -41,30 +41,24 @@ import transporter from '../helpers/mailer';
  *  500 - Error del servidor
  */
 export const registrarUsuario = async (req:Request, res:Response) =>{
+    const {nombre, id_rol,apellido_paterno,apellido_materno,correo,telefono, fecha_nacimiento, curp, genero, contrasena} = req.body;
+        if(!nombre || !id_rol || !apellido_paterno || !apellido_materno || !correo || !contrasena || !telefono || !fecha_nacimiento || !curp || !genero){
+        return res.status(400).json({
+            message: 'Faltan datos obligatorios'
+        });
+    }
+
+    if(id_rol !==1 && id_rol !== 4 ){
+        return res.status(400).json({
+            message: 'No se puede registrrar al usuario'
+        });
+    }
     const t = await sequelize.transaction();
-    
     let committed = false;
     try {
         
-        const {nombre, id_rol,apellido_paterno,apellido_materno,correo,telefono, fecha_nacimiento, curp, genero, no_cedula} = req.body;
-        
         const correoExiste = await Usuario.findOne({where:{correo}, transaction:t});
-        let {contrasena} = req.body;
         
-        if(id_rol !== 3 && !contrasena){
-            await t.rollback();
-            return res.status(400).json({
-                message:"La contraseña es obligatoria"
-            });
-        }
-
-        if(id_rol === 2 && !no_cedula){
-            await t.rollback();
-            return res.status(400).json({
-                message:"La cedula es obligatoria para dentista"
-            });
-        }
-
         if(correoExiste){
             await t.rollback();
             return res.status(400).json({message:"El correo ya está registrado"})
@@ -75,12 +69,7 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
             await t.rollback();
             return res.status(400).json({message:"La CURP ya está registrada"})
         }
-        const  estado = id_rol === 3 ? 'pendiente' : 'activo';
-
-        if(id_rol===3){
-            contrasena = generarContra();
-            console.log("Contraseña para el paciente: ", contrasena);
-        }
+        const  estado = 'activo';
 
         const usuarioNuevo = await Usuario.create({
                 id_rol,
@@ -97,53 +86,8 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
             },{transaction:t}
         )
 
-        let pacienteNuevo;
-        let token;
-        if(id_rol === 3){
-            //Crear el paciente 
-            pacienteNuevo = await Paciente.create(
-                {id_usuario: usuarioNuevo.id_usuario},
-                {transaction:t}
-            );
-            token = generarToken();
-            const expira = new Date();
-            expira.setHours(expira.getHours()+24);
-            const tokenPaciente = await Token.create({
-                id_usuario: usuarioNuevo.id_usuario,
-                token:token,
-                tipo:"activacion",
-                expira_en:expira
-            },{
-                transaction:t
-            });
-            console.log("El token de paciente es: ", token, " y expira en: ", expira);
-
-
-        }
-
-        if(id_rol === 2){
-            await Dentista.create({
-                id_usuario:usuarioNuevo.id_usuario,
-                no_cedula
-            },{transaction:t});
-        }
-
         await t.commit();
         committed = true;
-
-
-        if(id_rol === 3){
-            await transporter.sendMail({
-                to: usuarioNuevo.correo,
-                subject: "Activar cuenta",
-                template: "activarCuentaPaciente",
-                context: {
-                    nombre: usuarioNuevo.nombre,
-                    link: `http://localhost:3000/auth/activar-cuenta?token=${token}`,
-                    year: new Date().getFullYear()
-                }
-            } as any);
-        }
 
         return res.status(201).json({
             message:"Usuario creado correctamente",
