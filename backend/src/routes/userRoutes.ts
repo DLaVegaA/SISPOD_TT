@@ -8,5 +8,5 @@ const router = Router();
 router.post('/', registrarUsuario);
 router.get('/', listarUsuarios);
 router.get('/:id', obtenerUsuario);
-router.delete('/id', eliminarUsuario);
+router.delete('/:id', eliminarUsuario);
 export default router;

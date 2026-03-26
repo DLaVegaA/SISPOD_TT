@@ -79,3 +79,89 @@ export const registrarDentista =async(req:Request, res:Response)=>{
     }
     
 }
+
+export const listarDentistas = async(req:Request, res:Response) =>{
+    const pagina = Number(req.query.pagina) || 1;
+    console.log(pagina);
+
+    try {
+        const limit =10;
+        const offset =((pagina*limit)-limit);
+        const{count:total, rows:dentistas} = await Dentista.findAndCountAll({
+            limit:limit,
+            offset:offset,
+            include:[
+                {
+                    model:Usuario,
+                    as:'usuario',
+                    attributes:{
+                        exclude:['contrasena']
+                    },
+                    where:{
+                        estado:'activo'
+                    }
+                }
+            ]
+        });
+
+        const totalPaginas = Math.ceil(total/limit);
+
+        return res.status(200).json({
+            message:'Dentistas',
+            total,
+            totalPaginas,
+            limit,
+            dentistas
+        })
+
+    } catch (error) {
+        console.log('Error al listar usuarios: ', error);
+        return res.status(500).json({
+            message:'Error del servidor'
+        });
+    }
+}
+
+export const obtenerDentista= async(req:Request, res:Response) =>{
+    const id_dentista = Number(req.params.id);
+
+    if(isNaN(id_dentista)){
+        return res.status(400).json({
+            message:'ID invalido'
+        });
+    }
+
+    try{
+        const dentista = await Dentista.findByPk(id_dentista,{
+            include:[
+                {
+                    model:Usuario,
+                    as:'usuario',
+                    attributes:{
+                        exclude:['contrasena']
+                    },
+                    where:{
+                        estado:'activo'
+                    }
+                }
+            ]
+        });
+
+        if(!dentista){
+            return res.status(404).json({
+                message:'Dentista no encontrado'
+            });
+        }
+
+        return res.status(200).json({
+            message:'Dentista encontrado',
+            dentista
+        });
+
+    }catch(error){
+        console.log('Error al obtener Dentista: ', error);
+        return res.status(500).json({
+            message:'Error del Servidor'
+        })
+    }
+}

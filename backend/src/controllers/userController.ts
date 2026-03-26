@@ -1,12 +1,7 @@
 import { Request, Response } from 'express';
-import { Usuario,Role,Paciente, Token, Direccion, Dentista } from '../models/index';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { error } from 'node:console';
-import {generarContra} from '../helpers/generarContra';
+import { Usuario,Role,Paciente, Direccion, Dentista } from '../models/index';
 import { sequelize } from '../config/database';
-import {generarToken} from '../helpers/generarToken';
-import transporter from '../helpers/mailer';
+
 
 /**
  * POST /usuarios/
@@ -149,7 +144,8 @@ export const listarUsuarios = async (req:Request, res:Response) =>{
             total,
             pagina,
             totalPaginas: Math.ceil(total/limit),
-            usuarios
+            usuarios,
+            limit
         });
     } catch (error) {
         console.log("Error al listar usuarios: ", error);
@@ -201,28 +197,16 @@ export const listarUsuarios = async (req:Request, res:Response) =>{
  */
 export const obtenerUsuario = async(req:Request, res:Response) =>{
     try {
-        const id = Number(req.params.id);
+        const id_usuario = Number(req.params.id);
         
-        if(isNaN(id)){
+        if(isNaN(id_usuario)){
             return res.status(400).json({
                 message: 'ID inválido'
             });
         }
     
-        const usuario = await Usuario.findByPk(id,{
+        const usuario = await Usuario.findByPk(id_usuario,{
             attributes:{exclude:['contrasena']},
-            include:[
-                {
-                    model:Paciente,
-                    as: 'paciente',
-                    include:[
-                        {
-                            model:Direccion,
-                            as: 'direccion'
-                        }
-                    ]
-                }
-            ]
         });
     
     
@@ -232,12 +216,15 @@ export const obtenerUsuario = async(req:Request, res:Response) =>{
             });
         }
     
-        return res.status(200).json(usuario);
+        return res.status(200).json({
+            message:'Usuario encontrado',    
+            usuario
+        });
 
     } catch (error) {
         console.log('Error al obtener usuario: ', error);
         return res.status(500).json({
-            message: 'Error al obtener usuario'
+            message: 'Error del Servidor'
         });
     }
 }
@@ -266,13 +253,13 @@ const editarUsuario = async(req:Request, res:Response) => {
  *  500 - Error del servidor
  */
 export const eliminarUsuario = async(req:Request, res:Response) => {
+    const id = Number(req.params.id);
+    if(isNaN(id)){
+        return res.status(400).json({
+            message: 'ID inválido'
+        });
+    }
     try {
-        const id = Number(req.params.id);
-        if(isNaN(id)){
-            return res.status(400).json({
-                message: 'ID inválido'
-            });
-        }
 
         const usuario= await Usuario.findByPk(id,{
             attributes:{exclude:['contrasena']}
@@ -296,7 +283,7 @@ export const eliminarUsuario = async(req:Request, res:Response) => {
     } catch (error) {
         console.log('Error al eliminar Usuario: ', error);
         return res.status(500).json({
-            message:'Error al eliminar usuario'
+            message:'Error del Servidor'
         });
     }
 }

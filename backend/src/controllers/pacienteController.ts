@@ -124,3 +124,86 @@ export const registrarPaciente = async(req:Request, res:Response)=>{
 }
 
 
+export const listarPacientes =async(req:Request, res:Response)=>{
+    const pagina = Number(req.query.pagina)|| 1;
+
+    try {
+        const limit = 10;
+        const offset = (pagina*limit) -limit;
+
+        const {count:total, rows:pacientes} = await Paciente.findAndCountAll({
+            limit,
+            offset,
+            include:[
+                {
+                    model:Usuario,
+                    as:'usuario',
+                    attributes:{
+                        exclude:['contrasena']
+                    },
+                    where:{
+                        estado:'activo'
+                    }
+                }
+            ]
+        });
+
+        const totalPaginas = Math.ceil(total/limit);
+
+        return res.status(200).json({
+            message:'Pacientes',
+            total,
+            pagina,
+            totalPaginas,
+            limit,
+            pacientes
+        });
+    } catch (error) {
+        console.log('Error al listar pacientes: ',error);
+        return  res.status(500).json({
+            message:'Error del Servidor'
+        });
+    }
+}
+
+export const obtenerPaciente =async(req:Request, res:Response) =>{
+    const id_paciente = Number(req.params.id);
+    if(isNaN(id_paciente)){
+        return res.status(400).json({
+            message:'ID inválido'
+        });
+    }
+
+    try {
+        const paciente = await Paciente.findByPk(id_paciente,{
+            include:[
+                {
+                    model:Usuario,
+                    as:'usuario',
+                    attributes:{
+                        exclude:['contrasena']
+                    },
+                    where:{
+                        estado:'activo'
+                    }
+                }
+            ]
+        });
+
+        if(!paciente){
+            return res.status(400).json({
+                message:'Paciente no encontrado'
+            });
+        }
+
+        return res.status(200).json({
+            message:'Paciente encontrado',
+            paciente
+        });
+    } catch (error) {
+        console.log('Error al obtener Paciente: ', error);
+        return res.status(500).json({
+            message:'Error del Servidor'
+        });
+    }
+}
