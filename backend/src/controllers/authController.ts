@@ -2,9 +2,7 @@ import { Request, Response } from 'express';
 import { Usuario, Token, Paciente } from '../models/index';
 import {generarToken} from '../helpers/generarToken';
 import transporter from '../helpers/mailer';
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { where } from 'sequelize';
 
 export const login = async (req:Request, res:Response) =>{
     try{
@@ -155,7 +153,6 @@ export const olvidoContrasena =async (req:Request, res:Response) =>{
         const expira = new Date();
         expira.setHours(expira.getHours()+1);
         
-        //Hacer logica para cuando ya tiene token
         const tokenActivo = await Token.findOne({
             where:{
                 id_usuario:usuarioExiste.id_usuario,
@@ -199,6 +196,10 @@ export const olvidoContrasena =async (req:Request, res:Response) =>{
 }
 
 
+export const validarToken = async(req:Request, res:Response) =>{
+
+}
+//Hcaer funcion que valide el token antes de que llegar al formulario 
 export const resetPassword = async(req:Request, res:Response) =>{
     const token = req.params.token;
     const {contrasena} = req.body

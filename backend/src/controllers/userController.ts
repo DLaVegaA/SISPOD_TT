@@ -1,12 +1,7 @@
 import { Request, Response } from 'express';
-import { Usuario,Role,Paciente, Token, Direccion, Dentista } from '../models/index';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { error } from 'node:console';
-import {generarContra} from '../helpers/generarContra';
+import { Usuario,Role,Paciente, Direccion, Dentista } from '../models/index';
 import { sequelize } from '../config/database';
-import {generarToken} from '../helpers/generarToken';
-import transporter from '../helpers/mailer';
+
 
 /**
  * POST /usuarios/
@@ -41,30 +36,24 @@ import transporter from '../helpers/mailer';
  *  500 - Error del servidor
  */
 export const registrarUsuario = async (req:Request, res:Response) =>{
+    const {nombre, id_rol,apellido_paterno,apellido_materno,correo,telefono, fecha_nacimiento, curp, genero, contrasena} = req.body;
+        if(!nombre || !id_rol || !apellido_paterno || !apellido_materno || !correo || !contrasena || !telefono || !fecha_nacimiento || !curp || !genero){
+        return res.status(400).json({
+            message: 'Faltan datos obligatorios'
+        });
+    }
+
+    if(id_rol !==1 && id_rol !== 4 ){
+        return res.status(400).json({
+            message: 'No se puede registrrar al usuario'
+        });
+    }
     const t = await sequelize.transaction();
-    
     let committed = false;
     try {
         
-        const {nombre, id_rol,apellido_paterno,apellido_materno,correo,telefono, fecha_nacimiento, curp, genero, no_cedula} = req.body;
-        
         const correoExiste = await Usuario.findOne({where:{correo}, transaction:t});
-        let {contrasena} = req.body;
         
-        if(id_rol !== 3 && !contrasena){
-            await t.rollback();
-            return res.status(400).json({
-                message:"La contraseña es obligatoria"
-            });
-        }
-
-        if(id_rol === 2 && !no_cedula){
-            await t.rollback();
-            return res.status(400).json({
-                message:"La cedula es obligatoria para dentista"
-            });
-        }
-
         if(correoExiste){
             await t.rollback();
             return res.status(400).json({message:"El correo ya está registrado"})
@@ -75,12 +64,7 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
             await t.rollback();
             return res.status(400).json({message:"La CURP ya está registrada"})
         }
-        const  estado = id_rol === 3 ? 'pendiente' : 'activo';
-
-        if(id_rol===3){
-            contrasena = generarContra();
-            console.log("Contraseña para el paciente: ", contrasena);
-        }
+        const  estado = 'activo';
 
         const usuarioNuevo = await Usuario.create({
                 id_rol,
@@ -97,53 +81,8 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
             },{transaction:t}
         )
 
-        let pacienteNuevo;
-        let token;
-        if(id_rol === 3){
-            //Crear el paciente 
-            pacienteNuevo = await Paciente.create(
-                {id_usuario: usuarioNuevo.id_usuario},
-                {transaction:t}
-            );
-            token = generarToken();
-            const expira = new Date();
-            expira.setHours(expira.getHours()+24);
-            const tokenPaciente = await Token.create({
-                id_usuario: usuarioNuevo.id_usuario,
-                token:token,
-                tipo:"activacion",
-                expira_en:expira
-            },{
-                transaction:t
-            });
-            console.log("El token de paciente es: ", token, " y expira en: ", expira);
-
-
-        }
-
-        if(id_rol === 2){
-            await Dentista.create({
-                id_usuario:usuarioNuevo.id_usuario,
-                no_cedula
-            },{transaction:t});
-        }
-
         await t.commit();
         committed = true;
-
-
-        if(id_rol === 3){
-            await transporter.sendMail({
-                to: usuarioNuevo.correo,
-                subject: "Activar cuenta",
-                template: "activarCuentaPaciente",
-                context: {
-                    nombre: usuarioNuevo.nombre,
-                    link: `http://localhost:3000/auth/activar-cuenta?token=${token}`,
-                    year: new Date().getFullYear()
-                }
-            } as any);
-        }
 
         return res.status(201).json({
             message:"Usuario creado correctamente",
@@ -205,7 +144,8 @@ export const listarUsuarios = async (req:Request, res:Response) =>{
             total,
             pagina,
             totalPaginas: Math.ceil(total/limit),
-            usuarios
+            usuarios,
+            limit
         });
     } catch (error) {
         console.log("Error al listar usuarios: ", error);
@@ -257,28 +197,16 @@ export const listarUsuarios = async (req:Request, res:Response) =>{
  */
 export const obtenerUsuario = async(req:Request, res:Response) =>{
     try {
-        const id = Number(req.params.id);
+        const id_usuario = Number(req.params.id);
         
-        if(isNaN(id)){
+        if(isNaN(id_usuario)){
             return res.status(400).json({
                 message: 'ID inválido'
             });
         }
     
-        const usuario = await Usuario.findByPk(id,{
+        const usuario = await Usuario.findByPk(id_usuario,{
             attributes:{exclude:['contrasena']},
-            include:[
-                {
-                    model:Paciente,
-                    as: 'paciente',
-                    include:[
-                        {
-                            model:Direccion,
-                            as: 'direccion'
-                        }
-                    ]
-                }
-            ]
         });
     
     
@@ -288,19 +216,69 @@ export const obtenerUsuario = async(req:Request, res:Response) =>{
             });
         }
     
-        return res.status(200).json(usuario);
+        return res.status(200).json({
+            message:'Usuario encontrado',    
+            usuario
+        });
 
     } catch (error) {
         console.log('Error al obtener usuario: ', error);
         return res.status(500).json({
-            message: 'Error al obtener usuario'
+            message: 'Error del Servidor'
         });
     }
 }
 
 
-const editarUsuario = async(req:Request, res:Response) => {
+export const actualizarUsuario = async(req:Request, res:Response) => {
+    const id_usuario = Number(req.params.id);
+    if(isNaN(id_usuario)){
+        return res.status(400).json({
+            message:'ID inválido'
+        });
+    }
+    const {nombre, apellido_materno, apellido_paterno, telefono, correo} = req.body;
+    if(!nombre||!apellido_paterno||!apellido_materno||!telefono||!correo){
+        return res.status(400).json({
+            message:'Faltan datos obligatorios'
+        });
+    }
 
+    const t =await sequelize.transaction();
+    try {
+        const usuario = await Usuario.findByPk(id_usuario,{transaction:t})
+        if(!usuario){
+            await t.rollback();
+            return res.status(400).json({
+                message:'Usuario no encontrado'
+            });
+        }
+
+        await usuario.update({
+            nombre,
+            apellido_paterno,
+            apellido_materno,
+            telefono, 
+            correo
+        },{transaction:t});
+        
+        await t.commit();
+        return res.status(200).json({
+            message:'Perfil del usuario actualizado'
+        });
+
+    } catch (error:any) {
+        if(t) await t.rollback();
+         console.log('Error al editar usuario: ', error);
+        if(error.name === 'SequelizeUniqueConstraintError'){
+            return res.status(400).json({
+                message:'El correo electrónico están registrados'
+            });
+        }
+        return res.status(500).json({
+            message:'Error del servidor'
+        });
+    }
 }
 
 /**
@@ -322,13 +300,13 @@ const editarUsuario = async(req:Request, res:Response) => {
  *  500 - Error del servidor
  */
 export const eliminarUsuario = async(req:Request, res:Response) => {
+    const id = Number(req.params.id);
+    if(isNaN(id)){
+        return res.status(400).json({
+            message: 'ID inválido'
+        });
+    }
     try {
-        const id = Number(req.params.id);
-        if(isNaN(id)){
-            return res.status(400).json({
-                message: 'ID inválido'
-            });
-        }
 
         const usuario= await Usuario.findByPk(id,{
             attributes:{exclude:['contrasena']}
@@ -352,7 +330,7 @@ export const eliminarUsuario = async(req:Request, res:Response) => {
     } catch (error) {
         console.log('Error al eliminar Usuario: ', error);
         return res.status(500).json({
-            message:'Error al eliminar usuario'
+            message:'Error del Servidor'
         });
     }
 }

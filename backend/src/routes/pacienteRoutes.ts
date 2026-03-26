@@ -1,9 +1,12 @@
 import { Router } from 'express';
-import { crearDireccionPaciente } from '../controllers/pacienteController';
+import { registrarPaciente,listarPacientes, obtenerPaciente, actualizarPaciente} from '../controllers/pacienteController';
 import { verificarToken } from '../middleware/authMiddleware'
 
 const router = Router();
 
-router.post('/:id/direccion',crearDireccionPaciente);
+router.post('/',registrarPaciente);
+router.get('/',listarPacientes);
+router.get('/:id',obtenerPaciente);
+router.put('/:id',actualizarPaciente);
 
 export default router;
