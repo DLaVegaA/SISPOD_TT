@@ -230,8 +230,55 @@ export const obtenerUsuario = async(req:Request, res:Response) =>{
 }
 
 
-const editarUsuario = async(req:Request, res:Response) => {
+export const actualizarUsuario = async(req:Request, res:Response) => {
+    const id_usuario = Number(req.params.id);
+    if(isNaN(id_usuario)){
+        return res.status(400).json({
+            message:'ID inválido'
+        });
+    }
+    const {nombre, apellido_materno, apellido_paterno, telefono, correo} = req.body;
+    if(!nombre||!apellido_paterno||!apellido_materno||!telefono||!correo){
+        return res.status(400).json({
+            message:'Faltan datos obligatorios'
+        });
+    }
 
+    const t =await sequelize.transaction();
+    try {
+        const usuario = await Usuario.findByPk(id_usuario,{transaction:t})
+        if(!usuario){
+            await t.rollback();
+            return res.status(400).json({
+                message:'Usuario no encontrado'
+            });
+        }
+
+        await usuario.update({
+            nombre,
+            apellido_paterno,
+            apellido_materno,
+            telefono, 
+            correo
+        },{transaction:t});
+        
+        await t.commit();
+        return res.status(200).json({
+            message:'Perfil del usuario actualizado'
+        });
+
+    } catch (error:any) {
+        if(t) await t.rollback();
+         console.log('Error al editar usuario: ', error);
+        if(error.name === 'SequelizeUniqueConstraintError'){
+            return res.status(400).json({
+                message:'El correo electrónico están registrados'
+            });
+        }
+        return res.status(500).json({
+            message:'Error del servidor'
+        });
+    }
 }
 
 /**

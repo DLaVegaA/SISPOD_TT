@@ -207,3 +207,61 @@ export const obtenerPaciente =async(req:Request, res:Response) =>{
         });
     }
 }
+
+export const actualizarPaciente = async(req:Request, res:Response) =>{
+    const id_paciente = Number(req.params.id);
+    const{nombre,apellido_paterno, apellido_materno, correo,telefono
+        ,calle,num_ext, num_int, colonia, municipio, estado, codigo_postal
+    } = req.body;
+    if(isNaN(id_paciente)){
+        return res.status(400).json({message:'ID inválido'});
+    }
+    if(!nombre || !apellido_materno || !apellido_paterno || !correo || !telefono ){
+        return res.status(400).json({
+            message:'Faltan datos obligatorios'
+        });
+    }
+
+    if(!calle|| !num_ext || !num_int || !colonia || !municipio || !estado || !codigo_postal){
+        return res.status(400).json({
+            message:'Faltan datos en dirección'
+        });
+    }
+    if(codigo_postal.length !== 5){
+        return res.status(400).json({
+            message: 'Codigo postal inválido'
+        });
+    }
+
+    const t = await sequelize.transaction();
+    try {
+        const paciente = await Paciente.findByPk(id_paciente,{transaction:t});
+
+        if(!paciente){
+            await t.rollback();
+            return res.status(404).json({message:'Paciente no encontrado'});
+        }
+
+        await Usuario.update(
+            {nombre,apellido_paterno,apellido_materno,correo,telefono},
+            {where:{id_usuario:paciente.id_usuario},transaction:t}
+        );
+
+        await Direccion.update(
+            {calle, num_ext, num_int,colonia,municipio,estado,codigo_postal},
+            {where:{id_paciente:paciente.id_paciente},transaction:t}
+        );
+
+        await t.commit();
+        return res.status(200).json({
+            message:'Perfil del paciente actualiazado correctamente'
+        });
+    } catch (error:any) {
+        if (t) await t.rollback();
+        console.log('Error al editar paciente: ', error);
+        if(error.name === 'SequelizeUniqueConstraintError'){
+            return res.status(400).json({message:'El correo electrónico ya esta registrado'});
+        }
+        return res.status(500).json({message:'Error del servidor'});
+    }
+}

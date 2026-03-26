@@ -165,3 +165,53 @@ export const obtenerDentista= async(req:Request, res:Response) =>{
         })
     }
 }
+
+export const actualizarDentista = async(req:Request, res:Response)=>{
+    const id_dentista = Number(req.params.id);
+    if(isNaN(id_dentista)){
+        return res.status(400).json({
+            message:'ID inválido'
+        });
+    }
+    const {nombre, apellido_materno, apellido_paterno, telefono, correo, no_cedula} = req.body;
+    if(!nombre||!apellido_paterno||!apellido_materno||!telefono||!correo||!no_cedula){
+        return res.status(400).json({
+            message:'Faltan datos obligatorios'
+        });
+    }
+
+    const t =await sequelize.transaction();
+
+    try {
+        const dentista = await Dentista.findByPk(id_dentista,{transaction:t});
+
+        if(!dentista){
+            await t.rollback();
+            return res.status(404).json({message:'Dentista no encontrado'});
+        }
+
+        await Usuario.update(
+            {nombre, apellido_paterno, apellido_materno, telefono, correo},
+            {where:{id_usuario:dentista.id_usuario},transaction:t}
+        );
+
+        await dentista.update({no_cedula},{transaction:t});
+
+        await t.commit();
+
+        return res.status(200).json({
+            message:'Perfil del dentista actualizado'
+        });
+    } catch (error:any) {
+        if (t) await t.rollback();
+        console.log('Error al editar dentista: ', error);
+        if(error.name === 'SequelizeUniqueConstraintError'){
+            return res.status(400).json({
+                message:'El correo o cédula ya están registrados'
+            });
+        }
+        return res.status(500).json({
+            message:'Error del servidor'
+        });
+    }
+}
