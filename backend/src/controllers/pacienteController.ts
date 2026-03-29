@@ -16,7 +16,7 @@ export const registrarPaciente = async(req:Request, res:Response)=>{
         });
     }
 
-    if(!calle|| !num_ext || !num_int || !colonia || !municipio || !estado || !codigo_postal){
+    if(!calle|| !num_ext || !colonia || !municipio || !estado || !codigo_postal){
         return res.status(400).json({
             message:'Faltan datos en dirección'
         });
