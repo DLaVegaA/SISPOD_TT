@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Usuario,Role,Paciente, Direccion, Dentista } from '../models/index';
 import { sequelize } from '../config/database';
+import { CustomRequest } from '../middleware/authMiddleware';
 
 
 /**
@@ -121,17 +122,38 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
  */
 
 export const listarUsuarios = async (req:Request, res:Response) =>{
-    console.log(req.query.pagina);
     const pagina = Number(req.query.pagina) || 1;
-    console.log(pagina);
-
+    const estadoFiltro = req.query.estado as string;
+    const estadosValidos = ['activo','eliminado', 'todos'];
+    const rawRol = req.query.id_rol; //revisa si el usuario mando algo en la url
+    if(estadoFiltro &&!estadosValidos.includes(estadoFiltro)){
+        return res.status(400).json({
+            message:'Estado no válido'
+        });
+    }
+    const rolFiltro = rawRol ? Number(rawRol) :null; //Si el usuario mando algo en la url validamos que sea un numero real 
+    if (rawRol && isNaN(rolFiltro as number)) {
+        return res.status(400).json({ message: 'ID de rol inválido' });
+    }
     try {
         const limit = 10;
         const offset =((pagina*limit)-limit);
+        const whereFiltro: any={};
 
+        if (estadoFiltro && estadoFiltro !== 'todos') {
+            whereFiltro.estado = estadoFiltro;
+        } else if (!estadoFiltro) {
+            whereFiltro.estado = 'activo'; 
+        }
+
+        if (rolFiltro) {
+            whereFiltro.id_rol = rolFiltro;
+        }
         const{count:total, rows:usuarios} = await Usuario.findAndCountAll({
             limit:limit,
             offset:offset,
+            distinct:true,//Cuenta solo id's unicos
+            where:whereFiltro,
             attributes:{
                 exclude:["contrasena"]
             },
@@ -331,6 +353,69 @@ export const eliminarUsuario = async(req:Request, res:Response) => {
         console.log('Error al eliminar Usuario: ', error);
         return res.status(500).json({
             message:'Error del Servidor'
+        });
+    }
+}
+
+export const activarUsuario = async(req:Request, res:Response)=>{
+    const id_usuario =Number(req.params.id);
+
+    if(isNaN(id_usuario)){
+        return res.status(400).json({
+            message:'ID inválido'
+        });
+    }
+    try{
+        const usuario = await Usuario.findOne({
+            where:{
+                id_usuario,
+                estado: 'eliminado'
+            }
+        });
+
+        if(!usuario){
+            return res.status(404).json({
+                message:'Usuario no encontrado o ya se encuentra activo'
+            });
+        }
+
+        await usuario.update({
+            estado:'activo'
+        });
+
+        return res.status(200).json({
+            message:'Usuario activado'
+        });
+    }catch(error){
+        console.log('Error al activar usuario: ', error);
+        return res.status(500).json({
+            message:'Error del servidor'
+        });
+    }
+}
+
+export const obtenerPerfilUsuario = async(req:CustomRequest, res:Response) =>{
+    try {
+        const id_usuario = req.userData?.id;
+        if (!id_usuario) {
+            return res.status(401).json({ message: "Sesión no válida" });
+        }   
+
+        const perfil = await Usuario.findOne({
+            where:{id_usuario},
+            attributes:{exclude:['contrasena']}
+        });
+
+        if(!perfil){
+            return res.status(404).json({
+                message:'Perfil no encontrado'
+            });
+        }
+        return res.json(perfil);
+    } catch (error) {
+        console.log('Error al obtener perfil del usuario: ',error);
+        return res.status(500).json({
+            message:'Error del servidor'
         });
     }
 }

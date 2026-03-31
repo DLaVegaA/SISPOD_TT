@@ -1,6 +1,7 @@
 import {Request, Response} from 'express';
 import {Usuario,Role,Dentista} from '../models/index';
 import { sequelize } from '../config/database';
+import { CustomRequest } from '../middleware/authMiddleware';
 
 
 
@@ -213,5 +214,34 @@ export const actualizarDentista = async(req:Request, res:Response)=>{
         return res.status(500).json({
             message:'Error del servidor'
         });
+    }
+}
+
+export const obtenerPerfilDentista = async(req:CustomRequest, res:Response)=>{
+    try {
+        const id_usuario= req.userData?.id;
+        if (!id_usuario) {
+            return res.status(401).json({ message: "Sesión no válida" });
+        }
+        const perfil = await Dentista.findOne({
+            where:{id_usuario},
+            include:[
+                {
+                    model: Usuario,
+                    as:'usuario',
+                    attributes: {exclude:['contrasena']}
+                }
+            ]
+        });
+        if(!perfil){
+            return res.status(404).json({
+                message:'Perfil no encontrado'
+            });
+        }
+
+        return res.json(perfil);
+    } catch (error) {
+        console.log('Error al obtener perfil del dentista: ', error);
+        return res.status(500).json({message:'Error del servidor'})
     }
 }

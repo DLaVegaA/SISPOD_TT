@@ -4,6 +4,7 @@ import { sequelize } from '../config/database';
 import {generarContra} from '../helpers/generarContra';
 import {generarToken} from '../helpers/generarToken';
 import transporter from '../helpers/mailer';
+import {CustomRequest} from '../middleware/authMiddleware'
 
 export const registrarPaciente = async(req:Request, res:Response)=>{
     const{nombre,id_rol,apellido_paterno, apellido_materno, correo,telefono, fecha_nacimiento,curp, genero
@@ -16,7 +17,7 @@ export const registrarPaciente = async(req:Request, res:Response)=>{
         });
     }
 
-    if(!calle|| !num_ext || !num_int || !colonia || !municipio || !estado || !codigo_postal){
+    if(!calle|| !num_ext || !colonia || !municipio || !estado || !codigo_postal){
         return res.status(400).json({
             message:'Faltan datos en dirección'
         });
@@ -263,5 +264,42 @@ export const actualizarPaciente = async(req:Request, res:Response) =>{
             return res.status(400).json({message:'El correo electrónico ya esta registrado'});
         }
         return res.status(500).json({message:'Error del servidor'});
+    }
+}
+
+export const obtenerPerfilPaciente = async(req:CustomRequest, res:Response) =>{
+    try {
+        const id_usuario = req.userData?.id;
+        if (!id_usuario) {
+            return res.status(401).json({ message: "Sesión no válida" });
+        }       
+
+        const perfil = await Paciente.findOne({
+            where:{id_usuario},
+            include:[
+                {
+                    model:Usuario,
+                    as: 'usuario',
+                    attributes:{exclude:['contrasena']}
+                },
+                {
+                    model:Direccion,
+                    as: 'direccion'
+                }
+            ]
+        });
+
+        if(!perfil){
+            return res.status(404).json({
+                message:'Perfil no encontrado'
+            });
+        }
+
+        return res.json(perfil);
+    } catch (error) {
+        console.log('Error al obtener perfil del paciente: ',error);
+        return res.status(500).json({
+            message:'Error del servidor'
+        });
     }
 }
