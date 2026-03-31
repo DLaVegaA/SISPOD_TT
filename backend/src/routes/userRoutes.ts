@@ -12,3 +12,4 @@ router.put('/:id',actualizarUsuario);
 router.delete('/:id', eliminarUsuario);
 router.put('/activar-usuario/:id', activarUsuario);
 export default router;
+

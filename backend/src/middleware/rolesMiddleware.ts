@@ -10,7 +10,7 @@ export const permitirRoles = (...rolesPermitidos: number[]) =>{
         }
 
         if(!rolesPermitidos.includes(rolUsuario)){
-            return res.status(401).json({message:"No tienes permisos"});
+            return res.status(403).json({message:"No tienes permisos"});
         }
 
         next();
