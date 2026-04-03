@@ -6,6 +6,11 @@ import { Paciente } from "./Paciente";
 import { Token } from "./Token";
 import {Direccion} from "./Direccion";
 import {Cita} from './Cita';
+import { Bitacora } from "./Bitacora";
+import { Expediente } from "./Expediente";
+import { Expediente_Padecimientos } from "./Expediente_Padecimientos";
+import { Padecimiento } from "./Padecimientos";
+import { Odontograma } from "./Odontograma";
 
 Usuario.belongsTo(Role, {
   foreignKey: 'id_rol',
@@ -89,6 +94,66 @@ Cita.belongsTo(Dentista,{
   as:'dentista'
 });
 
+/* Bitacora.belongsTo(Usuario,{
+  foreignKey:'id_usuario',
+  as:'autor'
+});
+
+Bitacora.belongsTo(Cita,{
+  foreignKey:'id_cita',
+  as:'cita'
+}); */
+
+/* Paciente.hasOne(Expediente,{
+  foreignKey:'id_paciente',
+  as:'expediente'
+});
+
+Expediente.belongsTo(Paciente,{
+  foreignKey:'id_paciente',
+  as:'paciente'
+});
+
+Dentista.hasMany(Expediente,{
+  foreignKey:'id_dentista',
+  as:'expedientes'
+});
+
+Expediente.belongsTo(Dentista,{
+  foreignKey:'id_dentista',
+  as:'dentista'
+});*/
+
+/* Expediente.hasMany(Expediente_Padecimientos,{
+  foreignKey:'id_expediente',
+  as:'padecimientos'
+});
+
+Expediente_Padecimientos.belongsTo(Expediente,{
+  foreignKey:'id_expediente',
+  as:'expediente'
+}); */
+
+/* Padecimiento.hasMany(Expediente_Padecimientos,{
+  foreignKey:'id_padecimiento',
+  as:'expedientes_padecimientos'
+});
+
+Expediente_Padecimientos.belongsTo(Padecimiento,{
+  foreignKey:'id_padecimiento',
+  as:'padecimiento'
+}); */
+
+/* Expediente.hasMany(Odontograma,{
+  foreignKey:'id_expediente',
+  as:'odontogramas'
+});
+
+Odontograma.belongsTo(Expediente,{
+  foreignKey:'id_expediente',
+  as:'expediente'
+});*/
+
 export {
   Usuario, 
   Dentista,
@@ -97,5 +162,9 @@ export {
   Asistente,
   Token, 
   Direccion, 
-  Cita
+  Cita,
+  Bitacora,
+  Expediente,
+  Padecimiento,
+  Odontograma
 }
