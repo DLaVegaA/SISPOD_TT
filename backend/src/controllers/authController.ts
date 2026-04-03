@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Usuario, Token, Paciente } from '../models/index';
 import {generarToken} from '../helpers/generarToken';
-import transporter from '../helpers/mailer';
+import transporter from '../config/mailer';
 import jwt from 'jsonwebtoken';
 
 export const login = async (req:Request, res:Response) =>{

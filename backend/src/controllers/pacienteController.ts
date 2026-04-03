@@ -3,7 +3,7 @@ import {Paciente, Direccion, Usuario,Token} from '../models/index';
 import { sequelize } from '../config/database';
 import {generarContra} from '../helpers/generarContra';
 import {generarToken} from '../helpers/generarToken';
-import transporter from '../helpers/mailer';
+import transporter from '../config/mailer';
 import {CustomRequest} from '../middleware/authMiddleware'
 
 export const registrarPaciente = async(req:Request, res:Response)=>{

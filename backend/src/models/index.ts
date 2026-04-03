@@ -6,6 +6,7 @@ import { Paciente } from "./Paciente";
 import { Token } from "./Token";
 import {Direccion} from "./Direccion";
 import {Cita} from './Cita';
+import { Telegram } from "./Telegram";
 
 Usuario.belongsTo(Role, {
   foreignKey: 'id_rol',
@@ -89,6 +90,16 @@ Cita.belongsTo(Dentista,{
   as:'dentista'
 });
 
+Paciente.hasOne(Telegram,{
+  foreignKey:'id_paciente',
+  as:'telegram'
+});
+
+Telegram.belongsTo(Paciente,{
+  foreignKey:'id_paciente',
+  as:'paciente'
+});
+
 export {
   Usuario, 
   Dentista,
@@ -97,5 +108,6 @@ export {
   Asistente,
   Token, 
   Direccion, 
-  Cita
+  Cita,
+  Telegram
 }
