@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { Paciente, Telegram } from "../models/index";
 import { CustomRequest } from "../middleware/authMiddleware";
 import { generarToken } from "../helpers/generarToken";
+import {obtenerEstadoTelegram} from '../services/telegramService'
 
 export const generarTokenVinculacion =async(req:CustomRequest, res:Response) =>{
     try{
@@ -36,4 +37,23 @@ export const generarTokenVinculacion =async(req:CustomRequest, res:Response) =>{
         });
     }
 
+}
+
+export const estadoTelegram = async(req:CustomRequest, res:Response) =>{
+    
+    try {
+        const id_usuario = req.userData?.id;
+        if(!id_usuario){
+            return res.status(401).json({message:'No autorizado'});
+        }
+        const estado =await obtenerEstadoTelegram(id_usuario);
+        res.json(estado)
+    } catch (error:any) {
+        console.log('Error al obtener estado Telegram: ',error)
+        if (error.message === 'PACIENTE_NO_ENCONTRADO') {
+            return res.status(404).json({ message: 'Paciente no encontrado' });
+        }
+
+        return res.status(500).json({ message: 'Error del servidor' });
+    }
 }

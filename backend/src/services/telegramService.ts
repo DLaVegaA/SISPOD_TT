@@ -1,7 +1,23 @@
 import bot from '../config/telegram';
 import {Usuario, Paciente, Telegram} from '../models/index';
 
+export const obtenerEstadoTelegram = async(id_usuario:number) =>{
+    const paciente = await Paciente.findOne({
+        where: { id_usuario },
+        attributes: ['id_paciente']
+    });
+    if(!paciente){
+        throw new Error('PACIENTRE_NO_ENCONTRADO');
+    }
+    const registroTelegram = await Telegram.findOne({
+        where:{id_paciente:paciente.id_paciente},
+        attributes:['id_chat']
+    });
 
+    return {
+        vinculado: !!registroTelegram?.id_chat // !!Convierte a booleano
+    }
+}
 
 const procesarVinculacion = async(ctx:any, token:string) =>{
     try {
