@@ -6,6 +6,7 @@ import { Paciente } from "./Paciente";
 import { Token } from "./Token";
 import {Direccion} from "./Direccion";
 import {Cita} from './Cita';
+import { Telegram } from "./Telegram";
 import { Bitacora } from "./Bitacora";
 import { Expediente } from "./Expediente";
 import { Expediente_Padecimientos } from "./Expediente_Padecimientos";
@@ -94,6 +95,15 @@ Cita.belongsTo(Dentista,{
   as:'dentista'
 });
 
+Paciente.hasOne(Telegram,{
+  foreignKey:'id_paciente',
+  as:'telegram'
+});
+
+Telegram.belongsTo(Paciente,{
+  foreignKey:'id_paciente',
+  as:'paciente'
+});
 /* Bitacora.belongsTo(Usuario,{
   foreignKey:'id_usuario',
   as:'autor'
@@ -163,6 +173,7 @@ export {
   Token, 
   Direccion, 
   Cita,
+  Telegram,
   Bitacora,
   Expediente,
   Padecimiento,
