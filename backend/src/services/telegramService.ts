@@ -1,5 +1,7 @@
 import bot from '../config/telegram';
 import {Usuario, Paciente, Telegram} from '../models/index';
+import { message } from 'telegraf/filters';
+import { Markup } from 'telegraf';
 
 export const obtenerEstadoTelegram = async(id_usuario:number) =>{
     const paciente = await Paciente.findOne({
@@ -17,6 +19,26 @@ export const obtenerEstadoTelegram = async(id_usuario:number) =>{
     return {
         vinculado: !!registroTelegram?.id_chat // !!Convierte a booleano
     }
+}
+
+export const estaVinculadoTelegram = async(id_chat:number) =>{
+    const id_chatString = id_chat.toString();
+    const registroTelegram = await Telegram.findOne({
+        where:{id_chat:id_chatString},
+        attributes:['id_chat']
+    });
+
+    return !!registroTelegram?.id_chat;
+}
+
+export const validarVinculacion =async(ctx:any) =>{
+    const vinculado = await estaVinculadoTelegram(ctx.chat.id);
+
+    if(!vinculado){
+        await ctx.reply('Debes vicnular tu cuenta con /vincular seguido del token');
+        return false
+    }
+    return true;
 }
 
 const procesarVinculacion = async(ctx:any, token:string) =>{
@@ -81,7 +103,7 @@ export const configurarBot = () =>{
 
         
         if(!token){
-            return ctx.reply('¡Bienvenido a SISPOD! \nUsa /vincular seguido de tu token para activar recordatorios.');
+            return ctx.reply('¡Bienvenido a SISPOD! \nUsa /vincular seguido de tu token para activar recordatorios\nUsa /menu para ver opciones');
         }
 
         await procesarVinculacion(ctx, token);
@@ -93,8 +115,59 @@ export const configurarBot = () =>{
         if(!token){
             return ctx.reply('Por favor, envía tu código de vinculación. Ejemplo: /vincular AB123');
         }
-
+    
         await procesarVinculacion(ctx, token);
     
     });
+    bot.command('menu', async(ctx)=>{
+        
+        if(!(await validarVinculacion(ctx))) return;
+
+        await ctx.reply(
+            'Menú principal:\n\nSelecciona una opción \n\n(Si no ves los botones revisa el icono en la barra inferior)',
+            Markup.keyboard([
+                ['Ver citas'],
+                ['Vincular cuenta'],
+                ['Ayuda']
+            ])
+                .resize()
+        );
+    });
+
+    bot.hears('Ver citas', async(ctx)=>{
+        if(!(await validarVinculacion(ctx)))return
+        await ctx.reply('Tus proximas citas:\n');
+        //Falta hacer funcion para traer las citas 
+    });
+
+    bot.hears('Vincular cuenta',async(ctx) =>{
+        await ctx.reply('Usa /vincular seguido de tu token');
+    });
+
+    bot.hears('Ayuda', async(ctx)=>{
+        await ctx.reply(
+            'Puedo ayudarte con:\n\n'+
+            'Ver tus citas\n'+
+            'Recordatorios\n'+
+            'Vincular tu cuenta\n'+
+            'Usa /menu para ver opciones'
+        );
+    });
+    bot.command(/.*/,async(ctx)=>{
+        const comando = ctx.message.text.split(' ')[0];
+        const validos = ['/start','/menu', '/vincular'];
+        if(!validos.includes(comando)){
+            return ctx.reply('Comando no reconocido\nUsa /menu para ver opciones');
+        }
+    })
+    
+    bot.on(message('text'),async(ctx)=>{
+        const text = ctx.message.text;
+        if(text.startsWith('/')) return;
+
+        if(!(await validarVinculacion(ctx))) return;
+
+        await ctx.reply('No entendí eso\nUsa /menu para ver opciones');
+    });
+   
 }
