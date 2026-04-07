@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Usuario,Role,Paciente, Direccion, Dentista } from '../models/index';
+import { Usuario,Role, Asistente} from '../models/index';
 import { sequelize } from '../config/database';
 import { CustomRequest } from '../middleware/authMiddleware';
 
@@ -80,7 +80,13 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
                 genero,
                 estado
             },{transaction:t}
-        )
+        );
+
+        if(id_rol ===4){
+            await Asistente.create({
+                id_usuario: usuarioNuevo.id_usuario
+            },{transaction:t})
+        }
 
         await t.commit();
         committed = true;
