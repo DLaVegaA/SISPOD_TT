@@ -3,6 +3,7 @@ import {Usuario, Paciente, Telegram} from '../models/index';
 import { message } from 'telegraf/filters';
 import { Markup } from 'telegraf';
 
+
 export const obtenerEstadoTelegram = async(id_usuario:number) =>{
     const paciente = await Paciente.findOne({
         where: { id_usuario },
@@ -90,10 +91,36 @@ const procesarVinculacion = async(ctx:any, token:string) =>{
 
     } catch (error) {
         console.log('Error al vincular Telegram: ', error);
-        return ctx.reply('Error técnico');
+       
+        return ctx.reply('Ocurrió un error, intentalo más tarde');
     }
 
 }
+const limpiarVinculacion = async(registro:Telegram) =>{
+    registro.id_chat = null;
+    registro.token = null;
+
+   await registro.save();
+}
+
+export const desvincularTelegramPaciente = async(id_paciente:number)=>{
+   const registroPaciente = await Telegram.findOne({where:{id_paciente}});
+   if(!registroPaciente){
+        throw new Error('TELEGRAM_NO_ENCONTRADO');
+   }
+   
+   await limpiarVinculacion(registroPaciente);
+}
+
+export const desvincularTelegramChat = async(id_chat:number)=>{
+    const id_chatString = id_chat.toString();
+    const registroTelegram = await Telegram.findOne({where:{id_chat:id_chatString}});
+    if(!registroTelegram){
+        throw new Error('TELEGRAM_NO_ENCONTRADO');
+    }
+    await limpiarVinculacion(registroTelegram);
+}
+
 export const configurarBot = () =>{
     //ctx (contexto) es un objeto que envuelve toda la informacion del que escribe 
     bot.start(async(ctx) =>{
@@ -119,6 +146,21 @@ export const configurarBot = () =>{
         await procesarVinculacion(ctx, token);
     
     });
+    bot.command('desvincular',async(ctx)=>{
+        try {
+            await desvincularTelegramChat(ctx.chat.id);
+            
+            await ctx.reply('Tu cuenta ha sido desvinculada')
+        } catch (error:any) {
+            console.log('Error al desvincular Telegram: ',error);
+            if (error.message === 'TELEGRAM_NO_ENCONTRADO') {
+                return ctx.reply('No tienes ninguna cuenta vinculada');
+            }   
+            return ctx.reply('Ocurrió un error, intentalo más tarde');
+        }
+
+    });
+
     bot.command('menu', async(ctx)=>{
         
         if(!(await validarVinculacion(ctx))) return;
@@ -128,7 +170,8 @@ export const configurarBot = () =>{
             Markup.keyboard([
                 ['Ver citas'],
                 ['Vincular cuenta'],
-                ['Ayuda']
+                ['Ayuda'],
+                ['Desvincular cuenta']
             ])
                 .resize()
         );
@@ -150,9 +193,44 @@ export const configurarBot = () =>{
             'Ver tus citas\n'+
             'Recordatorios\n'+
             'Vincular tu cuenta\n'+
+            'Desvincular (Usa el botón del menú o escribe /desvincular)\n'+
             'Usa /menu para ver opciones'
         );
     });
+    
+    bot.hears('Desvincular cuenta', async(ctx)=>{
+        await ctx.reply(
+            '¿Estás seguro de que deseas desvincular tu cuenta?',
+            Markup.inlineKeyboard([
+                [
+                    Markup.button.callback('Sí', 'CONFIRMAR_DESVINCULAR'),
+                    Markup.button.callback('No', 'CANCELAR_DESVINCULAR')
+                ]
+            ])
+        )
+    });
+    bot.action('CONFIRMAR_DESVINCULAR',async(ctx)=>{
+        await ctx.answerCbQuery();
+        try {
+            if(!ctx.chat) return
+            await desvincularTelegramChat(ctx.chat.id);
+            
+            await ctx.editMessageText('Tu cuenta ha sido desvinculada')
+        } catch (error:any) {
+            console.log('Error al desvincular Telegram: ',error);
+            if (error.message === 'TELEGRAM_NO_ENCONTRADO') {
+                return ctx.editMessageText('No tienes ninguna cuenta vinculada');
+            }   
+            return ctx.editMessageText('Ocurrió un error, intentalo más tarde');
+        }
+    });
+
+    bot.action('CANCELAR_DESVINCULAR', async(ctx)=>{
+        await ctx.answerCbQuery();
+
+        await ctx.editMessageText('Operación cancelada');
+    });
+
     bot.command(/.*/,async(ctx)=>{
         const comando = ctx.message.text.split(' ')[0];
         const validos = ['/start','/menu', '/vincular'];
