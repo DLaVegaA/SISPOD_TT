@@ -48,6 +48,7 @@ import { ROUTE_NAMES, ROUTE_PATHS } from '@/shared/routes'
 
 const HomePage = () => import('@/pages/home/ui/HomePage.vue')
 const LoginPage = () => import('@/pages/login/ui/LoginPage.vue')
+const UsersPage = () => import('@/pages/users')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -67,6 +68,12 @@ const router = createRouter({
       name: ROUTE_NAMES.LOGIN,
       component: LoginPage,
       meta: { title: 'Inicio de Sésion' },
+    },
+    {
+      path: ROUTE_PATHS.USERS,
+      name: ROUTE_NAMES.USERS,
+      component: UsersPage,
+      meta: { title: 'Usuarios' },
     },
   ],
 })
