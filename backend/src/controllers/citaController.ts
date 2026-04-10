@@ -2,7 +2,69 @@ import { Response, Request} from 'express';
 import {Op} from 'sequelize'
 import { Cita, Paciente, Dentista } from '../models/index';
 import {CustomRequest} from '../middleware/authMiddleware'
+import {obtenerDisponibilidad} from '../services/citaService';
+import { message } from 'telegraf/filters';
 
+
+export const listarDisponibilidad = async(req:CustomRequest, res:Response) =>{
+    try {
+        const {fecha, tipo_cita} = req.query;
+        let id_dentista;
+        if(req.userData?.id_rol === 2){
+            const dentista = await Dentista.findOne({
+                where:{id_usuario:req.userData?.id},
+                attributes:['id_dentista']
+            });
+            if(!dentista){
+                return res.status(404).json({
+                    message:'Dentista no encontrado'
+                });
+            }
+
+            id_dentista= dentista.id_dentista;
+        }else{
+            id_dentista = Number(req.query.id_dentista);
+        }
+
+        
+        if(!fecha || !id_dentista || !tipo_cita){
+            return res.status(400).json({
+                message:'Faltan datos '
+            });
+        }
+
+        const tipo = Number(tipo_cita);
+        if(isNaN(tipo)){
+            return res.status(400).json({
+                message:'Tipo de cita invalido'
+            });
+        }
+        const fechaDate = new Date(fecha as string);
+        if(isNaN(fechaDate.getTime())){
+            return res.status(400).json({
+                message:'Fecha inválida'
+            });
+        }
+        const disponibles = await obtenerDisponibilidad(
+            fecha as string,
+            id_dentista,
+            tipo
+        );
+
+        
+
+        return res.json({
+            disponibles,
+            message:disponibles.length === 0 ? 'no hay citas disponibles' : undefined
+        });
+    } catch (error:any) {
+        console.log('Error al mostrar disponibilidad: ',error);
+        if(error.message ==='Tipo_cita_invalido'){
+            return res.status(400).json({message:'Tipo de cita inválido'})
+        }
+        return res.status(500).json({message:'Error del servidor'})
+    }
+}
 
 export const crearCita = async (req:CustomRequest, res:Response) =>{
     try{
@@ -159,3 +221,4 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
         });
     }
 }
+
