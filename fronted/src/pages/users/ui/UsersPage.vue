@@ -16,18 +16,50 @@
       </button>
     </div>
     <!-- Filtros -->
-    <UiModal v-model="showForm" title="Crear" />
+    <!-- <UiModal v-model="showForm" title="Crear" /> -->
+
+    <!-- Modal Crear/Editar  -->
+    <UserFormModal
+      v-model="showForm"
+      :form="activeForm"
+      :errors="activeErrors"
+      :is-edit="isEditeMode"
+      :show-password="createForm.showPwd.value"
+      @toggle-password="createForm.showPwd.value = !createForm.showPwd.value"
+      @submit="handleSubmit"
+    />
   </div>
 </template>
 <script lang="ts" setup>
-import { UiModal } from '@/shared/ui/UiModal'
+import { computed, ref } from 'vue'
 import { UserPlus } from 'lucide-vue-next'
-import { ref } from 'vue'
 
+// Widgets Layout
+import { UserFormModal } from '@/widgets/user-form-modal'
+
+// Features Layout
+import { useCreateUserForm } from '@/features/create-user'
+
+// Formularios
+const createForm = useCreateUserForm()
+
+const isEditeMode = ref(false)
 const showForm = ref(false)
+
+const activeForm = computed(() => createForm.form)
+
+const activeErrors = computed(() => createForm.errors)
 
 // Handlers
 function openCreate(): void {
   showForm.value = true
+}
+
+function handleSubmit(): void {
+  if (isEditeMode.value) {
+  } else {
+    if (!createForm.validate()) return
+    showForm.value = false
+  }
 }
 </script>
