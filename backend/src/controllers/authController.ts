@@ -3,7 +3,9 @@ import { Usuario, Token, Paciente } from '../models/index';
 import {generarToken} from '../helpers/generarToken';
 import transporter from '../config/mailer';
 import jwt from 'jsonwebtoken';
-
+import {verificarTokenReset} from '../services/authService';
+import { message } from 'telegraf/filters';
+ 
 export const login = async (req:Request, res:Response) =>{
     try{
         const {correo, password} = req.body;
@@ -115,7 +117,6 @@ export const activarCuenta = async (req:Request, res:Response) =>{
         }
 
 
-        //Actualizar estado, falta actualizar la tabla
 
         await usuario.update({
             contrasena: password,
@@ -196,44 +197,44 @@ export const olvidoContrasena =async (req:Request, res:Response) =>{
 }
 
 
-export const validarToken = async(req:Request, res:Response) =>{
-
+export const validarTokenReset = async(req:Request, res:Response) =>{
+    const token = req.params.token as string;
+    if(!token){
+        return res.status(400).json({
+            message: 'Token requerido'
+        });
+    }
+    
+    try {
+        const registro = await verificarTokenReset(token)
+        return res.status(200).json({
+            valido:true
+        });
+        
+    } catch (error:any) {
+        console.log('Error al validar token de contraseña: ', error);
+        if(error.message === 'Token_No_existe'){
+            console.log('Error token no existe: ', error);
+            return res.status(400).json({
+                valido:false,
+                message:'El token no existe'
+            });
+        }
+        return res.status(500).json({message:'Error del servidor'});
+    }
 }
 //Hcaer funcion que valide el token antes de que llegar al formulario 
 export const resetPassword = async(req:Request, res:Response) =>{
-    const token = req.params.token;
+    const tokenBD = (req as any).tokenData;
     const {contrasena} = req.body
 
     try {
-        if(!token){
-            return res.status(200).json({
-                message: 'Token requerido'
-            });
-        }
 
         if(!contrasena){
             return res.status(400).json({message:'La contraseña es obligatoria'});
         }
         
-        const tokenBD = await Token.findOne({
-            where:{
-                token,
-                tipo:'recuperacion'
-            }
-        });
-
-        if(!tokenBD){
-            return res.status(400).json({
-                message: 'Token inválido'
-            });
-        }
-
-        if(tokenBD.expira_en< new Date()){
-            return res.status(400).json({
-                message:'Token expirado, solicta uno nuevo'
-            });
-        }
-
+        
         const usuario= await Usuario.findByPk(tokenBD.id_usuario);
 
         if(!usuario){
