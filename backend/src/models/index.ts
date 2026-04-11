@@ -12,6 +12,12 @@ import { Expediente } from "./Expediente";
 import { Expediente_Padecimientos } from "./Expediente_Padecimientos";
 import { Padecimiento } from "./Padecimientos";
 import { Odontograma } from "./Odontograma";
+import { Consentimiento } from "./Consentimiento";
+import { Seguimiento } from "./Seguimiento";
+import { Catalogo_Procedimientos } from "./Catalogo_Procedimientos";
+import { Respuesta_paciente } from "./Respuesta_paciente";
+import { Pregunta } from "./Pregunta";
+import { Cuestionario } from "./Cuestionario";
 
 Usuario.belongsTo(Role, {
   foreignKey: 'id_rol',
@@ -104,7 +110,8 @@ Telegram.belongsTo(Paciente,{
   foreignKey:'id_paciente',
   as:'paciente'
 });
-/* Bitacora.belongsTo(Usuario,{
+
+Bitacora.belongsTo(Usuario,{
   foreignKey:'id_usuario',
   as:'autor'
 });
@@ -112,9 +119,9 @@ Telegram.belongsTo(Paciente,{
 Bitacora.belongsTo(Cita,{
   foreignKey:'id_cita',
   as:'cita'
-}); */
+});
 
-/* Paciente.hasOne(Expediente,{
+Paciente.hasOne(Expediente,{
   foreignKey:'id_paciente',
   as:'expediente'
 });
@@ -132,9 +139,9 @@ Dentista.hasMany(Expediente,{
 Expediente.belongsTo(Dentista,{
   foreignKey:'id_dentista',
   as:'dentista'
-});*/
+});
 
-/* Expediente.hasMany(Expediente_Padecimientos,{
+Expediente.hasMany(Expediente_Padecimientos,{
   foreignKey:'id_expediente',
   as:'padecimientos'
 });
@@ -142,9 +149,9 @@ Expediente.belongsTo(Dentista,{
 Expediente_Padecimientos.belongsTo(Expediente,{
   foreignKey:'id_expediente',
   as:'expediente'
-}); */
+});
 
-/* Padecimiento.hasMany(Expediente_Padecimientos,{
+Padecimiento.hasMany(Expediente_Padecimientos,{
   foreignKey:'id_padecimiento',
   as:'expedientes_padecimientos'
 });
@@ -152,9 +159,9 @@ Expediente_Padecimientos.belongsTo(Expediente,{
 Expediente_Padecimientos.belongsTo(Padecimiento,{
   foreignKey:'id_padecimiento',
   as:'padecimiento'
-}); */
+});
 
-/* Expediente.hasMany(Odontograma,{
+Expediente.hasMany(Odontograma,{
   foreignKey:'id_expediente',
   as:'odontogramas'
 });
@@ -162,7 +169,87 @@ Expediente_Padecimientos.belongsTo(Padecimiento,{
 Odontograma.belongsTo(Expediente,{
   foreignKey:'id_expediente',
   as:'expediente'
-});*/
+});
+
+Cita.hasMany(Consentimiento,{
+  foreignKey:'id_cita',
+  as:'consentimientos'
+});
+
+Consentimiento.belongsTo(Cita,{
+  foreignKey:'id_cita',
+  as:'cita'
+});
+
+Cita.hasOne(Seguimiento,{
+  foreignKey:'id_cita',
+  as:'seguimiento_post_operatorio'
+});
+
+Seguimiento.belongsTo(Cita,{
+  foreignKey:'id_cita',
+  as:'cita'
+});
+
+Catalogo_Procedimientos.hasMany(Seguimiento,{
+  foreignKey:'id_procedimiento',
+  as:'seguimientos'
+});
+
+Seguimiento.belongsTo(Catalogo_Procedimientos,{
+  foreignKey:'id_procedimiento',
+  as:'tipo_procedimiento'
+});
+
+Pregunta.hasMany(Respuesta_paciente,{
+  foreignKey:'id_pregunta',
+  as:'respuestas_paciente'
+});
+
+Respuesta_paciente.belongsTo(Pregunta,{
+  foreignKey:'id_pregunta',
+  as:'pregunta'
+});
+
+Seguimiento.hasMany(Respuesta_paciente,{
+  foreignKey:'id_seguimiento',
+  as:'respuestas_paciente'
+});
+
+Respuesta_paciente.belongsTo(Seguimiento,{
+  foreignKey:'id_seguimiento',
+  as:'seguimiento'
+});
+
+Cuestionario.hasMany(Pregunta,{
+  foreignKey:'id_cuestionario',
+  as:'preguntas'
+});
+
+Pregunta.belongsTo(Cuestionario,{
+  foreignKey:'id_cuestionario',
+  as:'cuestionario'
+});
+
+Catalogo_Procedimientos.hasMany(Pregunta,{
+  foreignKey:'id_procedimiento_asociado',
+  as:'preguntas'
+});
+
+Pregunta.belongsTo(Catalogo_Procedimientos,{
+  foreignKey:'id_procedimiento_asociado',
+  as:'procedimiento_asociado'
+});
+
+Cuestionario.hasMany(Respuesta_paciente,{
+  foreignKey:'id_cuestionario',
+  as:'respuestas_paciente'
+});
+
+Respuesta_paciente.belongsTo(Cuestionario,{
+  foreignKey:'id_cuestionario',
+  as:'cuestionario'
+});
 
 export {
   Usuario, 
@@ -176,6 +263,13 @@ export {
   Telegram,
   Bitacora,
   Expediente,
+  Expediente_Padecimientos,
   Padecimiento,
-  Odontograma
+  Odontograma,
+  Consentimiento,
+  Seguimiento,
+  Catalogo_Procedimientos,
+  Pregunta,
+  Cuestionario,
+  Respuesta_paciente
 }
