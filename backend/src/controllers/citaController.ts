@@ -2,8 +2,7 @@ import { Response, Request} from 'express';
 import {Op} from 'sequelize'
 import { Cita, Paciente, Dentista } from '../models/index';
 import {CustomRequest} from '../middleware/authMiddleware'
-import {obtenerDisponibilidad} from '../services/citaService';
-import { message } from 'telegraf/filters';
+import {obtenerDisponibilidad, validarTipoCita} from '../services/citaService';
 
 
 export const listarDisponibilidad = async(req:CustomRequest, res:Response) =>{
@@ -82,7 +81,7 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
         
         const inicio = new Date(fecha_hora_inicio);
         const fin = new Date(fecha_hora_fin);
-
+        const {tipo, duracion} = validarTipoCita(tipo_cita);
         if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
             return res.status(400).json({
                 message:'Fechas inválidas'
@@ -176,7 +175,9 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
         const citaDentista = await Cita.findOne({
             where:{
                 id_dentista,
-                estado:['Pendiente','Confirmada'],
+                estado:{
+                    [Op.in]:['Pendiente','Confirmada']
+                },
                 ...condicionTraslape
             }
         });
@@ -184,7 +185,9 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
         const citaPaciente = await Cita.findOne({
             where:{
                 id_paciente,
-                estado:['Pendiente','Confirmada'],
+                estado:{
+                    [Op.in]:['Pendiente','Confirmada']
+                },
                 ...condicionTraslape//mete las condiciones que estan dentro de condicionTraslape
             }
         })
@@ -206,7 +209,7 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
             id_dentista,
             fecha_hora_inicio:inicio,
             fecha_hora_fin:fin,
-            tipo_cita,
+            tipo_cita:tipo,
             estado:'Pendiente'
         });
 
@@ -214,8 +217,11 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
             message:'Cita creada correctamente',
             cita:nuevaCita
         })
-    }catch(error){
+    }catch(error:any){
         console.log('Error al crear cita: ', error);
+        if(error.message ==='Tipo_cita_invalido'){
+            return res.status(400).json({message:'Tipo de cita inválido'})
+        }
         return res.status(500).json({
             message:'Error del servidor'
         });
