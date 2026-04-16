@@ -46,7 +46,7 @@ export const registrarUsuario = async (req:Request, res:Response) =>{
 
     if(id_rol !==1 && id_rol !== 4 ){
         return res.status(400).json({
-            message: 'No se puede registrrar al usuario'
+            message: 'No se puede registrar al usuario'
         });
     }
     const t = await sequelize.transaction();
