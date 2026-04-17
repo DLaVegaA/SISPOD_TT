@@ -1,14 +1,36 @@
-<h3>Hola {{nombre}}</h3>
+<div style="font-family: Arial, sans-serif; color: #1e1e1e; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+    
+    <div style="background-color: #2b4c7e; padding: 20px; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Bienvenido a SISPOD</h1>
+    </div>
 
-<p>Tu cuenta ha sido creada.</p>
+    <div style="padding: 30px;">
+        <h2 style="color: #567ebb; margin-top: 0;">¡Hola, {{nombre}}!</h2>
+        
+        <p style="font-size: 16px;">
+            Gracias por registrarte en el <strong>Sistema para el Dentista (SISPOD)</strong>. 
+            Estás a un solo paso de activar tu cuenta y comenzar tu seguimiento post-operatorio de manera digital.
+        </p>
 
-<p>Haz clic en el botón para activarla:</p>
+        <div style="text-align: center; margin: 35px 0;">
+            <a href="{{url}}" 
+               style="background-color: #606d80; color: #ffffff; text-decoration: none; padding: 15px 30px; border-radius: 5px; font-weight: bold; font-size: 16px; display: inline-block; transition: background-color 0.3s;">
+                Activar mi cuenta
+            </a>
+        </div>
 
-<div style="text-align:center; margin:30px;">
-  <a href="{{link}}"
-     style="background:#0d6efd; color:white; padding:12px 20px; text-decoration:none; border-radius:5px;">
-     Activar cuenta
-  </a>
+        <p style="font-size: 14px; color: #606d80; background-color: #dce0e6; padding: 15px; border-radius: 4px; border-left: 4px solid #2b4c7e;">
+            <strong>¿Por qué activar tu cuenta?</strong><br>
+            Al confirmar tu correo podrás acceder a tu expediente, revisar tus odontogramas interactivos y recibir alertas de seguimiento tras tus procedimientos.
+        </p>
+
+        <p style="font-size: 12px; color: #a2a2a2; margin-top: 25px;">
+            Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
+            <span style="color: #567ebb;">{{url}}</span>
+        </p>
+    </div>
+
+    <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 12px; color: #606d80;">
+        © 2026 SISPOD - Escuela Superior de Cómputo (IPN)
+    </div>
 </div>
-
-<p>Si no solicitaste esta cuenta ignora este correo.</p>

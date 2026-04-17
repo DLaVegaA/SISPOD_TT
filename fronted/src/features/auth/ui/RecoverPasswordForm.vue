@@ -14,16 +14,14 @@ const handleSubmit = async () => {
   successMsg.value = '';
   
   try {    
-    // Llamada a tu API real
+    // Llamada a la API
     await recoverPasswordRequest({ correo: email.value });
     
-    // Si la petición es exitosa (código 200), mostramos el mensaje
     successMsg.value = 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.';
     email.value = ''; // Limpiamos el input
     
   } catch (err) {
     if (axios.isAxiosError(err)) {
-      // Tomamos el mensaje de error que mande tu backend (ej. res.status(404).json({ message: '...' }))
       errorMsg.value = err.response?.data?.message || 'Ocurrió un error al intentar enviar el correo.';
     } else {
       errorMsg.value = 'Ocurrió un error inesperado. Intenta de nuevo.';
