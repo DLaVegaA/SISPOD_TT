@@ -31,7 +31,7 @@ export const ROLE_META: Record<RoleId, RoleMeta> = {
     textClass: 'text-purple-400',
     barClass: 'bg-purple-500',
     badgeClass: 'bg-purple-500/10 text-purple-400',
-    avatarClass: 'bg-purple-500/20 text-purple-300',
+    avatarClass: 'bg-purple-500/20 text-purple-600',
     description: 'Acceso completo al sistema. Gestiona usuarios, configuración y reportes.',
     permissions: ['Gestionar usuarios'],
   },

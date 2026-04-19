@@ -16,8 +16,11 @@
       </button>
     </div>
     <!-- Filtros -->
-    <!-- <UiModal v-model="showForm" title="Crear" /> -->
-
+    <div class="mb-6">
+      <FilterBar />
+    </div>
+    <!-- Table  -->
+    <UserTable :users="users" />
     <!-- Modal Crear/Editar  -->
     <UserFormModal
       v-model="showForm"
@@ -31,7 +34,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { UserPlus } from 'lucide-vue-next'
 
 // Widgets Layout
@@ -39,6 +42,9 @@ import { UserFormModal } from '@/widgets/user-form-modal'
 
 // Features Layout
 import { useCreateUserForm } from '@/features/create-user'
+import { FilterBar } from '@/features/filter-users'
+import { UserTable } from '@/widgets/user-table'
+import type { User } from '@/entities/user'
 
 // Formularios
 const createForm = useCreateUserForm()
@@ -62,4 +68,22 @@ function handleSubmit(): void {
     showForm.value = false
   }
 }
+const users = reactive<User[]>([
+  {
+    id: 1,
+    name: 'Ivan Maldonado Ortiz',
+    email: 'ivanmaldortiz@gmail.com',
+    role: 'admin',
+    createdAt: '13 ene 2026',
+    status: 'active',
+  },
+  {
+    id: 2,
+    name: 'Ivan Maldonado Ortiz',
+    email: 'ivanmaldortiz@gmail.com',
+    role: 'admin',
+    createdAt: '13 ene 2026',
+    status: 'inactive',
+  },
+])
 </script>
