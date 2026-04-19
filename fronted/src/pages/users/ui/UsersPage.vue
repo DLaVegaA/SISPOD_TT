@@ -20,27 +20,8 @@
       <FilterBar :filters="filters" />
     </div>
 
-    <div
-      v-if="store.isLoading"
-      class="bg-card border border-border rounded-2xl p-8 text-center text-muted"
-    >
-      Cargando usuarios...
-    </div>
-
-    <div
-      v-else-if="store.error"
-      class="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-red-500 text-sm mb-4"
-    >
-      {{ store.error }}
-    </div>
-
     <!-- Table  -->
-    <UserTable
-      v-if="!store.isLoading"
-      :users="filteredUsers"
-      @edit="openEdit"
-      @delete="deleteState.requestDelete"
-    />
+    <UserTable :users="filteredUsers" @edit="openEdit" @delete="deleteState.requestDelete" />
 
     <!-- Modal Crear/Editar  -->
     <UserFormModal
@@ -88,7 +69,7 @@ const store = useUserStore()
 
 // Filtros
 const filters = useFilterUsers()
-const filteredUsers = computed(() => filters.applyFilters(store.all.value))
+const filteredUsers = filters.applyFilters(store.all)
 
 // Formularios
 const createForm = useCreateUserForm()

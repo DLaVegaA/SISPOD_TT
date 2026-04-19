@@ -1,5 +1,5 @@
-import { ref } from 'vue'
-import type { Ref } from 'vue'
+import { computed, ref } from 'vue'
+import type { ComputedRef, Ref } from 'vue'
 import type { User } from '@/entities/user'
 
 export interface FilterState {
@@ -13,18 +13,20 @@ export function useFilterUsers() {
   const filterRole = ref('')
   const filterStatus = ref('')
 
-  function applyFilters(users: User[]): User[] {
-    const query = search.value.toLowerCase().trim()
+  function applyFilters(users: ComputedRef<User[]>): ComputedRef<User[]> {
+    return computed(() => {
+      const query = search.value.toLowerCase().trim()
 
-    return users.filter((user) => {
-      const matchesSearch =
-        !query ||
-        user.name.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query)
-      const matchesRole = !filterRole.value || user.role === filterRole.value
-      const matchesStatus = !filterStatus.value || user.status === filterStatus.value
+      return users.value.filter((user) => {
+        const matchesSearch =
+          !query ||
+          user.name.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query)
+        const matchesRole = !filterRole.value || user.role === filterRole.value
+        const matchesStatus = !filterStatus.value || user.status === filterStatus.value
 
-      return matchesSearch && matchesRole && matchesStatus
+        return matchesSearch && matchesRole && matchesStatus
+      })
     })
   }
 
