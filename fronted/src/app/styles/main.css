@@ -1,8 +1,74 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+@import 'tailwindcss';
 
-@import "tailwindcss";
+@theme {
+  /* Fuentes */
+  --font-display: 'Syne', 'sans-serif';
+  --font-body: 'DM Sans', 'sans-serif';
 
-/* 2. Asignamos las fuentes globalmente */
+  /* Colores */
+  --color-ink: #4382b5;
+  --color-surface: #e8f2fb;
+  --color-card: #c7e2f5;
+  --color-border: #e2e8f0;
+  --color-accent: #4382b5;
+  --color-accent-light: #5b96c6;
+  --color-accent-dim: #4382b522;
+  --color-muted: #000000;
+  --color-ghost: #b7d1e5;
+  --color-background: #f4f9fd;
+  --color-text-primary: #000000;
+  --color-text-secondary: #ffffff;
+}
+body {
+  background: #f4f9fd;
+  color: #000000;
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+}
+/* ── Animaciones de vista ───────────────────────────────────────────────── */
+.fade-in {
+  animation: fadeIn 0.25s ease;
+}
+.slide-in {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* clase para el bagdge de usuario */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 @layer base {
   /* El texto general usará Inter */
   html {
@@ -11,7 +77,12 @@
   }
 
   /* Todos los títulos usarán Poppins */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: 'Poppins', sans-serif;
   }
 }

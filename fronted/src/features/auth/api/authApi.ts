@@ -1,13 +1,10 @@
-import { api } from '@/shared/api/base';
+import { httpClient } from '@/shared/api/http'
 
 // Tipamos lo que esperamos enviar y recibir basándonos en tu SQL (tabla Usuario)
 export const loginRequest = async (credentials: Record<string, string>) => {
-  // Cuando el back esté listo, este será el endpoint
-  const response = await api.post('/auth/login', credentials);
-  return response.data;
-};
+  return httpClient.post('/auth/login', credentials)
+}
 
 export const recoverPasswordRequest = async (data: { correo: string }) => {
-  const response = await api.post('/auth/forgot-password', data);
-  return response.data;
-};
+  return httpClient.post('/auth/forgot-password', data)
+}

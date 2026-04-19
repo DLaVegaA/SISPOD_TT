@@ -1,7 +1,7 @@
-<script setup lang="ts"></script>
-
 <template>
-  <RouterView />
+  <AppLayout />
 </template>
 
-<style scoped></style>
+<script setup lang="ts">
+import AppLayout from '../providers/AppLayout.vue'
+</script>
