@@ -29,7 +29,7 @@
           v-model="form.email"
           type="email"
           placeholder="ejemplo@sispod.com"
-          :class="inputCls(!!errors.name)"
+          :class="inputCls(!!errors.email)"
         />
         <p v-if="errors.email" class="text-red-400 text-xs mt-1">{{ errors.email }}</p>
       </div>
@@ -41,10 +41,10 @@
         >
         <div class="relative">
           <input
-            v-model="form.password"
+            v-model="(form as CreateUserDto).password"
             :type="showPassword ? 'text' : 'password'"
             placeholder="Mínimo 8 caracteres"
-            :class="[inputCls(!!errors.password), 'pr-10']"
+            :class="[inputCls(!!(errors as CreateUserErrors).password), 'pr-10']"
           />
           <button
             type="button"
@@ -54,7 +54,9 @@
             <component :is="showPassword ? EyeOff : Eye" class="w-4 h-4"></component>
           </button>
         </div>
-        <p v-if="errors.password" class="text-red-400 text-xs mt-1">{{ errors.password }}</p>
+        <p v-if="(errors as CreateUserErrors).password" class="text-red-400 text-xs mt-1">
+          {{ (errors as CreateUserErrors).password }}
+        </p>
       </div>
       <!-- Rol -->
       <div>
@@ -137,23 +139,24 @@
 </template>
 <script setup lang="ts">
 import {
+  CheckCircle,
   Eye,
   EyeOff,
   Headset,
+  Save,
   Shield,
   Stethoscope,
   User,
-  CheckCircle,
-  XCircle,
-  Save,
   UserPlus,
+  XCircle,
 } from 'lucide-vue-next'
 
 import type { CreateUserDto, UpdateUserDto } from '@/entities/user'
 
 import type { CreateUserErrors } from '@/features/create-user'
+import type { EditUserErrors } from '@/features/edit-user'
 
-import { ROLES_LIST } from '@/shared/config'
+import { ROLES_LIST } from '@/entities/role'
 import { UiModal } from '@/shared/ui/UiModal'
 
 const iconMap: Record<string, unknown> = { Shield, Stethoscope, Headset, User }
@@ -161,7 +164,7 @@ const iconMap: Record<string, unknown> = { Shield, Stethoscope, Headset, User }
 interface Props {
   modelValue: boolean
   form: CreateUserDto | UpdateUserDto
-  errors: CreateUserErrors
+  errors: CreateUserErrors | EditUserErrors
   isEdit?: boolean
   showPassword: boolean
 }

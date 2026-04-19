@@ -3,6 +3,7 @@
     <!-- Busqueda -->
     <div class="flex-1 min-w-52 relative">
       <UiInput
+        v-model="filters.search.value"
         placeholder="Buscar por nombre o correo..."
         type="text"
         :prefix-icon="Search"
@@ -10,12 +11,12 @@
       />
     </div>
     <!-- Filtro Rol -->
-    <UiSelect>
+    <UiSelect v-model="filters.filterRole.value">
       <option value="">Todos los Roles</option>
       <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.label }}</option>
     </UiSelect>
     <!-- Filtro Estado -->
-    <UiSelect>
+    <UiSelect v-model="filters.filterStatus.value">
       <option value="">Todos los Estados</option>
       <option value="active">Activo</option>
       <option value="inactive">Inactivo</option>
@@ -27,6 +28,9 @@ import { ROLES_LIST } from '@/shared/config'
 import { UiInput } from '@/shared/ui/UiInput'
 import { UiSelect } from '@/shared/ui/UiSelect'
 import { Search } from 'lucide-vue-next'
+import type { FilterState } from '../model'
+
+defineProps<{ filters: FilterState }>()
 
 const roles = ROLES_LIST
 </script>

@@ -3,8 +3,8 @@
     <!-- Cabecera -->
     <div class="flex items-center justify-between mb-8">
       <div>
-        <h1 class="font-display text-3xl font-semibold text-black">Gestión de Usuarios</h1>
-        <p class="text-muted text-sm mt-1">{{}}usuarios encontrados</p>
+        <h1 class="font-display text-2xl font-extrabold text-black">Gestión de Usuarios</h1>
+        <p class="text-muted text-sm mt-1">{{ filteredUsers.length }} usuarios encontrados</p>
       </div>
 
       <button
@@ -17,73 +17,169 @@
     </div>
     <!-- Filtros -->
     <div class="mb-6">
-      <FilterBar />
+      <FilterBar :filters="filters" />
     </div>
+
+    <div
+      v-if="store.isLoading"
+      class="bg-card border border-border rounded-2xl p-8 text-center text-muted"
+    >
+      Cargando usuarios...
+    </div>
+
+    <div
+      v-else-if="store.error"
+      class="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 text-red-500 text-sm mb-4"
+    >
+      {{ store.error }}
+    </div>
+
     <!-- Table  -->
-    <UserTable :users="users" />
+    <UserTable
+      v-if="!store.isLoading"
+      :users="filteredUsers"
+      @edit="openEdit"
+      @delete="deleteState.requestDelete"
+    />
+
     <!-- Modal Crear/Editar  -->
     <UserFormModal
       v-model="showForm"
       :form="activeForm"
       :errors="activeErrors"
-      :is-edit="isEditeMode"
+      :is-edit="isEditMode"
       :show-password="createForm.showPwd.value"
       @toggle-password="createForm.showPwd.value = !createForm.showPwd.value"
       @submit="handleSubmit"
     />
+
+    <DeleteConfirmModal
+      v-model="deleteState.showConfirm.value"
+      :user="deleteState.targetUser.value"
+      @confirm="handleDelete"
+    />
+
+    <UiToast v-model="toastShow" :message="toastMessage" :type="toastType" />
   </div>
 </template>
 <script lang="ts" setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { UserPlus } from 'lucide-vue-next'
 
-// Widgets Layout
+// Widgets
 import { UserFormModal } from '@/widgets/user-form-modal'
-
-// Features Layout
-import { useCreateUserForm } from '@/features/create-user'
-import { FilterBar } from '@/features/filter-users'
 import { UserTable } from '@/widgets/user-table'
+import { DeleteConfirmModal } from '@/widgets/delete-confirm-modal'
+
+// Features
+import { useCreateUserForm } from '@/features/create-user'
+import { FilterBar, useFilterUsers } from '@/features/filter-users'
+import { useEditUserForm } from '@/features/edit-user'
+import { useDeleteUser } from '@/features/delete-user'
+
+// Entities
+import { useUserStore } from '@/entities/user'
 import type { User } from '@/entities/user'
+
+// Shared
+import { UiToast } from '@/shared/ui/UiToast'
+
+const store = useUserStore()
+
+// Filtros
+const filters = useFilterUsers()
+const filteredUsers = computed(() => filters.applyFilters(store.all.value))
 
 // Formularios
 const createForm = useCreateUserForm()
+const editForm = useEditUserForm()
 
-const isEditeMode = ref(false)
+const isEditMode = ref(false)
+const editTargetId = ref<number | null>(null)
 const showForm = ref(false)
 
-const activeForm = computed(() => createForm.form)
+const activeForm = computed(
+  () => (isEditMode.value ? editForm.form : createForm.form) as Record<string, unknown>,
+)
+const activeErrors = computed(
+  () =>
+    (isEditMode.value ? editForm.errors : createForm.errors) as Record<string, string | undefined>,
+)
 
-const activeErrors = computed(() => createForm.errors)
+const deleteState = useDeleteUser()
+
+type ToastType = 'success' | 'error' | 'info'
+const toastShow = ref(false)
+const toastMessage = ref('')
+const toastType = ref<ToastType>('success')
+
+function showToast(message: string, type: ToastType = 'success'): void {
+  toastShow.value = false
+  setTimeout(() => {
+    toastMessage.value = message
+    toastType.value = type
+    toastShow.value = true
+    setTimeout(() => {
+      toastShow.value = false
+    }, 3000)
+  }, 50)
+}
+
+async function hydrateUsers(): Promise<void> {
+  try {
+    await store.fetchUsers()
+  } catch {
+    showToast('No se pudieron cargar los usuarios', 'error')
+  }
+}
+
+onMounted(() => {
+  hydrateUsers()
+})
 
 // Handlers
 function openCreate(): void {
+  isEditMode.value = false
+  editTargetId.value = null
+  createForm.reset()
   showForm.value = true
 }
 
-function handleSubmit(): void {
-  if (isEditeMode.value) {
-  } else {
+function openEdit(user: User): void {
+  isEditMode.value = true
+  editTargetId.value = user.id
+  editForm.load(user)
+  showForm.value = true
+}
+
+async function handleSubmit(): Promise<void> {
+  try {
+    if (isEditMode.value) {
+      if (!editForm.validate() || editTargetId.value === null) return
+      await store.updateUser(editTargetId.value, editForm.toDto())
+      showForm.value = false
+      showToast('Usuario actualizado correctamente', 'success')
+      return
+    }
+
     if (!createForm.validate()) return
+    await store.createUser({ ...createForm.form })
     showForm.value = false
+    showToast('Usuario creado exitosamente', 'success')
+  } catch {
+    showToast('No fue posible guardar el usuario', 'error')
   }
 }
-const users = reactive<User[]>([
-  {
-    id: 1,
-    name: 'Ivan Maldonado Ortiz',
-    email: 'ivanmaldortiz@gmail.com',
-    role: 'admin',
-    createdAt: '13 ene 2026',
-    status: 'active',
-  },
-  {
-    id: 2,
-    name: 'Ivan Maldonado Ortiz',
-    email: 'ivanmaldortiz@gmail.com',
-    role: 'admin',
-    createdAt: '13 ene 2026',
-    status: 'inactive',
-  },
-])
+
+async function handleDelete(): Promise<void> {
+  if (!deleteState.targetUser.value) return
+
+  try {
+    await store.deleteUser(deleteState.targetUser.value.id)
+    deleteState.cancel()
+    showToast('Usuario eliminado', 'error')
+  } catch {
+    showToast('No fue posible eliminar el usuario', 'error')
+  }
+}
 </script>

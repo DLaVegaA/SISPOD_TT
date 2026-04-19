@@ -1,6 +1,6 @@
 <template>
   <span :class="[meta.badgeClass, 'inline-flex items-center gap-1 role-badge']">
-    <component :is="iconComponent" class="wh-3 h-3" />
+    <component :is="iconComponent" class="w-3 h-3" />
 
     {{ meta.label }}</span
   >

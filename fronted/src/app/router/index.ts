@@ -49,6 +49,8 @@ import { ROUTE_NAMES, ROUTE_PATHS } from '@/shared/routes'
 const HomePage = () => import('@/pages/home/ui/HomePage.vue')
 const LoginPage = () => import('@/pages/login/ui/LoginPage.vue')
 const UsersPage = () => import('@/pages/users')
+const RolesPage = () => import('@/pages/roles/ui/RolesPage.vue')
+const StatsPage = () => import('@/pages/stats/ui/StatsPage.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -74,6 +76,18 @@ const router = createRouter({
       name: ROUTE_NAMES.USERS,
       component: UsersPage,
       meta: { title: 'Usuarios' },
+    },
+    {
+      path: ROUTE_PATHS.ROLES,
+      name: ROUTE_NAMES.ROLES,
+      component: RolesPage,
+      meta: { title: 'Roles del Sistema' },
+    },
+    {
+      path: ROUTE_PATHS.STATS,
+      name: ROUTE_NAMES.STATS,
+      component: StatsPage,
+      meta: { title: 'Estadísticas' },
     },
   ],
 })
