@@ -13,6 +13,7 @@ export const sequelize = new Sequelize(BD_NAME,BD_USER, BD_PASS,{
   host: BD_HOST,
   dialect: 'postgres',
   logging: false,
+  timezone:'+00:00',
   define:{
     timestamps:true,
     underscored:true,

@@ -68,3 +68,21 @@ body {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+@layer base {
+  /* El texto general usará Inter */
+  html {
+    font-family: 'Inter', sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  /* Todos los títulos usarán Poppins */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Poppins', sans-serif;
+  }
+}
