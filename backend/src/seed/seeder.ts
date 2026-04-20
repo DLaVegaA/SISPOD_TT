@@ -51,10 +51,22 @@ const importarDatos_pa_dent = async () => {
 
 const comando = process.argv[2];
 
-if(comando === "-i"){
+/* if(comando === "-i"){
     importarDatos();
     importarDatos_pa_dent();
 }
 if(comando === "-e"){
     eliminarDatos();
-}
+} */
+
+const runSeeder = async () => {
+    if(comando === "-i"){
+        await importarDatos(); // 1. Primero crea tablas, roles y usuarios
+        await importarDatos_pa_dent(); // 2. Hasta que acabe lo anterior, inserta pacientes y dentistas
+    }
+    if(comando === "-e"){
+        await eliminarDatos();
+    }
+};
+
+runSeeder();

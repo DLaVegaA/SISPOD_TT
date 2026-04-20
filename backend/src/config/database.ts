@@ -8,6 +8,7 @@ const BD_USER = process.env.BD_USER as string;
 const BD_PASS = process.env.BD_PASS as string;
 const BD_HOST = process.env.BD_HOST as string;
 
+const isAzure = BD_HOST?.includes('azure') || process.env.NODE_ENV === 'production';
 
 export const sequelize = new Sequelize(BD_NAME,BD_USER, BD_PASS,{
   host: BD_HOST,
@@ -17,7 +18,14 @@ export const sequelize = new Sequelize(BD_NAME,BD_USER, BD_PASS,{
   define:{
     timestamps:true,
     underscored:true,
-  }
+  },
+  // --- INICIO DE AJUSTE PARA AZURE ---
+  dialectOptions: isAzure ? {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
+  } : {}
 });
 
 const connectBD = async() =>{

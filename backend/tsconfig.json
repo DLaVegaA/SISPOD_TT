@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     /* Estructura */
-    "rootDir": "src",
-    "outDir": "dist",
+    "rootDir": "./src",
+    "outDir": "./dist",
 
     /* JS generado */
     "target": "ES2020",
@@ -16,5 +16,7 @@
     /* Calidad */
     "sourceMap": true,
     "forceConsistentCasingInFileNames": true
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
 }
