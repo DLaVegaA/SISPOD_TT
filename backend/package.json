@@ -11,7 +11,8 @@
     "lint": "eslint \"src/**/*.{ts,js}\"",
     "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
     "db:importar": "ts-node ./src/seed/seeder.ts -i",
-    "db:eliminar": "ts-node ./src/seed/seeder.ts -e"
+    "db:eliminar": "ts-node ./src/seed/seeder.ts -e",
+    "postinstall": "tsc" 
   },
   "keywords": [],
   "author": "",
