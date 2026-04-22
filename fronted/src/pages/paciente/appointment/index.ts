@@ -1,0 +1,1 @@
+export { default as Appointment } from './ui/PatientAppointment.vue';
