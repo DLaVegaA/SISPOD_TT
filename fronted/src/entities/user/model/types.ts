@@ -18,6 +18,20 @@ export interface CreateUserDto {
   password: string
   role: RoleId
   status: UserStatus
+  apellidoPaterno: string
+  apellidoMaterno: string
+  telefono: string
+  fechaNacimiento: string
+  curp: string
+  genero: string
+  noCedula: string
+  calle: string
+  numExt: string
+  numInt: string
+  colonia: string
+  municipio: string
+  estadoDireccion: string
+  codigoPostal: string
 }
 
 export interface UpdateUserDto {

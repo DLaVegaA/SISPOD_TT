@@ -20,7 +20,7 @@
       :key="permission"
       class="flex items-center gap-2 text-xs text-black/70 mb-1.5"
     >
-      <CheckCircle2 class="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+      <CheckCircle2 class="w-3.5 h-3.5 text-emerald-400 shrink-0" />
       {{ permission }}
     </div>
   </div>

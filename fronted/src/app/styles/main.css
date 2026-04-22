@@ -86,3 +86,15 @@ body {
     font-family: 'Poppins', sans-serif;
   }
 }
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+/* ::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #e8f2fb;
+}
+::-webkit-scrollbar-thumb {
+  background: #b7d1e5;
+  border-radius: 4px;
+} */
