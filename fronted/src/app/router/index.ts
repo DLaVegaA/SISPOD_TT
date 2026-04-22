@@ -51,6 +51,12 @@ const LoginPage = () => import('@/pages/login/ui/LoginPage.vue')
 const UsersPage = () => import('@/pages/users')
 const RolesPage = () => import('@/pages/roles/ui/RolesPage.vue')
 const StatsPage = () => import('@/pages/stats/ui/StatsPage.vue')
+const DentistCalendar = () => import('@/pages/dentista/calendar/ui/DentistCalendar.vue')
+const DentistClinicalHistory = () => import('@/pages/dentista/clinicalHistory/ui/DentistClinicalHistory.vue')
+const DentistDashboard = () => import('@/pages/dentista/dashboard/ui/DentistDashboard.vue')
+const DentistPatients = () => import('@/pages/dentista/patient/ui/DentistPatient.vue')
+const PatientAppointment = () => import('@/pages/paciente/appointment/ui/PatientAppointment.vue')
+const AssistantDashboard = () => import('@/pages/asistente/dashboard/ui/AssistantDashboard.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -88,6 +94,42 @@ const router = createRouter({
       name: ROUTE_NAMES.STATS,
       component: StatsPage,
       meta: { title: 'Estadísticas' },
+    },
+    {
+      path: ROUTE_PATHS.DENTIST_CALENDAR,
+      name: ROUTE_NAMES.DENTIST_CALENDAR,
+      component: DentistCalendar,
+      meta: { title: 'Calendario del Dentista' },
+    },
+    {
+      path: ROUTE_PATHS.DENTIST_CLINICAL_HISTORY,
+      name: ROUTE_NAMES.DENTIST_CLINICAL_HISTORY,
+      component: DentistClinicalHistory,
+      meta: { title: 'Historia Clínica del Dentista' },
+    },
+    {
+      path: ROUTE_PATHS.DENTIST_DASHBOARD,
+      name: ROUTE_NAMES.DENTIST_DASHBOARD,
+      component: DentistDashboard,
+      meta: { title: 'Dashboard del Dentista' },
+    },
+    {
+      path: ROUTE_PATHS.DENTIST_PATIENTS,
+      name: ROUTE_NAMES.DENTIST_PATIENTS,
+      component: DentistPatients,
+      meta: { title: 'Pacientes del Dentista' },
+    },
+    {
+      path: ROUTE_PATHS.PATIENT_APPOINTMENT,
+      name: ROUTE_NAMES.PATIENT_APPOINTMENT,
+      component: PatientAppointment,
+      meta: { title: 'Citas del Paciente' },
+    },
+    {
+      path: ROUTE_PATHS.ASSISTANT_DASHBOARD,
+      name: ROUTE_NAMES.ASSISTANT_DASHBOARD,
+      component: AssistantDashboard,
+      meta: { title: 'Dashboard del Asistente' },
     },
   ],
 })

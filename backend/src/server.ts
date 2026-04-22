@@ -66,7 +66,7 @@ async function startServer() {
     try {
       if(!(global as any).__botStarted){
         (global as any).__botStarted = true;
-        bot.launch();
+        await bot.launch();
         await bot.telegram.getMe();
         console.log('Bot de Telegram activo y conectado');
       }else{
