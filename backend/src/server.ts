@@ -64,9 +64,14 @@ async function startServer() {
     await bot.telegram.getMe();
     console.log('Bot de Telegram activo y conectado'); */
     try {
-      await bot.launch();
-      await bot.telegram.getMe();
-      console.log('Bot de Telegram activo y conectado');
+      if(!(global as any).__botStarted){
+        (global as any).__botStarted = true;
+        await bot.launch();
+        await bot.telegram.getMe();
+        console.log('Bot de Telegram activo y conectado');
+      }else{
+        console.log("Bot ya iniciado")
+      }
     } catch (error) {
       console.error('Advertencia: El bot de Telegram no pudo iniciar, pero la API sigue viva.', error);
     }
