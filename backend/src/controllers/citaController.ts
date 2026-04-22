@@ -272,6 +272,10 @@ export const editarCita = async(req:CustomRequest, res:Response) =>{
             });
         }
 
+        if(inicio < ahora){
+            return res.status(400).json({message:'No se puede agendar una cita en el pasado'})
+        }
+
         const conflicto = await Cita.findOne({
             where:{
                id_dentista: cita.id_dentista,
