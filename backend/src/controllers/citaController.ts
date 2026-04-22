@@ -31,8 +31,8 @@ export const listarDisponibilidad = async(req:CustomRequest, res:Response) =>{
                 message:'Faltan datos '
             });
         }
-
-        const tipo = Number(tipo_cita);
+        //tipo de cita 1 es como defualt 
+        const tipo = req.userData?.id_rol=== 3 ? 1 : Number(tipo_cita);
         if(isNaN(tipo)){
             return res.status(400).json({
                 message:'Tipo de cita invalido'
@@ -81,7 +81,8 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
         
         const inicio = new Date(fecha_hora_inicio);
         const fin = new Date(fecha_hora_fin);
-        const {tipo, duracion} = validarTipoCita(tipo_cita);
+        let {tipo, duracion} = validarTipoCita(tipo_cita);
+        tipo = req.userData?.id_rol=== 3 ? 1 : tipo;
         if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
             return res.status(400).json({
                 message:'Fechas inválidas'
@@ -228,3 +229,79 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
     }
 }
 
+export const editarCita = async(req:CustomRequest, res:Response) =>{
+    const {fecha_hora_inicio, fecha_hora_fin} = req.body;
+    const id = Number(req.params.id);
+    
+    if(isNaN(id)){
+        return res.status(400).json({message:'ID inválido'});
+    }
+    if(!id || !fecha_hora_fin || !fecha_hora_inicio){
+        return res.status(400).json({message:'Datos incompletos'});
+    }
+
+
+    try {
+        const cita = await Cita.findByPk(id);
+        if(!cita){
+            return res.status(404).json({
+                message:'Cita no encontrada'
+            })
+        }
+
+        const ahora = new Date();
+        const dif = (cita.fecha_hora_inicio.getTime()-ahora.getTime())/(1000*60*60);
+
+        if(dif<24){
+            return res.status(400).json({
+                message:'No se puede editar con menos de 24 horas'
+            })
+        }
+
+        const inicio = new Date(fecha_hora_inicio);
+        const fin = new Date(fecha_hora_fin);
+
+        if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
+            return res.status(400).json({
+                message:'Fechas inválidas'
+            });
+        }
+        if(inicio>= fin){
+            return res.status(400).json({
+                message:'Rango de fechas inválidas'
+            });
+        }
+
+        const conflicto = await Cita.findOne({
+            where:{
+               id_dentista: cita.id_dentista,
+               id_cita: {[Op.ne]:cita.id_cita},
+               estado:{
+                [Op.in]:['Pendiente','Confirmada']
+               },
+               fecha_hora_inicio:{[Op.lt]:fin},
+               fecha_hora_fin:{[Op.gt]:inicio}
+            }
+        });
+
+        if(conflicto){
+            return res.status(400).json({
+                message:'El horario para la cita ya esat ocupado'
+            });
+        }
+
+        await cita.update({
+            fecha_hora_inicio:inicio,
+            fecha_hora_fin:fin,
+        });
+
+        return res.json({
+            message:'Cita actualizada correctamente',
+            cita
+        })
+        
+    } catch (error) {
+        console.log('Error al editar cita: ',error);
+        return res.status(500).json({message:'Error del servidor'});
+    }
+}

@@ -7,7 +7,7 @@ export const obtenerRoles = async(req:Request,res:Response) =>{
             attributes:['id_rol', 'nombre_rol']
         });
         return res.json(roles);
-    } catch (error) {
+    } catch (error){
         console.log('Error al obtener roles: ', error);
         return res.status(500).json({message:'Error del servidor'});
     }
