@@ -1,9 +1,10 @@
 import { Response, Request} from 'express';
-import {Op} from 'sequelize'
+import {Op, WhereOptions} from 'sequelize'
 import { Cita, Paciente, Dentista } from '../models/index';
 import {CustomRequest} from '../middleware/authMiddleware'
 import {obtenerDisponibilidad, validarTipoCita} from '../services/citaService';
 
+const ESTADOS_VALIDOS = ['Pendiente', 'Confirmada', 'Cancelada'];
 
 export const listarDisponibilidad = async(req:CustomRequest, res:Response) =>{
     try {
@@ -31,8 +32,8 @@ export const listarDisponibilidad = async(req:CustomRequest, res:Response) =>{
                 message:'Faltan datos '
             });
         }
-
-        const tipo = Number(tipo_cita);
+        //tipo de cita 1 es como defualt 
+        const tipo = req.userData?.id_rol=== 3 ? 1 : Number(tipo_cita);
         if(isNaN(tipo)){
             return res.status(400).json({
                 message:'Tipo de cita invalido'
@@ -81,16 +82,29 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
         
         const inicio = new Date(fecha_hora_inicio);
         const fin = new Date(fecha_hora_fin);
-        const {tipo, duracion} = validarTipoCita(tipo_cita);
+        let {tipo, duracion} = validarTipoCita(tipo_cita);
+        tipo = req.userData?.id_rol=== 3 ? 1 : tipo;
         if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
             return res.status(400).json({
                 message:'Fechas inválidas'
             });
         }
+
+        const ahora = new Date();
+        const dif = (fecha_hora_inicio.getTime()-ahora.getTime())/(1000*60*60);
+
+        if(dif<48){
+            return res.status(400).json({
+                message:'No se puede agendar con menos de 48 horas de anticipación'
+            })
+        }
         if(inicio >= fin){
             return res.status(400).json({
                 message:'La fecha de fin debe ser mayor a la de inicio'
             });
+        }
+        if(inicio < ahora){
+            return res.status(400).json({message:'No se puede agendar una cita en el pasado'})
         }
 
         let dentistaExiste = null;
@@ -228,3 +242,213 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
     }
 }
 
+export const editarCita = async(req:CustomRequest, res:Response) =>{
+    const {fecha_hora_inicio, fecha_hora_fin} = req.body;
+    const id = Number(req.params.id);
+    
+    if(isNaN(id)){
+        return res.status(400).json({message:'ID inválido'});
+    }
+    if(!id || !fecha_hora_fin || !fecha_hora_inicio){
+        return res.status(400).json({message:'Datos incompletos'});
+    }
+
+
+    try {
+        const cita = await Cita.findByPk(id);
+        if(!cita){
+            return res.status(404).json({
+                message:'Cita no encontrada'
+            })
+        }
+
+        const ahora = new Date();
+        const dif = (cita.fecha_hora_inicio.getTime()-ahora.getTime())/(1000*60*60);
+
+        if(dif<24){
+            return res.status(400).json({
+                message:'No se puede editar con menos de 24 horas'
+            })
+        }
+
+        const inicio = new Date(fecha_hora_inicio);
+        const fin = new Date(fecha_hora_fin);
+
+        if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
+            return res.status(400).json({
+                message:'Fechas inválidas'
+            });
+        }
+        if(inicio>= fin){
+            return res.status(400).json({
+                message:'Rango de fechas inválidas'
+            });
+        }
+
+        if(inicio < ahora){
+            return res.status(400).json({message:'No se puede agendar una cita en el pasado'})
+        }
+
+        const conflicto = await Cita.findOne({
+            where:{
+               id_dentista: cita.id_dentista,
+               id_cita: {[Op.ne]:cita.id_cita},
+               estado:{
+                [Op.in]:['Pendiente','Confirmada']
+               },
+               fecha_hora_inicio:{[Op.lt]:fin},
+               fecha_hora_fin:{[Op.gt]:inicio}
+            }
+        });
+
+        if(conflicto){
+            return res.status(400).json({
+                message:'El horario para la cita ya esat ocupado'
+            });
+        }
+
+        await cita.update({
+            fecha_hora_inicio:inicio,
+            fecha_hora_fin:fin,
+        });
+
+        return res.json({
+            message:'Cita actualizada correctamente',
+            cita
+        })
+        
+    } catch (error) {
+        console.log('Error al editar cita: ',error);
+        return res.status(500).json({message:'Error del servidor'});
+    }
+}
+
+
+export const cancelarCita = async (req:CustomRequest, res:Response) =>{
+    const id = Number(req.params.id);
+
+    if(isNaN(id)){
+        return res.status(400).json({message:'ID inválido'});
+    }
+
+    try {
+        const cita = await Cita.findByPk(id);
+
+        if(!cita){
+            return res.status(404).json({message:'Cita no encontrada'});
+        }
+        if(cita.estado === 'Cancelada'){
+            return res.status(400).json({message:'La cita ya está cancelada'})
+        }
+
+        if(req.userData?.id_rol === 3){
+            const paciente = await Paciente.findOne({
+                where:{
+                    id_usuario: req.userData?.id
+                },
+                attributes:['id_paciente']
+            });
+            
+            if(!paciente){
+                return res.status(404).json({message:'Paciente no encontrado'})
+            }
+            if(cita.id_paciente !== paciente.id_paciente){
+                return res.status(403).json({message:'No tienes permiso para esta cita cancelar'})
+            }
+        }
+
+        const ahora = new Date();
+        const diffHoras = (cita.fecha_hora_inicio.getTime()-ahora.getTime())/(1000*60*60);
+
+        if(diffHoras<24){
+            return res.status(400).json({message:'No se puede cancelar con menos de 24 horas de anticipación'})
+        }
+
+        await cita.update({
+            estado: 'Cancelada'
+        });
+
+        return res.status(200).json({message:'Cita cancelada correctamente'})
+
+
+    } catch (error) {
+        console.log('Error al cancelar cita:',error);
+        return res.status(500).json({
+            message:'Error del servidor'
+        })
+    }
+}
+//Terminar esto 
+export const confirmarCita = async(req:CustomRequest, res:Response)=>{
+    const id_cita = Number(req.params.id);
+    if(isNaN(id_cita)){
+        return res.status(400).json({message:'ID inválido'});
+    }
+
+    try {
+        const cita = await Cita.findByPk(id_cita);
+        if(!cita){
+            return res.status(404).json({message:'Cita no encontrada'});
+        }
+
+
+    } catch (error) {
+        
+    }
+}
+//Falta agregar pagincion
+export const listarCitas = async(req:CustomRequest, res:Response) =>
+{
+    try {
+        const {estado,desde,hasta} = req.query;
+
+        const where: WhereOptions<Cita> = {};
+        if(typeof estado === 'string' ){
+            if( !ESTADOS_VALIDOS.includes(estado)){
+                return res.status(400).json({message:'Estado inválido'})
+            }
+            where.estado = estado;
+        }
+
+        if(desde && hasta && typeof desde === 'string' && typeof hasta === 'string' ){
+            const fechaInicio = new Date(desde);
+            const fechaFin = new Date(hasta);
+            if(!isNaN(fechaInicio.getTime()) && !isNaN(fechaFin.getTime())){
+                where.fecha_hora_inicio = {
+                    [Op.between]: [fechaInicio, fechaFin]
+                }
+            }
+
+        }
+
+        if(req.userData?.id_rol ===  3){
+            const paciente = await Paciente.findOne({
+                where: {id_usuario:req.userData.id},
+                attributes:['id_paciente']
+            });
+
+            if(!paciente){
+                return res.status(404).json({message:'Paciente no encontrado'})
+            }
+            where.id_paciente=paciente.id_paciente;
+        }
+
+        const {count, rows} = await Cita.findAndCountAll({
+            where,
+            order:[['fecha_hora_inicio', 'ASC']]
+        });
+
+        return res.json({
+            total:count,
+            citas:rows
+        });
+
+
+
+    } catch (error) {
+        console.log('Error al listar citas:',error);
+        return res.status(500).json({
+            message:'Error del servidor'
+        })
+    }
+}
