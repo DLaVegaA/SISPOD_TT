@@ -3,7 +3,6 @@ import {Usuario, Paciente, Telegram} from '../models/index';
 import { message } from 'telegraf/filters';
 import { Markup } from 'telegraf';
 
-
 export const obtenerEstadoTelegram = async(id_usuario:number) =>{
     const paciente = await Paciente.findOne({
         where: { id_usuario },
@@ -237,7 +236,7 @@ export const configurarBot = () =>{
         if(!validos.includes(comando)){
             return ctx.reply('Comando no reconocido\nUsa /menu para ver opciones');
         }
-    })
+    });
     
     bot.on(message('text'),async(ctx)=>{
         const text = ctx.message.text;
