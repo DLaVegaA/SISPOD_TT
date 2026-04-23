@@ -8,6 +8,7 @@ export const ROUTE_NAMES = {
   DENTIST_CLINICAL_HISTORY: 'dentist-clinical-history',
   DENTIST_DASHBOARD: 'dentist-dashboard',
   DENTIST_PATIENTS: 'dentist-patients',
+  PATIENT_DASHBOARD: 'patient-dashboard',
   PATIENT_APPOINTMENT: 'patient-appointment',
   ASSISTANT_DASHBOARD: 'assistant-dashboard',
 } as const
@@ -24,6 +25,7 @@ export const ROUTE_PATHS = {
   DENTIST_CLINICAL_HISTORY: '/dentist/clinical-history',
   DENTIST_DASHBOARD: '/dentist/dashboard',
   DENTIST_PATIENTS: '/dentist/patients',
+  PATIENT_DASHBOARD: '/patient/dashboard',
   PATIENT_APPOINTMENT: '/patient/appointment',
   ASSISTANT_DASHBOARD: '/assistant/dashboard',
 } as const

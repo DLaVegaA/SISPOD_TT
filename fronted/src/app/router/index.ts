@@ -55,6 +55,7 @@ const DentistCalendar = () => import('@/pages/dentista/calendar/ui/DentistCalend
 const DentistClinicalHistory = () => import('@/pages/dentista/clinicalHistory/ui/DentistClinicalHistory.vue')
 const DentistDashboard = () => import('@/pages/dentista/dashboard/ui/DentistDashboard.vue')
 const DentistPatients = () => import('@/pages/dentista/patient/ui/DentistPatient.vue')
+const PatientDashboard = () => import('@/pages/paciente/dashboard/ui/PatientDashboard.vue')
 const PatientAppointment = () => import('@/pages/paciente/appointment/ui/PatientAppointment.vue')
 const AssistantDashboard = () => import('@/pages/asistente/dashboard/ui/AssistantDashboard.vue')
 
@@ -118,6 +119,12 @@ const router = createRouter({
       name: ROUTE_NAMES.DENTIST_PATIENTS,
       component: DentistPatients,
       meta: { title: 'Pacientes del Dentista' },
+    },
+    {
+      path: ROUTE_PATHS.PATIENT_DASHBOARD,
+      name: ROUTE_NAMES.PATIENT_DASHBOARD,
+      component: PatientDashboard,
+      meta: { title: 'Dashboard del Paciente' },
     },
     {
       path: ROUTE_PATHS.PATIENT_APPOINTMENT,
