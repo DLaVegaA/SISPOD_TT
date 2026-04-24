@@ -8,7 +8,10 @@
 </template>
 
 <script setup lang="ts">
+import { useSessionStore } from '@/entities/session'
 import { AppSideBar } from '@/widgets/sidebar'
-import { ref } from 'vue'
-const isAuth = ref(true)
+import { computed } from 'vue'
+
+const sessionStore = useSessionStore()
+const isAuth = computed(() => sessionStore.isAuthenticated)
 </script>
