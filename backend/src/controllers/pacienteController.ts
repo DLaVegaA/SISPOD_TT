@@ -162,9 +162,10 @@ export const registrarPaciente = async (req: Request, res: Response) => {
 
 export const listarPacientes = async (req: Request, res: Response) => {
   const pagina = Number(req.query.pagina) || 1;
+  const limitQuery = Number(req.query.limit) || 10;
+  const limit = Math.max(1, Math.min(limitQuery, 500));
 
   try {
-    const limit = 10;
     const offset = pagina * limit - limit;
 
     const { count: total, rows: pacientes } = await Paciente.findAndCountAll({
