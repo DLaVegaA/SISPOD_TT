@@ -7,7 +7,7 @@
       />
       <div
         :class="[
-          'relative bg-card/90 border border-border rounded-2xl w-full shadow-2xl slide-in',
+          'relative bg-card/90 border border-border rounded-2xl w-full shadow-2xl slide-in max-h-10/12 overflow-auto',
           maxWidthClass,
         ]"
       >

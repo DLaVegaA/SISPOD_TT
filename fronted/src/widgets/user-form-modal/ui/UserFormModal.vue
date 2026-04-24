@@ -34,8 +34,221 @@
         <p v-if="errors.email" class="text-red-400 text-xs mt-1">{{ errors.email }}</p>
       </div>
 
+      <!-- Datos personales requeridos para paciente y dentista -->
+      <template v-if="showExtendedFields">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
+              >Apellido paterno</label
+            >
+            <input
+              v-model="createForm.apellidoPaterno"
+              type="text"
+              placeholder="Apellido paterno"
+              :class="inputCls(!!(errors as CreateUserErrors).apellidoPaterno)"
+            />
+            <p
+              v-if="(errors as CreateUserErrors).apellidoPaterno"
+              class="text-red-400 text-xs mt-1"
+            >
+              {{ (errors as CreateUserErrors).apellidoPaterno }}
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
+              >Apellido materno</label
+            >
+            <input
+              v-model="createForm.apellidoMaterno"
+              type="text"
+              placeholder="Apellido materno"
+              :class="inputCls(!!(errors as CreateUserErrors).apellidoMaterno)"
+            />
+            <p
+              v-if="(errors as CreateUserErrors).apellidoMaterno"
+              class="text-red-400 text-xs mt-1"
+            >
+              {{ (errors as CreateUserErrors).apellidoMaterno }}
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
+              >Teléfono</label
+            >
+            <input
+              v-model="createForm.telefono"
+              type="tel"
+              placeholder="10 dígitos"
+              :class="inputCls(!!(errors as CreateUserErrors).telefono)"
+            />
+            <p v-if="(errors as CreateUserErrors).telefono" class="text-red-400 text-xs mt-1">
+              {{ (errors as CreateUserErrors).telefono }}
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
+              >Fecha de nacimiento</label
+            >
+            <input
+              v-model="createForm.fechaNacimiento"
+              type="date"
+              :class="inputCls(!!(errors as CreateUserErrors).fechaNacimiento)"
+            />
+            <p
+              v-if="(errors as CreateUserErrors).fechaNacimiento"
+              class="text-red-400 text-xs mt-1"
+            >
+              {{ (errors as CreateUserErrors).fechaNacimiento }}
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
+              >CURP</label
+            >
+            <input
+              v-model="createForm.curp"
+              type="text"
+              maxlength="18"
+              placeholder="18 caracteres"
+              :class="inputCls(!!(errors as CreateUserErrors).curp)"
+            />
+            <p v-if="(errors as CreateUserErrors).curp" class="text-red-400 text-xs mt-1">
+              {{ (errors as CreateUserErrors).curp }}
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
+              >Género</label
+            >
+            <input
+              v-model="createForm.genero"
+              type="text"
+              placeholder="Ej. Masculino/Femenino"
+              :class="inputCls(!!(errors as CreateUserErrors).genero)"
+            />
+            <p v-if="(errors as CreateUserErrors).genero" class="text-red-400 text-xs mt-1">
+              {{ (errors as CreateUserErrors).genero }}
+            </p>
+          </div>
+        </div>
+      </template>
+
+      <!-- Cédula requerida para dentista -->
+      <div v-if="showDentistFields">
+        <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
+          >Cédula profesional</label
+        >
+        <input
+          v-model="createForm.noCedula"
+          type="text"
+          placeholder="No. cédula"
+          :class="inputCls(!!(errors as CreateUserErrors).noCedula)"
+        />
+        <p v-if="(errors as CreateUserErrors).noCedula" class="text-red-400 text-xs mt-1">
+          {{ (errors as CreateUserErrors).noCedula }}
+        </p>
+      </div>
+
+      <!-- Dirección requerida para paciente -->
+      <template v-if="showPatientFields">
+        <div class="pt-1">
+          <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Dirección</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="md:col-span-2">
+              <input
+                v-model="createForm.calle"
+                type="text"
+                placeholder="Calle"
+                :class="inputCls(!!(errors as CreateUserErrors).calle)"
+              />
+              <p v-if="(errors as CreateUserErrors).calle" class="text-red-400 text-xs mt-1">
+                {{ (errors as CreateUserErrors).calle }}
+              </p>
+            </div>
+
+            <div>
+              <input
+                v-model="createForm.numExt"
+                type="text"
+                placeholder="Número exterior"
+                :class="inputCls(!!(errors as CreateUserErrors).numExt)"
+              />
+              <p v-if="(errors as CreateUserErrors).numExt" class="text-red-400 text-xs mt-1">
+                {{ (errors as CreateUserErrors).numExt }}
+              </p>
+            </div>
+
+            <div>
+              <input
+                v-model="createForm.numInt"
+                type="text"
+                placeholder="Número interior (opcional)"
+                :class="inputCls(false)"
+              />
+            </div>
+
+            <div>
+              <input
+                v-model="createForm.colonia"
+                type="text"
+                placeholder="Colonia"
+                :class="inputCls(!!(errors as CreateUserErrors).colonia)"
+              />
+              <p v-if="(errors as CreateUserErrors).colonia" class="text-red-400 text-xs mt-1">
+                {{ (errors as CreateUserErrors).colonia }}
+              </p>
+            </div>
+
+            <div>
+              <input
+                v-model="createForm.municipio"
+                type="text"
+                placeholder="Municipio"
+                :class="inputCls(!!(errors as CreateUserErrors).municipio)"
+              />
+              <p v-if="(errors as CreateUserErrors).municipio" class="text-red-400 text-xs mt-1">
+                {{ (errors as CreateUserErrors).municipio }}
+              </p>
+            </div>
+
+            <div>
+              <input
+                v-model="createForm.estadoDireccion"
+                type="text"
+                placeholder="Estado"
+                :class="inputCls(!!(errors as CreateUserErrors).estadoDireccion)"
+              />
+              <p
+                v-if="(errors as CreateUserErrors).estadoDireccion"
+                class="text-red-400 text-xs mt-1"
+              >
+                {{ (errors as CreateUserErrors).estadoDireccion }}
+              </p>
+            </div>
+
+            <div>
+              <input
+                v-model="createForm.codigoPostal"
+                type="text"
+                maxlength="5"
+                placeholder="Código postal"
+                :class="inputCls(!!(errors as CreateUserErrors).codigoPostal)"
+              />
+              <p v-if="(errors as CreateUserErrors).codigoPostal" class="text-red-400 text-xs mt-1">
+                {{ (errors as CreateUserErrors).codigoPostal }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </template>
+
       <!-- Contraseña -->
-      <div v-if="!isEdit && 'password' in form">
+      <div v-if="showPasswordField && 'password' in form">
         <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
           >Contraseña</label
         >
@@ -74,7 +287,7 @@
                 ? 'border-accent bg-accent-dim text-accent'
                 : 'border-border text-muted hover:border-accent/10 hover:text-black ',
             ]"
-            @click="form.role = role.id"
+            @click="setRole(role.id)"
           >
             <component :is="iconMap[role.icon]" class="w-4 h-4 shrink-0"></component
             >{{ role.label }}
@@ -85,7 +298,7 @@
         </p>
       </div>
       <!-- Estado -->
-      <div>
+      <div v-if="showStatusField">
         <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
           >Estado</label
         >
@@ -138,6 +351,7 @@
   </UiModal>
 </template>
 <script setup lang="ts">
+import { computed } from 'vue'
 import {
   CheckCircle,
   Eye,
@@ -152,6 +366,7 @@ import {
 } from 'lucide-vue-next'
 
 import type { CreateUserDto, UpdateUserDto } from '@/entities/user'
+import type { RoleId } from '@/shared/config'
 
 import type { CreateUserErrors } from '@/features/create-user'
 import type { EditUserErrors } from '@/features/edit-user'
@@ -169,7 +384,7 @@ interface Props {
   showPassword: boolean
 }
 
-withDefaults(defineProps<Props>(), { isEdit: false })
+const props = withDefaults(defineProps<Props>(), { isEdit: false })
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -178,6 +393,37 @@ const emit = defineEmits<{
 }>()
 
 const roles = ROLES_LIST
+
+const createForm = computed(() => props.form as CreateUserDto)
+const selectedRole = computed<RoleId>(() => (createForm.value.role ?? 'patient') as RoleId)
+
+const showExtendedFields = computed(
+  () => !props.isEdit && (selectedRole.value === 'patient' || selectedRole.value === 'dentist'),
+)
+const showPatientFields = computed(() => !props.isEdit && selectedRole.value === 'patient')
+const showDentistFields = computed(() => !props.isEdit && selectedRole.value === 'dentist')
+const showPasswordField = computed(() => !props.isEdit && selectedRole.value !== 'patient')
+const showStatusField = computed(
+  () => props.isEdit || selectedRole.value === 'admin' || selectedRole.value === 'assistant',
+)
+
+function setRole(role: RoleId): void {
+  createForm.value.role = role
+
+  if (role !== 'dentist') {
+    createForm.value.noCedula = ''
+  }
+
+  if (role !== 'patient') {
+    createForm.value.calle = ''
+    createForm.value.numExt = ''
+    createForm.value.numInt = ''
+    createForm.value.colonia = ''
+    createForm.value.municipio = ''
+    createForm.value.estadoDireccion = ''
+    createForm.value.codigoPostal = ''
+  }
+}
 
 function inputCls(hasError: boolean): string {
   return `w-full bg-surface border rounded-xl px-4 py-2.5 text-sm text-black placeholder-muted focus:outline-none transition-colors ${hasError ? 'border-red-500' : 'border-border focus:border-accent'}`

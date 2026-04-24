@@ -1,7 +1,7 @@
 <template>
   <div class="fade-in">
     <div class="mb-8">
-      <h1 class="font-display text-2xl font-extrabold text-black">Estadísticas</h1>
+      <h1 class="font-display text-3xl font-bold text-black">Estadísticas</h1>
       <p class="text-muted text-sm mt-1">Resumen del sistema de usuarios</p>
     </div>
 

@@ -18,6 +18,7 @@
     "@lucide/vue": "^1.7.0",
     "axios": "^1.13.5",
     "lucide-vue-next": "^0.564.0",
+    "pinia": "^3.0.4",
     "vue": "^3.5.27",
     "vue-router": "^5.0.1"
   },

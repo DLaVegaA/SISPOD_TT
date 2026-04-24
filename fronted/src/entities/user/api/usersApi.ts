@@ -25,6 +25,7 @@ interface ListUsersResponse {
 interface CreateUserResponse {
   usuario?: {
     id?: number
+    id_usuario?: number
     id_rol?: number
     nombre?: string
     correo?: string
@@ -111,28 +112,68 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function createUser(dto: CreateUserDto): Promise<User> {
-  const payload = {
+  const basePersona = {
     nombre: dto.name,
+    apellido_paterno: dto.apellidoPaterno.trim(),
+    apellido_materno: dto.apellidoMaterno.trim(),
     correo: dto.email,
-    contrasena: dto.password,
-    id_rol: ROLE_TO_ID[dto.role],
-    estado: FRONT_TO_BACK_STATUS[dto.status],
-    apellido_paterno: 'Pendiente',
-    apellido_materno: 'Pendiente',
-    telefono: Date.now().toString().slice(-10).padStart(10, '0'),
-    fecha_nacimiento: '2000-01-01',
-    curp: buildCurpSeed(),
-    genero: 'No especificado',
+    telefono: dto.telefono.trim(),
+    fecha_nacimiento: dto.fechaNacimiento,
+    curp: dto.curp.trim().toUpperCase(),
+    genero: dto.genero.trim(),
   }
 
-  const data = await httpClient.post<CreateUserResponse, typeof payload>('/usuarios', payload)
+  let endpoint: '/usuarios' | '/dentistas' | '/pacientes' = '/usuarios'
+  let payload: Record<string, unknown>
+
+  if (dto.role === 'dentist') {
+    endpoint = '/dentistas'
+    payload = {
+      ...basePersona,
+      contrasena: dto.password,
+      id_rol: ROLE_TO_ID.dentist,
+      no_cedula: dto.noCedula.trim(),
+    }
+  } else if (dto.role === 'patient') {
+    endpoint = '/pacientes'
+    payload = {
+      ...basePersona,
+      id_rol: ROLE_TO_ID.patient,
+      calle: dto.calle.trim(),
+      num_ext: dto.numExt.trim(),
+      num_int: dto.numInt.trim() || null,
+      colonia: dto.colonia.trim(),
+      municipio: dto.municipio.trim(),
+      estado: dto.estadoDireccion.trim(),
+      codigo_postal: dto.codigoPostal.trim(),
+    }
+  } else {
+    payload = {
+      nombre: dto.name,
+      correo: dto.email,
+      contrasena: dto.password,
+      id_rol: ROLE_TO_ID[dto.role],
+      estado: FRONT_TO_BACK_STATUS[dto.status],
+      apellido_paterno: dto.apellidoPaterno.trim() || 'Pendiente',
+      apellido_materno: dto.apellidoMaterno.trim() || 'Pendiente',
+      telefono: dto.telefono.trim() || Date.now().toString().slice(-10).padStart(10, '0'),
+      fecha_nacimiento: dto.fechaNacimiento || '2000-01-01',
+      curp: dto.curp.trim().toUpperCase() || buildCurpSeed(),
+      genero: dto.genero.trim() || 'No especificado',
+    }
+  }
+
+  const data = await httpClient.post<CreateUserResponse, Record<string, unknown>>(endpoint, payload)
+
+  const createdRoleId = data.usuario?.id_rol ?? ROLE_TO_ID[dto.role]
+  const createdStatus = dto.role === 'patient' ? 'inactive' : dto.status
 
   return {
-    id: data.usuario?.id ?? Date.now(),
+    id: data.usuario?.id ?? data.usuario?.id_usuario ?? Date.now(),
     name: data.usuario?.nombre ?? dto.name,
     email: data.usuario?.correo ?? dto.email,
-    role: toRole(data.usuario?.id_rol ?? payload.id_rol),
-    status: dto.status,
+    role: toRole(createdRoleId),
+    status: createdStatus,
     createdAt: formatDate(),
   }
 }

@@ -388,6 +388,7 @@ export const activarUsuario = async (req: Request, res: Response) => {
 
 export const obtenerPerfilUsuario = async (req: CustomRequest, res: Response) => {
   try {
+    console.log('entre');
     const id_usuario = req.userData?.id;
     if (!id_usuario) {
       return res.status(401).json({ message: 'Sesión no válida' });

@@ -3,7 +3,7 @@
     <!-- Cabecera -->
     <div class="flex items-center justify-between mb-8">
       <div>
-        <h1 class="font-display text-2xl font-extrabold text-black">Gestión de Usuarios</h1>
+        <h1 class="font-display text-3xl font-bold text-black">Gestión de Usuarios</h1>
         <p class="text-muted text-sm mt-1">{{ filteredUsers.length }} usuarios encontrados</p>
       </div>
 
