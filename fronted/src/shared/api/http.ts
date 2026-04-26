@@ -29,6 +29,15 @@ export class HttpClient {
     const response = await api.delete<T>(url, config)
     return response.data
   }
+
+  async patch<TResponse, TBody = unknown>(
+    url: string,
+    body?: TBody,
+    config?: AxiosRequestConfig,
+  ): Promise<TResponse> {
+    const response = await api.patch<TResponse>(url, body, config)
+    return response.data
+  }
 }
 
 export const httpClient = new HttpClient()
