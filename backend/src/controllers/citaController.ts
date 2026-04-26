@@ -68,12 +68,13 @@ export const listarDisponibilidad = async(req:CustomRequest, res:Response) =>{
 
 export const crearCita = async (req:CustomRequest, res:Response) =>{
     try{
-        const {fecha_hora_inicio, fecha_hora_fin, tipo_cita} = req.body;
+        // const {fecha_hora_inicio, fecha_hora_fin, tipo_cita} = req.body;
+        const {fecha_hora_inicio, tipo_cita} = req.body;
         let id_dentista = req.body.id_dentista;
         let id_paciente = req.body.id_paciente
 
-
-        if(!fecha_hora_inicio || !fecha_hora_fin || !tipo_cita){
+        // if(!fecha_hora_inicio || !fecha_hora_fin || !tipo_cita){
+        if(!fecha_hora_inicio || !tipo_cita){
             return res.status(400).json({
                 message: 'Datos incompletos'
             });
@@ -81,17 +82,34 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
 
         
         const inicio = new Date(fecha_hora_inicio);
-        const fin = new Date(fecha_hora_fin);
+        //const fin = new Date(fecha_hora_fin);     
+
         let {tipo, duracion} = validarTipoCita(tipo_cita);
-        tipo = req.userData?.id_rol=== 3 ? 1 : tipo;
-        if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
+        //tipo = req.userData?.id_rol=== 3 ? 1 : tipo;
+
+        if(req.userData?.id_rol === 3){
+            tipo = 1; //Si el usuario es un paciente, se asigna el tipo de cita 1 (consulta general)
+            duracion = 60; //Duración predeterminada para consultas generales
+        }
+
+        if(isNaN(inicio.getTime())){
             return res.status(400).json({
-                message:'Fechas inválidas'
+                message:'Fecha inválida'
             });
         }
 
+        /* if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
+            return res.status(400).json({
+                message:'Fechas inválidas'
+            });
+        } */
+
+        const fin = new Date(inicio.getTime());
+        fin.setMinutes(fin.getMinutes() + duracion);
+
         const ahora = new Date();
-        const dif = (fecha_hora_inicio.getTime()-ahora.getTime())/(1000*60*60);
+        //const dif = (fecha_hora_inicio.getTime()-ahora.getTime())/(1000*60*60);
+        const dif = (inicio.getTime() - ahora.getTime()) / (1000 * 60 * 60);
 
         if(dif<48){
             return res.status(400).json({
@@ -109,7 +127,11 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
 
         let dentistaExiste = null;
         let pacienteExiste = null;
-        switch(req.userData?.id_rol){
+
+        const rolUsuario = Number(req.userData?.id_rol);
+
+        //switch(req.userData?.id_rol){
+        switch(rolUsuario){
             case 2:
                 dentistaExiste = await Dentista.findOne({
                     where:{
@@ -243,13 +265,14 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
 }
 
 export const editarCita = async(req:CustomRequest, res:Response) =>{
-    const {fecha_hora_inicio, fecha_hora_fin} = req.body;
+    //const {fecha_hora_inicio, fecha_hora_fin} = req.body;
+    const {fecha_hora_inicio} = req.body;
     const id = Number(req.params.id);
     
     if(isNaN(id)){
         return res.status(400).json({message:'ID inválido'});
     }
-    if(!id || !fecha_hora_fin || !fecha_hora_inicio){
+    if(!id || !fecha_hora_inicio){
         return res.status(400).json({message:'Datos incompletos'});
     }
 
@@ -272,7 +295,11 @@ export const editarCita = async(req:CustomRequest, res:Response) =>{
         }
 
         const inicio = new Date(fecha_hora_inicio);
-        const fin = new Date(fecha_hora_fin);
+        /* const fin = new Date(fecha_hora_fin); */
+        let duracion = Number(cita.tipo_cita) === 1 ? 60 : 30;
+        const fin = new Date(inicio.getTime());
+        fin.setMinutes(fin.getMinutes() + duracion);
+        
 
         if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
             return res.status(400).json({
