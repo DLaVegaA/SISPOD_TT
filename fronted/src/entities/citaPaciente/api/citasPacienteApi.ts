@@ -21,9 +21,9 @@ export const citasApi = {
     return httpClient.get('/citas', { params: { estado } })
   },
   editarCita: (id: number, data: { fecha_hora_inicio: string }) => {
-    return httpClient.put(`/citas/${id}`, data)
+    return httpClient.post(`/citas/${id}`, data)
   },
   cancelarCita: (id: number) => {
-    return httpClient.patch(`/citas/${id}/cancelar`)
+    return httpClient.post(`/citas/${id}/cancelar`)
   }
 }

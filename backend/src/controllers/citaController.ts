@@ -330,7 +330,7 @@ export const editarCita = async(req:CustomRequest, res:Response) =>{
 
         if(conflicto){
             return res.status(400).json({
-                message:'El horario para la cita ya esat ocupado'
+                message:'El horario para la cita ya esta ocupado'
             });
         }
 
