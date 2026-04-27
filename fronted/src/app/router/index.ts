@@ -1,50 +1,13 @@
-// Importamos usando el alias @ y apuntando a la carpeta de la página
-// import { HomePage } from '@/pages/home'
-// import { LoginPage } from '@/pages/login'
-// import { DentistaDashboard } from '@/pages/dentista/dashboard'
-// import { DentistCalendar } from '@/pages/dentista/calendar'
-// import { DentistPatient } from '@/pages/dentista/patient'
-// import { ClinicalHistory } from '@/pages/dentista/clinicalHistory'
-
-// const router = createRouter({
-//   history: createWebHistory(import.meta.env.BASE_URL),
-//   routes: [
-//     {
-//       path: '/',
-//       name: 'home',
-//       component: HomePage,
-//     },
-//     // Aquí irás agregando las rutas de los actores después
-//     // { path: '/login', component: () => import('@/pages/login/ui/LoginPage.vue') }
-//     {
-//       path: '/login',
-//       name: 'login',
-//       component: LoginPage, // Esta es la ruta para tu formulario
-//     },
-//     {
-//       path: '/dentista/dashboard',
-//       name: 'dentista-dashboard',
-//       component: DentistaDashboard, // Ruta para el dashboard del dentista
-//     },
-//     {
-//       path: '/dentista/calendar',
-//       name: 'dentista-calendar',
-//       component: DentistCalendar, // Ruta para el calendario del dentista
-//     },
-//     {
-//       path: '/dentista/patient',
-//       name: 'dentista-patient',
-//       component: DentistPatient, // Ruta para la gestión de pacientes del dentista
-//     },
-//     {
-//       path: '/dentista/clinical-history',
-//       name: 'dentista-clinical-history',
-//       component: ClinicalHistory, // Ruta para la historia clínica del dentista
-//     },
-//   ],
-// });
+import { useSessionStore } from '@/entities/session'
 import { createRouter, createWebHistory } from 'vue-router'
-import { ROUTE_NAMES, ROUTE_PATHS } from '@/shared/routes'
+import {
+  buildRoleHomePath,
+  normalizeRole,
+  normalizeUserId,
+  ROUTE_NAMES,
+  ROUTE_PATHS,
+  type AppRole,
+} from '@/shared/routes'
 
 const HomePage = () => import('@/pages/home/ui/HomePage.vue')
 const LoginPage = () => import('@/pages/login/ui/LoginPage.vue')
@@ -52,7 +15,8 @@ const UsersPage = () => import('@/pages/users')
 const RolesPage = () => import('@/pages/roles/ui/RolesPage.vue')
 const StatsPage = () => import('@/pages/stats/ui/StatsPage.vue')
 const DentistCalendar = () => import('@/pages/dentista/calendar/ui/DentistCalendar.vue')
-const DentistClinicalHistory = () => import('@/pages/dentista/clinicalHistory/ui/DentistClinicalHistory.vue')
+const DentistClinicalHistory = () =>
+  import('@/pages/dentista/clinicalHistory/ui/DentistClinicalHistory.vue')
 const DentistDashboard = () => import('@/pages/dentista/dashboard/ui/DentistDashboard.vue')
 const DentistPatients = () => import('@/pages/dentista/patient/ui/DentistPatient.vue')
 const PatientDashboard = () => import('@/pages/paciente/dashboard/ui/PatientDashboard.vue')
@@ -76,69 +40,121 @@ const router = createRouter({
       path: ROUTE_PATHS.LOGIN,
       name: ROUTE_NAMES.LOGIN,
       component: LoginPage,
-      meta: { title: 'Inicio de Sésion' },
+      meta: { title: 'Inicio de Sésion', guestOnly: true },
     },
     {
-      path: ROUTE_PATHS.USERS,
-      name: ROUTE_NAMES.USERS,
+      path: ROUTE_PATHS.ADMIN_HOME,
+      name: ROUTE_NAMES.ADMIN_HOME,
       component: UsersPage,
-      meta: { title: 'Usuarios' },
+      meta: { title: 'Panel de Administrador', requiresAuth: true, allowedRoles: ['admin'] },
     },
     {
-      path: ROUTE_PATHS.ROLES,
-      name: ROUTE_NAMES.ROLES,
+      path: ROUTE_PATHS.ADMIN_USERS,
+      name: ROUTE_NAMES.ADMIN_USERS,
+      component: UsersPage,
+      meta: { title: 'Usuarios', requiresAuth: true, allowedRoles: ['admin'] },
+    },
+    {
+      path: ROUTE_PATHS.ADMIN_ROLES,
+      name: ROUTE_NAMES.ADMIN_ROLES,
       component: RolesPage,
-      meta: { title: 'Roles del Sistema' },
+      meta: { title: 'Roles del Sistema', requiresAuth: true, allowedRoles: ['admin'] },
     },
     {
-      path: ROUTE_PATHS.STATS,
-      name: ROUTE_NAMES.STATS,
+      path: ROUTE_PATHS.ADMIN_STATS,
+      name: ROUTE_NAMES.ADMIN_STATS,
       component: StatsPage,
-      meta: { title: 'Estadísticas' },
+      meta: { title: 'Estadísticas', requiresAuth: true, allowedRoles: ['admin'] },
+    },
+    {
+      path: ROUTE_PATHS.DENTIST_HOME,
+      name: ROUTE_NAMES.DENTIST_HOME,
+      component: DentistDashboard,
+      meta: { title: 'Dashboard del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
     },
     {
       path: ROUTE_PATHS.DENTIST_CALENDAR,
       name: ROUTE_NAMES.DENTIST_CALENDAR,
       component: DentistCalendar,
-      meta: { title: 'Calendario del Dentista' },
+      meta: { title: 'Calendario del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
     },
     {
       path: ROUTE_PATHS.DENTIST_CLINICAL_HISTORY,
       name: ROUTE_NAMES.DENTIST_CLINICAL_HISTORY,
       component: DentistClinicalHistory,
-      meta: { title: 'Historia Clínica del Dentista' },
-    },
-    {
-      path: ROUTE_PATHS.DENTIST_DASHBOARD,
-      name: ROUTE_NAMES.DENTIST_DASHBOARD,
-      component: DentistDashboard,
-      meta: { title: 'Dashboard del Dentista' },
+      meta: {
+        title: 'Historia Clínica del Dentista',
+        requiresAuth: true,
+        allowedRoles: ['dentist'],
+      },
     },
     {
       path: ROUTE_PATHS.DENTIST_PATIENTS,
       name: ROUTE_NAMES.DENTIST_PATIENTS,
       component: DentistPatients,
-      meta: { title: 'Pacientes del Dentista' },
+      meta: { title: 'Pacientes del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
     },
     {
-      path: ROUTE_PATHS.PATIENT_DASHBOARD,
-      name: ROUTE_NAMES.PATIENT_DASHBOARD,
+      path: ROUTE_PATHS.PATIENT_HOME,
+      name: ROUTE_NAMES.PATIENT_HOME,
       component: PatientDashboard,
-      meta: { title: 'Dashboard del Paciente' },
+      meta: { title: 'Dashboard del Paciente', requiresAuth: true, allowedRoles: ['patient'] },
     },
     {
       path: ROUTE_PATHS.PATIENT_APPOINTMENT,
       name: ROUTE_NAMES.PATIENT_APPOINTMENT,
       component: PatientAppointment,
-      meta: { title: 'Citas del Paciente' },
+      meta: { title: 'Citas del Paciente', requiresAuth: true, allowedRoles: ['patient'] },
     },
     {
-      path: ROUTE_PATHS.ASSISTANT_DASHBOARD,
-      name: ROUTE_NAMES.ASSISTANT_DASHBOARD,
+      path: ROUTE_PATHS.ASSISTANT_HOME,
+      name: ROUTE_NAMES.ASSISTANT_HOME,
       component: AssistantDashboard,
-      meta: { title: 'Dashboard del Asistente' },
+      meta: { title: 'Dashboard del Asistente', requiresAuth: true, allowedRoles: ['assistant'] },
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  const sessionStore = useSessionStore()
+
+  if (sessionStore.status === 'unknown') {
+    await sessionStore.bootstrap()
+  }
+
+  const requiresAuth = Boolean(to.meta.requiresAuth)
+  const guestOnly = Boolean(to.meta.guestOnly)
+  const roleHomePath = buildRoleHomePath(sessionStore.role, sessionStore.user?.id)
+  const allowedRoles = Array.isArray(to.meta.allowedRoles)
+    ? (to.meta.allowedRoles as AppRole[])
+    : null
+  const currentRole = normalizeRole(sessionStore.role)
+  const currentUserId = normalizeUserId(sessionStore.user?.id)
+  const targetUserId = normalizeUserId(to.params.id)
+
+  if (to.name === ROUTE_NAMES.HOME && sessionStore.isAuthenticated && roleHomePath) {
+    return { path: roleHomePath }
+  }
+
+  if (requiresAuth && !sessionStore.isAuthenticated) {
+    return { path: ROUTE_PATHS.LOGIN }
+  }
+
+  if (requiresAuth && currentUserId && targetUserId && currentUserId !== targetUserId) {
+    return { path: roleHomePath ?? ROUTE_PATHS.HOME }
+  }
+
+  if (requiresAuth && allowedRoles?.length) {
+    if (!currentRole || !allowedRoles.includes(currentRole)) {
+      return { path: roleHomePath ?? ROUTE_PATHS.HOME }
+    }
+  }
+
+  if (guestOnly && sessionStore.isAuthenticated) {
+    return { path: roleHomePath ?? ROUTE_PATHS.HOME }
+  }
+
+  return true
 })
 
 // Guard global: actualiza el título del documento en cada navegación

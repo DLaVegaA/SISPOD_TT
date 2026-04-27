@@ -109,13 +109,14 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
 }
 
 export const editarCita = async(req:CustomRequest, res:Response) =>{
-    const {fecha_hora_inicio, fecha_hora_fin} = req.body;
+    //const {fecha_hora_inicio, fecha_hora_fin} = req.body;
+    const {fecha_hora_inicio} = req.body;
     const id = Number(req.params.id);
     
     if(isNaN(id)){
         return res.status(400).json({message:'ID inválido'});
     }
-    if(!id || !fecha_hora_fin || !fecha_hora_inicio){
+    if(!id || !fecha_hora_inicio){
         return res.status(400).json({message:'Datos incompletos'});
     }
 
@@ -138,7 +139,11 @@ export const editarCita = async(req:CustomRequest, res:Response) =>{
         }
 
         const inicio = new Date(fecha_hora_inicio);
-        const fin = new Date(fecha_hora_fin);
+        /* const fin = new Date(fecha_hora_fin); */
+        let duracion = Number(cita.tipo_cita) === 1 ? 60 : 30;
+        const fin = new Date(inicio.getTime());
+        fin.setMinutes(fin.getMinutes() + duracion);
+        
 
         if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
             return res.status(400).json({
@@ -169,7 +174,7 @@ export const editarCita = async(req:CustomRequest, res:Response) =>{
 
         if(conflicto){
             return res.status(400).json({
-                message:'El horario para la cita ya esat ocupado'
+                message:'El horario para la cita ya esta ocupado'
             });
         }
 

@@ -1,37 +1,86 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ROUTE_PATHS } from '@/shared/routes'
+import { useSessionStore } from '@/entities/session'
+import { ROUTE_NAMES } from '@/shared/routes'
 import {
-  Plus, CalendarCheck, ClipboardCheck, Stethoscope,
-  ArrowRight, BookOpen, CalendarClock, Ban, CalendarDays
+  Plus,
+  CalendarCheck,
+  ClipboardCheck,
+  Stethoscope,
+  ArrowRight,
+  BookOpen,
+  CalendarClock,
+  Ban,
+  CalendarDays,
 } from 'lucide-vue-next'
 
 // ── Router ─────────────────────────────────────────────────────────────────
 const router = useRouter()
+const sessionStore = useSessionStore()
+const currentUserId = computed(() =>
+  String(sessionStore.user?.id ?? sessionStore.user?.id_usuario ?? 0),
+)
 
 // ── Mock appointments (Lista plana optimizada para el dashboard) ──────────
 const proximasCitas = ref([
-  { id: 1, date: '18 Mar 2026', time: '11:30 AM', title: 'Revisión General', status: 'Confirmada', badgeBg: 'bg-emerald-100', badgeText: 'text-emerald-700' },
-  { id: 2, date: '25 Mar 2026', time: '04:00 PM', title: 'Limpieza Dental', status: 'Pendiente', badgeBg: 'bg-amber-100', badgeText: 'text-amber-700' },
+  {
+    id: 1,
+    date: '18 Mar 2026',
+    time: '11:30 AM',
+    title: 'Revisión General',
+    status: 'Confirmada',
+    badgeBg: 'bg-emerald-100',
+    badgeText: 'text-emerald-700',
+  },
+  {
+    id: 2,
+    date: '25 Mar 2026',
+    time: '04:00 PM',
+    title: 'Limpieza Dental',
+    status: 'Pendiente',
+    badgeBg: 'bg-amber-100',
+    badgeText: 'text-amber-700',
+  },
 ])
 
 // ── Metrics ───────────────────────────────────────────────────────────────
 const metricas = ref([
-  { titulo: 'Próxima Cita',  numero: '18 Mar',  subtitulo: '11:30 AM',       icon: CalendarCheck,  iconBg: 'bg-accent-dim',       iconClass: 'text-accent'      },
-  { titulo: 'Cuestionarios', numero: 2,         subtitulo: 'Pendientes',     icon: ClipboardCheck, iconBg: 'bg-emerald-500/10',   iconClass: 'text-emerald-500' },
-  { titulo: 'Seguimiento',   numero: 'Activo',  subtitulo: 'Postoperatorio', icon: Stethoscope,    iconBg: 'bg-indigo-500/10',    iconClass: 'text-indigo-500'  },
+  {
+    titulo: 'Próxima Cita',
+    numero: '18 Mar',
+    subtitulo: '11:30 AM',
+    icon: CalendarCheck,
+    iconBg: 'bg-accent-dim',
+    iconClass: 'text-accent',
+  },
+  {
+    titulo: 'Cuestionarios',
+    numero: 2,
+    subtitulo: 'Pendientes',
+    icon: ClipboardCheck,
+    iconBg: 'bg-emerald-500/10',
+    iconClass: 'text-emerald-500',
+  },
+  {
+    titulo: 'Seguimiento',
+    numero: 'Activo',
+    subtitulo: 'Postoperatorio',
+    icon: Stethoscope,
+    iconBg: 'bg-indigo-500/10',
+    iconClass: 'text-indigo-500',
+  },
 ])
 
 // ── Handlers (Navegación y Casos de Uso) ──────────────────────────────────
 function handleAgendar() {
   // Redirige al calendario/formulario para agendar (CU4)
-  router.push(ROUTE_PATHS.PATIENT_APPOINTMENT)
+  router.push({ name: ROUTE_NAMES.PATIENT_APPOINTMENT, params: { id: currentUserId.value } })
 }
 
 function handleVerCalendario() {
   // Redirige a la vista completa del calendario (CU7)
-  router.push(ROUTE_PATHS.PATIENT_APPOINTMENT)
+  router.push({ name: ROUTE_NAMES.PATIENT_APPOINTMENT, params: { id: currentUserId.value } })
 }
 
 function handleReprogramar(id: number) {
@@ -47,7 +96,6 @@ function handleCancelar(id: number) {
 
 <template>
   <div class="fade-in max-w-6xl mx-auto pb-10">
-
     <div class="flex items-end justify-between mb-8">
       <div>
         <div class="flex items-center gap-1.5 text-xs text-muted font-medium mb-2">
@@ -75,14 +123,18 @@ function handleCancelar(id: number) {
         class="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3 shadow-sm"
       >
         <div class="flex items-center gap-2">
-          <div :class="['w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0', item.iconBg]">
+          <div
+            :class="['w-8 h-8 rounded-xl flex items-center justify-center shrink-0', item.iconBg]"
+          >
             <component :is="item.icon" :class="['w-4 h-4', item.iconClass]" />
           </div>
           <p class="text-sm font-semibold text-black">{{ item.titulo }}</p>
         </div>
         <div class="flex items-center justify-between">
           <span class="text-2xl font-display font-extrabold text-black">{{ item.numero }}</span>
-          <span class="text-[10px] font-bold text-muted px-3 py-1 bg-surface border border-border rounded-full uppercase tracking-wide">
+          <span
+            class="text-[10px] font-bold text-muted px-3 py-1 bg-surface border border-border rounded-full uppercase tracking-wide"
+          >
             {{ item.subtitulo }}
           </span>
         </div>
@@ -90,13 +142,15 @@ function handleCancelar(id: number) {
     </section>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
       <section class="lg:col-span-2">
-        <div class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col h-full">
-          
-          <div class="flex items-center justify-between px-6 py-5 border-b border-border bg-surface/50">
+        <div
+          class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col h-full"
+        >
+          <div
+            class="flex items-center justify-between px-6 py-5 border-b border-border bg-surface/50"
+          >
             <h2 class="font-display font-bold text-black text-lg">Próximas Citas</h2>
-            <button 
+            <button
               @click="handleVerCalendario"
               class="flex items-center gap-1.5 text-xs font-bold text-accent hover:text-accent-dark transition-colors"
             >
@@ -112,31 +166,45 @@ function handleCancelar(id: number) {
               class="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border bg-surface/30 hover:bg-surface/60 transition-colors gap-4"
             >
               <div class="flex items-center gap-4">
-                <div class="bg-card border border-border rounded-xl p-3 text-center min-w-[75px] shadow-sm">
-                  <span class="block text-[10px] uppercase font-bold text-muted">{{ cita.date.split(' ')[1] }}</span>
-                  <span class="block text-xl font-extrabold text-black">{{ cita.date.split(' ')[0] }}</span>
+                <div
+                  class="bg-card border border-border rounded-xl p-3 text-center min-w-18.75 shadow-sm"
+                >
+                  <span class="block text-[10px] uppercase font-bold text-muted">{{
+                    cita.date.split(' ')[1]
+                  }}</span>
+                  <span class="block text-xl font-extrabold text-black">{{
+                    cita.date.split(' ')[0]
+                  }}</span>
                 </div>
                 <div>
                   <h3 class="font-bold text-black text-sm">{{ cita.title }}</h3>
                   <div class="flex items-center gap-2 mt-1.5">
                     <span class="text-xs font-medium text-muted">{{ cita.time }}</span>
                     <span class="w-1 h-1 rounded-full bg-border"></span>
-                    <span :class="['text-[10px] font-bold px-2 py-0.5 rounded-md', cita.badgeBg, cita.badgeText]">
+                    <span
+                      :class="[
+                        'text-[10px] font-bold px-2 py-0.5 rounded-md',
+                        cita.badgeBg,
+                        cita.badgeText,
+                      ]"
+                    >
                       {{ cita.status }}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div class="flex items-center gap-2 opacity-90 group-hover:opacity-100 transition-opacity">
-                <button 
+              <div
+                class="flex items-center gap-2 opacity-90 group-hover:opacity-100 transition-opacity"
+              >
+                <button
                   @click="handleReprogramar(cita.id)"
                   class="flex items-center gap-1.5 px-3 py-2 bg-white border border-border rounded-lg text-xs font-bold text-black hover:bg-surface transition-colors shadow-sm"
                 >
                   <CalendarClock class="w-3.5 h-3.5 text-muted" />
                   Modificar
                 </button>
-                <button 
+                <button
                   @click="handleCancelar(cita.id)"
                   class="p-2 text-muted hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   title="Cancelar Cita"
@@ -160,14 +228,17 @@ function handleCancelar(id: number) {
         <div class="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <div class="flex items-center gap-2 mb-3">
             <div class="w-8 h-8 rounded-xl bg-accent-dim flex items-center justify-center">
-              <BookOpen class="w-4 h-4 text-accent" /> 
+              <BookOpen class="w-4 h-4 text-accent" />
             </div>
             <h3 class="font-display font-bold text-black text-sm">Guía de Cuidados</h3>
           </div>
           <p class="text-xs text-muted mb-4 leading-relaxed">
-            Consulta las recomendaciones y los cuidados específicos para tu recuperación postoperatoria.
+            Consulta las recomendaciones y los cuidados específicos para tu recuperación
+            postoperatoria.
           </p>
-          <button class="w-full flex items-center gap-2 justify-center bg-ink/65 text-text-secondary hover:bg-ink/80 px-4 py-2.5 rounded-2xl text-xs font-medium transition-all hover:scale-105 active:scale-95">
+          <button
+            class="w-full flex items-center gap-2 justify-center bg-ink/65 text-text-secondary hover:bg-ink/80 px-4 py-2.5 rounded-2xl text-xs font-medium transition-all hover:scale-105 active:scale-95"
+          >
             <BookOpen class="w-4 h-4" />
             Ver Plan de Cuidados
           </button>
@@ -183,13 +254,16 @@ function handleCancelar(id: number) {
           <p class="text-xs text-muted mb-4 leading-relaxed">
             Registra tu progreso y revisa si hay alertas sobre tu estado de salud actual.
           </p>
-          <button class="w-full flex items-center justify-between p-3 bg-surface border border-border rounded-xl hover:border-indigo-400/30 transition-colors cursor-pointer group">
+          <button
+            class="w-full flex items-center justify-between p-3 bg-surface border border-border rounded-xl hover:border-indigo-400/30 transition-colors cursor-pointer group"
+          >
             <span class="text-xs font-bold text-black">Entrar a tu seguimiento</span>
-            <ArrowRight class="w-4 h-4 text-indigo-600 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight
+              class="w-4 h-4 text-indigo-600 group-hover:translate-x-1 transition-transform"
+            />
           </button>
         </div>
       </section>
-
     </div>
   </div>
 </template>
