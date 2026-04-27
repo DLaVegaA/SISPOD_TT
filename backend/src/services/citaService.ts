@@ -123,14 +123,15 @@ export const obtenerDisponibilidad = async(fecha:string, id_dentista:number, tip
 
 
 export const crearCita = async(data:any, user:any) =>{
-    const {fecha_hora_inicio, fecha_hora_fin, tipo_cita} = data;
+    const {fecha_hora_inicio, tipo_cita} = data;
     
-    const {inicio, fin} = validarFechas(fecha_hora_inicio, fecha_hora_fin);
+    const inicio = validarFechas(fecha_hora_inicio);
     validarAnticipacion(inicio, 48, 'agendar');
 
     let {tipo, duracion} = validarTipoCita(tipo_cita,user);
     const id_dentista = await  resolverDentista(user,data);
     const id_paciente = await  resolverPaciente(user,data);
+    const fin = new Date(inicio.getTime()+duracion*60000);
     await Promise.all([
         validarTraslape(inicio,fin,id_dentista,2),
         validarTraslape(inicio,fin,id_paciente,3)
@@ -156,23 +157,19 @@ export const crearCita = async(data:any, user:any) =>{
 }
 
 
-const validarFechas = (fechaInicio:string, fechaFin:string) =>{
+const validarFechas = (fechaInicio:string) =>{
     const inicio = new Date(fechaInicio);
-    const fin = new Date(fechaFin);
     const ahora = new Date();
-    if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
-        throw new AppError('Fechas inválidas',400);
+    if(isNaN(inicio.getTime())){
+        throw new AppError('Fecha inválida',400);
     }
 
-    if(inicio >= fin){
-        throw new AppError('La fecha de fin debe ser mayor a la de inicio', 400);
-    }
 
     if(inicio < ahora){
         throw new AppError('No se puede agendar una cita en el pasado', 400);
     }
 
-    return {inicio, fin}
+    return inicio
 }
 
 const validarAnticipacion = (inicio:Date, anticipacion:number, accion:string) =>{
