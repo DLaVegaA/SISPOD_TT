@@ -1,6 +1,8 @@
 export const ROUTE_NAMES = {
   HOME: 'home',
   LOGIN: 'login',
+  RECOVER_PASSWORD: 'recover-password',
+  RESET_PASSWORD: 'reset-password',
   ADMIN_HOME: 'admin-home',
   ADMIN_USERS: 'admin-users',
   ADMIN_ROLES: 'admin-roles',
@@ -10,6 +12,7 @@ export const ROUTE_NAMES = {
   DENTIST_CLINICAL_HISTORY: 'dentist-clinical-history',
   DENTIST_PATIENTS: 'dentist-patients',
   PATIENT_HOME: 'patient-home',
+  PATIENT_PROFILE: 'patient-profile',
   PATIENT_APPOINTMENT: 'patient-appointment',
   ASSISTANT_HOME: 'assistant-home',
 } as const
@@ -28,6 +31,8 @@ const ROLE_SEGMENT_BY_ROLE: Record<AppRole, 'admin' | 'dentista' | 'paciente' | 
 export const ROUTE_PATHS = {
   HOME: '/home',
   LOGIN: '/login',
+  RECOVER_PASSWORD: '/recuperar-contrasena',
+  RESET_PASSWORD: '/restablecer-contrasena/:token',
   ADMIN_HOME: '/admin:id/home',
   ADMIN_USERS: '/admin:id/users',
   ADMIN_ROLES: '/admin:id/roles',
@@ -37,6 +42,7 @@ export const ROUTE_PATHS = {
   DENTIST_CLINICAL_HISTORY: '/dentista:id/historial-clinico',
   DENTIST_PATIENTS: '/dentista:id/pacientes',
   PATIENT_HOME: '/paciente:id/home',
+  PATIENT_PROFILE: '/paciente:id/perfil',
   PATIENT_APPOINTMENT: '/paciente:id/citas',
   ASSISTANT_HOME: '/asistente:id/home',
 } as const

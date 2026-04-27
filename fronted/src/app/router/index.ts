@@ -11,15 +11,17 @@ import {
 
 const HomePage = () => import('@/pages/home/ui/HomePage.vue')
 const LoginPage = () => import('@/pages/login/ui/LoginPage.vue')
+const RecoverPasswordPage = () => import('@/pages/recuperarContrasena/ui/RecoverPasswordPage.vue')
+const ResetPasswordPage = () => import('@/pages/restablecerContrasena/ui/ResetPasswordPage.vue')
 const UsersPage = () => import('@/pages/users')
 const RolesPage = () => import('@/pages/roles/ui/RolesPage.vue')
 const StatsPage = () => import('@/pages/stats/ui/StatsPage.vue')
 const DentistCalendar = () => import('@/pages/dentista/calendar/ui/DentistCalendar.vue')
-const DentistClinicalHistory = () =>
-  import('@/pages/dentista/clinicalHistory/ui/DentistClinicalHistory.vue')
+const DentistClinicalHistory = () => import('@/pages/dentista/clinicalHistory/ui/DentistClinicalHistory.vue')
 const DentistDashboard = () => import('@/pages/dentista/dashboard/ui/DentistDashboard.vue')
 const DentistPatients = () => import('@/pages/dentista/patient/ui/DentistPatient.vue')
 const PatientDashboard = () => import('@/pages/paciente/dashboard/ui/PatientDashboard.vue')
+const PatientProfile = () => import('@/pages/paciente/profile/ui/PatientProfile.vue')
 const PatientAppointment = () => import('@/pages/paciente/appointment/ui/PatientAppointment.vue')
 const AssistantDashboard = () => import('@/pages/asistente/dashboard/ui/AssistantDashboard.vue')
 
@@ -41,6 +43,18 @@ const router = createRouter({
       name: ROUTE_NAMES.LOGIN,
       component: LoginPage,
       meta: { title: 'Inicio de Sésion', guestOnly: true },
+    },
+    {
+      path: ROUTE_PATHS.RECOVER_PASSWORD,
+      name: ROUTE_NAMES.RECOVER_PASSWORD,
+      component: RecoverPasswordPage,
+      meta: { title: 'Recuperar Contraseña', guestOnly: true },
+    },
+    {
+      path: ROUTE_PATHS.RESET_PASSWORD,
+      name: ROUTE_NAMES.RESET_PASSWORD,
+      component: ResetPasswordPage,
+      meta: { title: 'Restablecer Contraseña', guestOnly: true },
     },
     {
       path: ROUTE_PATHS.ADMIN_HOME,
@@ -99,6 +113,12 @@ const router = createRouter({
       name: ROUTE_NAMES.PATIENT_HOME,
       component: PatientDashboard,
       meta: { title: 'Dashboard del Paciente', requiresAuth: true, allowedRoles: ['patient'] },
+    },
+    {
+      path: ROUTE_PATHS.PATIENT_PROFILE,
+      name: ROUTE_NAMES.PATIENT_PROFILE,
+      component: PatientProfile,
+      meta: { title: 'Perfil del Paciente', requiresAuth: true, allowedRoles: ['patient'] },
     },
     {
       path: ROUTE_PATHS.PATIENT_APPOINTMENT,

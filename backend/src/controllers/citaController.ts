@@ -1,10 +1,25 @@
 import { Response, Request } from 'express';
 import { Op, WhereOptions } from 'sequelize';
-import { Cita, Paciente, Dentista, Usuario } from '../models/index';
+import { Cita, Paciente, Dentista } from '../models/index';
 import { CustomRequest } from '../middleware/authMiddleware';
-import { obtenerDisponibilidad, validarTipoCita } from '../services/citaService';
+import {
+  obtenerDisponibilidad,
+  validarTipoCita,
+  crearCita as CrearCitaService,
+  cancelarCita as CancelarCitaService,
+  listarCitas as ListarCitasService,
+} from '../services/citaService';
+import { AppError } from '../helpers/AppError';
+import { obtenerUsuario } from '../services/userService';
 
 const ESTADOS_VALIDOS = ['Pendiente', 'Confirmada', 'Cancelada'];
+export type FiltrosCita = {
+  estado?: string;
+  desde?: Date;
+  hasta?: Date;
+  user?: any;
+  nombre?: string;
+};
 
 export const listarDisponibilidad = async (req: CustomRequest, res: Response) => {
   try {
@@ -51,9 +66,10 @@ export const listarDisponibilidad = async (req: CustomRequest, res: Response) =>
       message: disponibles.length === 0 ? 'no hay citas disponibles' : undefined,
     });
   } catch (error: any) {
-    console.log('Error al mostrar disponibilidad: ', error);
-    if (error.message === 'Tipo_cita_invalido') {
-      return res.status(400).json({ message: 'Tipo de cita inválido' });
+    if (error instanceof AppError) {
+      return res.status(error.status).json({
+        message: error.message,
+      });
     }
     return res.status(500).json({ message: 'Error del servidor' });
   }
@@ -61,172 +77,27 @@ export const listarDisponibilidad = async (req: CustomRequest, res: Response) =>
 
 export const crearCita = async (req: CustomRequest, res: Response) => {
   try {
-    const { fecha_hora_inicio, fecha_hora_fin, tipo_cita } = req.body;
-    let id_dentista = req.body.id_dentista;
-    let id_paciente = req.body.id_paciente;
+    if (!req.userData) {
+      return res.status(401).json({ message: 'No autenticado' });
+    }
 
-    if (!fecha_hora_inicio || !fecha_hora_fin || !tipo_cita) {
+    if (!req.body.fecha_hora_inicio || !req.body.tipo_cita) {
       return res.status(400).json({
         message: 'Datos incompletos',
       });
     }
 
-    const inicio = new Date(fecha_hora_inicio);
-    const fin = new Date(fecha_hora_fin);
-    let { tipo, duracion } = validarTipoCita(tipo_cita);
-    tipo = req.userData?.id_rol === 3 ? 1 : tipo;
-    if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
-      return res.status(400).json({
-        message: 'Fechas inválidas',
-      });
-    }
-
-    const ahora = new Date();
-    const dif = (inicio.getTime() - ahora.getTime()) / (1000 * 60 * 60);
-
-    if (dif < 48) {
-      return res.status(400).json({
-        message: 'No se puede agendar con menos de 48 horas de anticipación',
-      });
-    }
-    if (inicio >= fin) {
-      return res.status(400).json({
-        message: 'La fecha de fin debe ser mayor a la de inicio',
-      });
-    }
-    if (inicio < ahora) {
-      return res.status(400).json({ message: 'No se puede agendar una cita en el pasado' });
-    }
-
-    let dentistaExiste = null;
-    let pacienteExiste = null;
-    switch (req.userData?.id_rol) {
-      case 2:
-        dentistaExiste = await Dentista.findOne({
-          where: {
-            id_usuario: req.userData?.id,
-          },
-        });
-
-        if (!dentistaExiste) {
-          return res.status(404).json({
-            message: 'Dentista no encontrado',
-          });
-        }
-
-        id_dentista = dentistaExiste.id_dentista;
-        break;
-      case 3:
-        pacienteExiste = await Paciente.findOne({
-          where: {
-            id_usuario: req.userData?.id,
-          },
-        });
-        if (!pacienteExiste) {
-          return res.status(404).json({
-            message: 'Paciente no encontrado',
-          });
-        }
-        id_paciente = pacienteExiste.id_paciente;
-        break;
-    }
-
-    if (!id_paciente || !id_dentista) {
-      return res.status(400).json({
-        message: 'Faltan datos de paciente o dentista',
-      });
-    }
-
-    if (!dentistaExiste) {
-      dentistaExiste = await Dentista.findByPk(id_dentista);
-      if (!dentistaExiste) {
-        return res.status(404).json({
-          message: 'Dentista no encontrado',
-        });
-      }
-    }
-
-    if (!pacienteExiste) {
-      pacienteExiste = await Paciente.findByPk(id_paciente);
-      if (!pacienteExiste) {
-        return res.status(404).json({
-          message: 'Paciente no encontrado',
-        });
-      }
-    }
-
-    const condicionTraslape = {
-      [Op.or]: [
-        {
-          fecha_hora_inicio: {
-            //Detecta que la cita existente empieza dentro del rango de la nueva
-            [Op.between]: [inicio, fin],
-          },
-        },
-        {
-          fecha_hora_fin: {
-            //Detecta que la cita existente termina dentro del rango de la nueva
-            [Op.between]: [inicio, fin],
-          },
-        },
-        {
-          [Op.and]: [
-            //detecta que la cita existente envuelve completamente a la nueva
-            { fecha_hora_inicio: { [Op.lte]: inicio } },
-            { fecha_hora_fin: { [Op.gte]: fin } },
-          ],
-        },
-      ],
-    };
-    const citaDentista = await Cita.findOne({
-      where: {
-        id_dentista,
-        estado: {
-          [Op.in]: ['Pendiente', 'Confirmada'],
-        },
-        ...condicionTraslape,
-      },
-    });
-
-    const citaPaciente = await Cita.findOne({
-      where: {
-        id_paciente,
-        estado: {
-          [Op.in]: ['Pendiente', 'Confirmada'],
-        },
-        ...condicionTraslape, //mete las condiciones que estan dentro de condicionTraslape
-      },
-    });
-
-    if (citaDentista) {
-      return res.status(400).json({
-        message: 'El dentista ya tiene una cita en ese horario',
-      });
-    }
-
-    if (citaPaciente) {
-      return res.status(400).json({
-        message: 'El paciente ya tiene una cita en ese horario',
-      });
-    }
-
-    const nuevaCita = await Cita.create({
-      id_paciente,
-      id_dentista,
-      fecha_hora_inicio: inicio,
-      fecha_hora_fin: fin,
-      tipo_cita: tipo,
-      estado: 'Pendiente',
-    });
-
+    const nuevaCita = await CrearCitaService(req.body, req.userData);
     return res.status(201).json({
       message: 'Cita creada correctamente',
       cita: nuevaCita,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.log('Error al crear cita: ', error);
-    if (error.message === 'Tipo_cita_invalido') {
-      return res.status(400).json({ message: 'Tipo de cita inválido' });
+    if (error instanceof AppError) {
+      return res.status(error.status).json({
+        message: error.message,
+      });
     }
     return res.status(500).json({
       message: 'Error del servidor',
@@ -235,13 +106,14 @@ export const crearCita = async (req: CustomRequest, res: Response) => {
 };
 
 export const editarCita = async (req: CustomRequest, res: Response) => {
-  const { fecha_hora_inicio, fecha_hora_fin } = req.body;
+  //const {fecha_hora_inicio, fecha_hora_fin} = req.body;
+  const { fecha_hora_inicio } = req.body;
   const id = Number(req.params.id);
 
   if (isNaN(id)) {
     return res.status(400).json({ message: 'ID inválido' });
   }
-  if (!id || !fecha_hora_fin || !fecha_hora_inicio) {
+  if (!id || !fecha_hora_inicio) {
     return res.status(400).json({ message: 'Datos incompletos' });
   }
 
@@ -263,7 +135,10 @@ export const editarCita = async (req: CustomRequest, res: Response) => {
     }
 
     const inicio = new Date(fecha_hora_inicio);
-    const fin = new Date(fecha_hora_fin);
+    /* const fin = new Date(fecha_hora_fin); */
+    let duracion = Number(cita.tipo_cita) === 1 ? 60 : 30;
+    const fin = new Date(inicio.getTime());
+    fin.setMinutes(fin.getMinutes() + duracion);
 
     if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
       return res.status(400).json({
@@ -294,7 +169,7 @@ export const editarCita = async (req: CustomRequest, res: Response) => {
 
     if (conflicto) {
       return res.status(400).json({
-        message: 'El horario para la cita ya esat ocupado',
+        message: 'El horario para la cita ya esta ocupado',
       });
     }
 
@@ -321,47 +196,19 @@ export const cancelarCita = async (req: CustomRequest, res: Response) => {
   }
 
   try {
-    const cita = await Cita.findByPk(id);
+    const canceladaCita = await CancelarCitaService(id, req.userData);
 
-    if (!cita) {
-      return res.status(404).json({ message: 'Cita no encontrada' });
-    }
-    if (cita.estado === 'Cancelada') {
-      return res.status(400).json({ message: 'La cita ya está cancelada' });
-    }
-
-    if (req.userData?.id_rol === 3) {
-      const paciente = await Paciente.findOne({
-        where: {
-          id_usuario: req.userData?.id,
-        },
-        attributes: ['id_paciente'],
-      });
-
-      if (!paciente) {
-        return res.status(404).json({ message: 'Paciente no encontrado' });
-      }
-      if (cita.id_paciente !== paciente.id_paciente) {
-        return res.status(403).json({ message: 'No tienes permiso para esta cita cancelar' });
-      }
-    }
-
-    const ahora = new Date();
-    const diffHoras = (cita.fecha_hora_inicio.getTime() - ahora.getTime()) / (1000 * 60 * 60);
-
-    if (diffHoras < 24) {
-      return res
-        .status(400)
-        .json({ message: 'No se puede cancelar con menos de 24 horas de anticipación' });
-    }
-
-    await cita.update({
-      estado: 'Cancelada',
+    return res.json({
+      message: 'Cita cancelada correctamente',
+      canceladaCita,
     });
-
-    return res.status(200).json({ message: 'Cita cancelada correctamente' });
   } catch (error) {
     console.log('Error al cancelar cita:', error);
+    if (error instanceof AppError) {
+      return res.status(error.status).json({
+        message: error.message,
+      });
+    }
     return res.status(500).json({
       message: 'Error del servidor',
     });
@@ -384,76 +231,57 @@ export const confirmarCita = async (req: CustomRequest, res: Response) => {
 //Falta agregar pagincion
 export const listarCitas = async (req: CustomRequest, res: Response) => {
   try {
-    const { estado, desde, hasta } = req.query;
+    const { estado, desde, hasta, nombre } = req.query;
+    const pagina = Number(req.query.pagina) || 1;
+    const limitQuery = Number(req.query.limit) || 10;
+    const limit = Math.max(1, Math.min(limitQuery, 500));
 
-    const where: WhereOptions<Cita> = {};
+    const offset = pagina * limit - limit;
+    const filtros: FiltrosCita = {};
     if (typeof estado === 'string') {
       if (!ESTADOS_VALIDOS.includes(estado)) {
         return res.status(400).json({ message: 'Estado inválido' });
       }
-      where.estado = estado;
+      filtros.estado = estado;
     }
 
     if (desde && hasta && typeof desde === 'string' && typeof hasta === 'string') {
       const fechaInicio = new Date(desde);
       const fechaFin = new Date(hasta);
-      if (!isNaN(fechaInicio.getTime()) && !isNaN(fechaFin.getTime())) {
-        where.fecha_hora_inicio = {
-          [Op.between]: [fechaInicio, fechaFin],
-        };
+      if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+        return res.status(400).json({ message: 'Fechas inválidas' });
       }
+      filtros.desde = fechaInicio;
+      filtros.hasta = fechaFin;
+    }
+    if (nombre && typeof nombre === 'string') {
+      filtros.nombre = nombre;
     }
 
-    if (req.userData?.id_rol === 3) {
-      const paciente = await Paciente.findOne({
-        where: { id_usuario: req.userData.id },
-        attributes: ['id_paciente'],
-      });
+    filtros.user = req.userData;
 
-      if (!paciente) {
-        return res.status(404).json({ message: 'Paciente no encontrado' });
-      }
-      where.id_paciente = paciente.id_paciente;
-    }
-
-    if (req.userData?.id_rol === 2) {
-      const dentista = await Dentista.findOne({
-        where: { id_usuario: req.userData.id },
-        attributes: ['id_dentista'],
-      });
-
-      if (!dentista) {
-        return res.status(404).json({ message: 'Dentista no encontrado' });
-      }
-
-      where.id_dentista = dentista.id_dentista;
-    }
-
-    const { count, rows } = await Cita.findAndCountAll({
-      where,
-      include: [
-        {
-          model: Paciente,
-          as: 'paciente',
-          attributes: ['id_paciente'],
-          include: [
-            {
-              model: Usuario,
-              as: 'usuario',
-              attributes: ['id_usuario', 'nombre', 'apellido_paterno', 'apellido_materno'],
-            },
-          ],
-        },
-      ],
-      order: [['fecha_hora_inicio', 'ASC']],
-    });
-
+    const { total, citas, totalPaginas, limitResponse } = await ListarCitasService(
+      filtros,
+      limit,
+      offset,
+    );
+    // return res.json({
+    //     total:count,
+    //     citas:rows
+    // });
     return res.json({
-      total: count,
-      citas: rows,
+      total,
+      citas,
+      totalPaginas,
+      limit: limitResponse,
     });
   } catch (error) {
     console.log('Error al listar citas:', error);
+    if (error instanceof AppError) {
+      return res.status(error.status).json({
+        message: error.message,
+      });
+    }
     return res.status(500).json({
       message: 'Error del servidor',
     });
