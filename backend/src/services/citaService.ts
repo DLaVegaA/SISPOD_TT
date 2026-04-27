@@ -1,5 +1,5 @@
 import {Cita, Dentista, Paciente, Usuario} from '../models/index';
-import {Model, Op, WhereOptions} from 'sequelize';
+import {Model, NUMBER, Op, WhereOptions} from 'sequelize';
 import {AppError} from '../helpers/AppError';
 import { obtenerPacientePorUsuario } from './pacienteService';
 import {enviarCorreoCita} from '../services/emailService';
@@ -44,8 +44,12 @@ export const validarTipoCita =(tipo_cita:number,user:any)=>{
 const generarSlots = (inicio:string, fin:string, intervalo:number, fecha:string)=>{
     const slots = [];
    
-    let hora = new Date(`${fecha}T${inicio}:00`);
-    const finDia = new Date(`${fecha}T${fin}:00`);
+    const [anio, mes, dia] = fecha.split('-').map(Number);
+    const [horaInicio, minutoInicio] = inicio.split(':').map(Number);
+    const [horaFin, minutoFin] = fin.split(':').map(Number);
+
+    let hora= new Date(anio, mes-1, dia, horaInicio,minutoInicio)
+    let finDia= new Date(anio, mes-1, dia, horaFin,minutoFin)
 
     while(hora<finDia){
         slots.push(new Date(hora));
@@ -99,7 +103,7 @@ const filtrarSlotsDisponibles = (slots:Date[],citas:CitaFormateada[], duracion:n
 export const obtenerDisponibilidad = async(fecha:string, id_dentista:number, tipo_cita:number)=>{
     const citasBD = await traerCitasDia(fecha,id_dentista);
     const citasConFormato = formatearCitas(citasBD);
-    const diaSemana = new Date(fecha).getDay();
+    const diaSemana = new Date(fecha).getUTCDay();
     let inicio = '09:00';
     let fin = '20:00';
     const intervalo =30;
