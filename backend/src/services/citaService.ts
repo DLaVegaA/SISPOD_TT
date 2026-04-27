@@ -303,22 +303,29 @@ export const cancelarCita = async(id:number, user:any) =>{
 }
 
 const obtenerCitaCompleta = async(id_cita:number) =>{
-    const includeUsuario = {
-        model: Usuario,
-        as:'usuario',
-        attributes:['id','correo','nombre']
-    }
     const cita = await Cita.findByPk(id_cita,{
         include:[
             {
                 model:Paciente,
                 as: 'paciente',
-                include:[includeUsuario]
+                include:[
+                    {
+                        model:Usuario,
+                        as:'usuario',
+                        attributes:['id_usuario','correo','nombre','telefono']
+                    }
+                ]
             },
             {
                 model:Dentista,
                 as: 'dentista',
-                include:[includeUsuario]
+                include:[
+                    {
+                        model:Usuario,
+                        as:'usuario',
+                        attributes:['id_usuario','correo','nombre','telefono']
+                    }
+                ]
             }
         ]
     })
