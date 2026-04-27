@@ -60,8 +60,9 @@ const generarSlots = (inicio:string, fin:string, intervalo:number, fecha:string)
 }
 
 const traerCitasDia = async(fecha:string, id_dentista:number) =>{
-    const inicioDia = new Date(`${fecha}T00:00:00Z`);
-    const finDia = new Date(`${fecha}T23:59:59Z`);
+    const [anio,mes,dia] = fecha.split('-').map(Number);
+    const inicioDia = new Date(anio,mes-1,dia,0,0,0);
+    const finDia = new Date(anio,mes-1,dia+1,0,0,0)
     const citasDelDia = await Cita.findAll({
         where:{
             id_dentista,
