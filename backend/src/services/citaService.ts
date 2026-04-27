@@ -161,6 +161,22 @@ export const crearCita = async(data:any, user:any) =>{
     
 }
 
+export const editarCita = async(data:any, user:any, id_cita:number)=>{
+    const {fecha_hora_inicio} = data
+
+    const cita = await Cita.findByPk(id_cita);
+    if(!cita){
+        throw new AppError('Cita no encontrado', 404);
+    }
+
+    if(user.id_rol === 3){
+        const id_paciente = await obtenerPacientePorUsuario(user);
+        if(cita.id_paciente !== id_paciente){
+            throw new AppError('No tienes autorización para editar esta cita', 403);
+        }
+    }
+}
+
 
 const validarFechas = (fechaInicio:string) =>{
     const inicio = new Date(fechaInicio);
@@ -199,10 +215,10 @@ const resolverDentista = async(user:any, data:any)=>{
         return dentistaExiste.id_dentista;
     }
 
-    if (!data.id_dentista || isNaN(Number(data.id_dentista))) {
-        throw new AppError('id dentista inválido', 400);
-    }
-    const id_dentista = Number(data.id_dentista);
+    // if (!data.id_dentista || isNaN(Number(data.id_dentista))) {
+    //     throw new AppError('id dentista inválido', 400);
+    // }
+    const id_dentista = 1;
     const dentista = await Dentista.findByPk(id_dentista);
     if(!dentista){
         throw new AppError('Dentista no encontrado', 404);
