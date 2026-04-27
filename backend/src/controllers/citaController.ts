@@ -84,7 +84,7 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
             return res.status(401).json({ message: 'No autenticado' });
         }
 
-        if(!req.body.fecha_hora_inicio || !req.body.fecha_hora_fin || !req.body.tipo_cita){
+        if(!req.body.fecha_hora_inicio || !req.body.tipo_cita){
             return res.status(400).json({
                 message: 'Datos incompletos'
             });
