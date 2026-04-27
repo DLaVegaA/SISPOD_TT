@@ -189,9 +189,9 @@ const resolverDentista = async(user:any, data:any)=>{
     if(user.id_rol===2){
         const dentistaExiste = await Dentista.findOne({
             where:{
-                id_usuario:user.id_usuario
+                id_usuario: user.id
             },
-            attributes:['id_dentista','nombre']
+            attributes:['id_dentista']
         });
         if(!dentistaExiste){
             throw new AppError('Dentista no encontrado',404)
@@ -215,9 +215,9 @@ const resolverPaciente = async(user:any,data:any) =>{
     if(user.id_rol ===3){
         const pacienteExiste = await Paciente.findOne({
             where:{
-                id_usuario:user.id_usuario
+                id_usuario: user.id
             },
-            attributes:['id_paciente','nombre']
+            attributes:['id_paciente']
         });
         if(!pacienteExiste){
             throw new AppError('Paciente no encontrado',404);
