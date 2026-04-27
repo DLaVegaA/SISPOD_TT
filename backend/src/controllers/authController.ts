@@ -4,7 +4,7 @@ import { generarToken } from '../helpers/generarToken';
 import transporter from '../config/mailer';
 import jwt from 'jsonwebtoken';
 import { verificarTokenReset } from '../services/authService';
-import { message } from 'telegraf/filters';
+//import { message } from 'telegraf/filters';
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -174,13 +174,15 @@ export const olvidoContrasena = async (req: Request, res: Response) => {
       });
     }
 
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
     await transporter.sendMail({
       to: usuarioExiste.correo,
       subject: 'Olvidaste tu contraseña',
       template: 'recuperarPassword',
       context: {
         nombre: usuarioExiste.nombre,
-        link: `http://localhost:3000/auth/reset-password?token=${tokenFinal}`,
+        link: `${frontendUrl}/restablecer-contrasena/${tokenFinal}`,
         year: new Date().getFullYear(),
       },
     } as any);

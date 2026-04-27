@@ -1,36 +1,55 @@
-<div style="font-family: Arial, sans-serif; color: #1e1e1e; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-    
-    <div style="background-color: #2b4c7e; padding: 20px; text-align: center;">
-        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Bienvenido a SISPOD</h1>
-    </div>
+<!-- Saludo -->
+<p style="font-family:'Poppins',Georgia,serif; font-size:22px; font-weight:700; color:#2A3B48; margin:0 0 8px 0;">
+  Hola, {{nombre}} 👋
+</p>
+<p style="font-family:Arial,sans-serif; font-size:15px; color:#4382B5; margin:0 0 28px 0; font-weight:500;">
+  Activa tu cuenta en SISPOD
+</p>
 
-    <div style="padding: 30px;">
-        <h2 style="color: #567ebb; margin-top: 0;">¡Hola, {{nombre}}!</h2>
-        
-        <p style="font-size: 16px;">
-            Gracias por registrarte en el <strong>Sistema para el Dentista (SISPOD)</strong>. 
-            Estás a un solo paso de activar tu cuenta y comenzar tu seguimiento post-operatorio de manera digital.
-        </p>
+<!-- Separador -->
+<div style="height:1px; background:#C7E2F5; margin-bottom:28px;"></div>
 
-        <div style="text-align: center; margin: 35px 0;">
-            <a href="{{link}}" 
-               style="background-color: #606d80; color: #ffffff; text-decoration: none; padding: 15px 30px; border-radius: 5px; font-weight: bold; font-size: 16px; display: inline-block; transition: background-color 0.3s;">
-                Activar mi cuenta
-            </a>
-        </div>
+<!-- Mensaje principal -->
+<p style="font-family:Arial,sans-serif; font-size:15px; color:#2A3B48; line-height:1.7; margin:0 0 16px 0;">
+  Gracias por registrarte en el <strong>Sistema para el Dentista (SISPOD)</strong> de Consultorio Gonzalez. Estás a un solo paso de activar tu cuenta y comenzar tu seguimiento post-operatorio de manera digital.
+</p>
+<p style="font-family:Arial,sans-serif; font-size:15px; color:#2A3B48; line-height:1.7; margin:0 0 32px 0;">
+  Haz clic en el siguiente botón para confirmar tu correo y activar tu cuenta:
+</p>
 
-        <p style="font-size: 14px; color: #606d80; background-color: #dce0e6; padding: 15px; border-radius: 4px; border-left: 4px solid #2b4c7e;">
-            <strong>¿Por qué activar tu cuenta?</strong><br>
-            Al confirmar tu correo podrás acceder a tu expediente, revisar tus odontogramas interactivos y recibir alertas de seguimiento tras tus procedimientos.
-        </p>
+<!-- Botón CTA -->
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-bottom:32px;">
+  <tr>
+    <td align="center">
+      <a href="{{link}}"
+         style="display:inline-block; background: linear-gradient(135deg, #4382B5, #2A3B48); color:#ffffff; font-family:'Poppins',Georgia,serif; font-size:15px; font-weight:700; text-decoration:none; padding:14px 40px; border-radius:12px; letter-spacing:0.3px; box-shadow:0 4px 14px rgba(67,130,181,0.35);">
+        Activar mi cuenta →
+      </a>
+    </td>
+  </tr>
+</table>
 
-        <p style="font-size: 12px; color: #a2a2a2; margin-top: 25px;">
-            Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
-            <span style="color: #567ebb;">{{url}}</span>
-        </p>
-    </div>
+<!-- Bloque de beneficios -->
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-bottom:28px;">
+  <tr>
+    <td style="background:#E8F2FB; border-left:4px solid #4382B5; border-radius:0 10px 10px 0; padding:14px 18px;">
+      <p style="font-family:Arial,sans-serif; font-size:13px; color:#2A3B48; margin:0;">
+        ✅ <strong>Al activar tu cuenta podrás:</strong> acceder a tu expediente, revisar tus odontogramas interactivos y recibir alertas de seguimiento tras tus procedimientos.
+      </p>
+    </td>
+  </tr>
+</table>
 
-    <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 12px; color: #606d80;">
-        © 2026 SISPOD - Escuela Superior de Cómputo (IPN)
-    </div>
-</div>
+<!-- Enlace de respaldo -->
+<p style="font-family:Arial,sans-serif; font-size:12px; color:#4382B5; line-height:1.6; margin:0 0 28px 0;">
+  Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
+  <span style="color:#2A3B48;">{{url}}</span>
+</p>
+
+<!-- Separador -->
+<div style="height:1px; background:#C7E2F5; margin-bottom:24px;"></div>
+
+<!-- Aviso de seguridad -->
+<p style="font-family:Arial,sans-serif; font-size:13px; color:#4382B5; line-height:1.6; margin:0;">
+  🔒 Si <strong>no creaste</strong> esta cuenta, ignora este correo. No se realizará ningún cambio.
+</p>
