@@ -1,0 +1,145 @@
+import { httpClient } from '@/shared/api/http'
+
+interface BackendPacienteUsuario {
+  id_usuario?: number
+  nombre?: string
+  apellido_paterno?: string
+  apellido_materno?: string
+  telefono?: string
+}
+
+interface BackendPaciente {
+  id_paciente: number
+  usuario?: BackendPacienteUsuario
+}
+
+interface ListPacientesResponse {
+  pacientes?: BackendPaciente[]
+}
+
+interface BackendCitaPaciente {
+  id_paciente?: number
+  usuario?: BackendPacienteUsuario
+}
+
+interface BackendCita {
+  id_cita: number
+  id_paciente: number
+  id_dentista: number
+  fecha_hora_inicio: string
+  fecha_hora_fin: string
+  tipo_cita: string | number
+  estado: string
+  paciente?: BackendCitaPaciente
+}
+
+interface ListCitasResponse {
+  citas?: BackendCita[]
+}
+
+export interface DentistPatientOption {
+  id: number
+  fullName: string
+  phone: string
+}
+
+export interface DentistAppointment {
+  id: number
+  patientId: number
+  patientName: string
+  startAt: string
+  endAt: string
+  type: string
+  status: string
+}
+
+export interface ListAppointmentsFilters {
+  desde?: string
+  hasta?: string
+  estado?: string
+}
+
+export interface CreateAppointmentPayload {
+  idPaciente: number
+  fecha: string
+  horaInicio: string
+  duracionMinutos: number
+  tipoCita: number
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function composePatientName(user?: BackendPacienteUsuario): string {
+  if (!user) {
+    return 'Paciente'
+  }
+
+  const parts = [user.nombre, user.apellido_paterno, user.apellido_materno]
+    .filter((part) => typeof part === 'string' && part.trim().length > 0)
+    .map((part) => (part as string).trim())
+
+  return parts.join(' ') || 'Paciente'
+}
+
+export async function listPatientsForAppointments(): Promise<DentistPatientOption[]> {
+  const payload = await httpClient.get<ListPacientesResponse>('/pacientes', {
+    params: {
+      pagina: 1,
+      limit: 500,
+    },
+  })
+
+  const maybeNested = isRecord(payload) && isRecord(payload.data) ? payload.data : payload
+  const pacientes = Array.isArray((maybeNested as ListPacientesResponse).pacientes)
+    ? ((maybeNested as ListPacientesResponse).pacientes ?? [])
+    : []
+
+  return pacientes.map((paciente) => ({
+    id: paciente.id_paciente,
+    fullName: composePatientName(paciente.usuario),
+    phone: paciente.usuario?.telefono ?? 'Sin telefono',
+  }))
+}
+
+export async function listDentistAppointments(
+  filters: ListAppointmentsFilters = {},
+): Promise<DentistAppointment[]> {
+  const payload = await httpClient.get<ListCitasResponse>('/citas', {
+    params: {
+      ...filters,
+    },
+  })
+
+  const maybeNested = isRecord(payload) && isRecord(payload.data) ? payload.data : payload
+  const citas = Array.isArray((maybeNested as ListCitasResponse).citas)
+    ? ((maybeNested as ListCitasResponse).citas ?? [])
+    : []
+
+  return citas.map((cita) => ({
+    id: cita.id_cita,
+    patientId: cita.id_paciente,
+    patientName: composePatientName(cita.paciente?.usuario),
+    startAt: cita.fecha_hora_inicio,
+    endAt: cita.fecha_hora_fin,
+    type: String(cita.tipo_cita),
+    status: cita.estado,
+  }))
+}
+
+export async function createDentistAppointment(payload: CreateAppointmentPayload): Promise<void> {
+  const startAt = new Date(`${payload.fecha}T${payload.horaInicio}:00`)
+  if (Number.isNaN(startAt.getTime())) {
+    throw new Error('Fecha y hora de inicio inválidas')
+  }
+
+  const endAt = new Date(startAt.getTime() + payload.duracionMinutos * 60 * 1000)
+
+  await httpClient.post('/citas', {
+    id_paciente: payload.idPaciente,
+    fecha_hora_inicio: startAt.toISOString(),
+    fecha_hora_fin: endAt.toISOString(),
+    tipo_cita: payload.tipoCita,
+  })
+}

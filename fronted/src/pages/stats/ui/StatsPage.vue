@@ -11,7 +11,7 @@
           <p class="text-xs text-muted font-semibold uppercase tracking-wider">Total</p>
           <Users class="w-4 h-4 text-accent-light" />
         </div>
-        <p class="text-3xl font-display font-extrabold text-black">{{ store.totalCount }}</p>
+        <p class="text-5xl font-display font-semibold text-black">{{ store.totalCount }}</p>
         <p class="text-xs text-muted mt-1">usuarios registrados</p>
       </div>
 
@@ -20,7 +20,7 @@
           <p class="text-xs text-muted font-semibold uppercase tracking-wider">Activos</p>
           <Activity class="w-4 h-4 text-emerald-400" />
         </div>
-        <p class="text-3xl font-display font-extrabold text-emerald-500">{{ store.activeCount }}</p>
+        <p class="text-5xl font-display font-semibold text-emerald-500">{{ store.activeCount }}</p>
         <p class="text-xs text-muted mt-1">en el sistema</p>
       </div>
 
@@ -29,7 +29,7 @@
           <p class="text-xs text-muted font-semibold uppercase tracking-wider">Inactivos</p>
           <UserX class="w-4 h-4 text-red-400" />
         </div>
-        <p class="text-3xl font-display font-extrabold text-red-500">{{ store.inactiveCount }}</p>
+        <p class="text-5xl font-display font-semibold text-red-500">{{ store.inactiveCount }}</p>
         <p class="text-xs text-muted mt-1">deshabilitados</p>
       </div>
 
@@ -38,7 +38,7 @@
           <p class="text-xs text-muted font-semibold uppercase tracking-wider">Roles</p>
           <Tag class="w-4 h-4 text-purple-500" />
         </div>
-        <p class="text-3xl font-display font-extrabold text-black">{{ roles.length }}</p>
+        <p class="text-5xl font-display font-semibold text-black">{{ roles.length }}</p>
         <p class="text-xs text-muted mt-1">tipos disponibles</p>
       </div>
     </div>
