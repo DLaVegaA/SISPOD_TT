@@ -175,6 +175,35 @@ export const editarCita = async(data:any, user:any, id_cita:number)=>{
             throw new AppError('No tienes autorización para editar esta cita', 403);
         }
     }
+
+    validarAnticipacion(cita.fecha_hora_inicio,36, 'editar');
+
+    const inicio = new Date(fecha_hora_inicio);
+    let duracion = Number(cita.tipo_cita) ===1 ? 60:30;
+    const fin = new Date(inicio.getTime());
+    fin.setMinutes(fin.getMinutes()+duracion);
+    const ahora = new Date();
+    if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
+        throw new AppError('Fechas inválidas', 400);
+            
+    }
+    if(inicio>= fin){
+        throw new AppError('Rango de fechas inválidas', 400);
+    }
+
+    if(inicio < ahora){
+        throw new AppError('No se puede agendar una cita en el pasado', 400);
+    }
+    await Promise.all([
+        validarTraslape(inicio,fin,cita.id_dentista,2),
+        validarTraslape(inicio,fin,cita.id_paciente,3)
+    ]);
+
+    await cita.update({
+        fecha_hora_inicio:inicio,
+        fecha_hora_fin:fin
+    });
+    return cita;
 }
 
 

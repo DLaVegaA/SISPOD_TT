@@ -2,7 +2,7 @@ import { Response, Request} from 'express';
 import {Op, WhereOptions} from 'sequelize'
 import { Cita, Paciente, Dentista } from '../models/index';
 import {CustomRequest} from '../middleware/authMiddleware'
-import {obtenerDisponibilidad, validarTipoCita, crearCita as CrearCitaService, cancelarCita as CancelarCitaService, listarCitas as ListarCitasService} from '../services/citaService';
+import {obtenerDisponibilidad, validarTipoCita, crearCita as CrearCitaService, cancelarCita as CancelarCitaService, listarCitas as ListarCitasService, editarCita as EditarCitaService} from '../services/citaService';
 import { AppError } from '../helpers/AppError';
 import {obtenerUsuario} from '../services/userService'
 
@@ -122,66 +122,67 @@ export const editarCita = async(req:CustomRequest, res:Response) =>{
 
 
     try {
-        const cita = await Cita.findByPk(id);
-        if(!cita){
-            return res.status(404).json({
-                message:'Cita no encontrada'
-            })
-        }
+        const cita = await EditarCitaService(req.body, req.userData,id);
+        // const cita = await Cita.findByPk(id);
+        // if(!cita){
+        //     return res.status(404).json({
+        //         message:'Cita no encontrada'
+        //     })
+        // }
 
-        const ahora = new Date();
-        const dif = (cita.fecha_hora_inicio.getTime()-ahora.getTime())/(1000*60*60);
+        // const ahora = new Date();
+        // const dif = (cita.fecha_hora_inicio.getTime()-ahora.getTime())/(1000*60*60);
 
-        if(dif<24){
-            return res.status(400).json({
-                message:'No se puede editar con menos de 24 horas'
-            })
-        }
+        // if(dif<24){
+        //     return res.status(400).json({
+        //         message:'No se puede editar con menos de 24 horas'
+        //     })
+        // }
 
-        const inicio = new Date(fecha_hora_inicio);
-        /* const fin = new Date(fecha_hora_fin); */
-        let duracion = Number(cita.tipo_cita) === 1 ? 60 : 30;
-        const fin = new Date(inicio.getTime());
-        fin.setMinutes(fin.getMinutes() + duracion);
+        // const inicio = new Date(fecha_hora_inicio);
+        // /* const fin = new Date(fecha_hora_fin); */
+        // let duracion = Number(cita.tipo_cita) === 1 ? 60 : 30;
+        // const fin = new Date(inicio.getTime());
+        // fin.setMinutes(fin.getMinutes() + duracion);
         
 
-        if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
-            return res.status(400).json({
-                message:'Fechas inválidas'
-            });
-        }
-        if(inicio>= fin){
-            return res.status(400).json({
-                message:'Rango de fechas inválidas'
-            });
-        }
+        // if(isNaN(inicio.getTime())|| isNaN(fin.getTime())){
+        //     return res.status(400).json({
+        //         message:'Fechas inválidas'
+        //     });
+        // }
+        // if(inicio>= fin){
+        //     return res.status(400).json({
+        //         message:'Rango de fechas inválidas'
+        //     });
+        // }
 
-        if(inicio < ahora){
-            return res.status(400).json({message:'No se puede agendar una cita en el pasado'})
-        }
+        // if(inicio < ahora){
+        //     return res.status(400).json({message:'No se puede agendar una cita en el pasado'})
+        // }
 
-        const conflicto = await Cita.findOne({
-            where:{
-               id_dentista: cita.id_dentista,
-               id_cita: {[Op.ne]:cita.id_cita},
-               estado:{
-                [Op.in]:['Pendiente','Confirmada']
-               },
-               fecha_hora_inicio:{[Op.lt]:fin},
-               fecha_hora_fin:{[Op.gt]:inicio}
-            }
-        });
+        // const conflicto = await Cita.findOne({
+        //     where:{
+        //        id_dentista: cita.id_dentista,
+        //        id_cita: {[Op.ne]:cita.id_cita},
+        //        estado:{
+        //         [Op.in]:['Pendiente','Confirmada']
+        //        },
+        //        fecha_hora_inicio:{[Op.lt]:fin},
+        //        fecha_hora_fin:{[Op.gt]:inicio}
+        //     }
+        // });
 
-        if(conflicto){
-            return res.status(400).json({
-                message:'El horario para la cita ya esta ocupado'
-            });
-        }
+        // if(conflicto){
+        //     return res.status(400).json({
+        //         message:'El horario para la cita ya esta ocupado'
+        //     });
+        // }
 
-        await cita.update({
-            fecha_hora_inicio:inicio,
-            fecha_hora_fin:fin,
-        });
+        // await cita.update({
+        //     fecha_hora_inicio:inicio,
+        //     fecha_hora_fin:fin,
+        // });
 
         return res.json({
             message:'Cita actualizada correctamente',
