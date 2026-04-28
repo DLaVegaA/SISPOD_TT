@@ -14,6 +14,7 @@ export const ROUTE_NAMES = {
   PATIENT_HOME: 'patient-home',
   PATIENT_PROFILE: 'patient-profile',
   PATIENT_APPOINTMENT: 'patient-appointment',
+  PATIENT_FOLLOW_UP: 'patient-follow-up',
   ASSISTANT_HOME: 'assistant-home',
 } as const
 
@@ -44,6 +45,7 @@ export const ROUTE_PATHS = {
   PATIENT_HOME: '/paciente:id/home',
   PATIENT_PROFILE: '/paciente:id/perfil',
   PATIENT_APPOINTMENT: '/paciente:id/citas',
+  PATIENT_FOLLOW_UP: '/paciente:id/seguimiento',
   ASSISTANT_HOME: '/asistente:id/home',
 } as const
 

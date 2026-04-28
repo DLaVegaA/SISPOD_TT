@@ -391,7 +391,7 @@ export const listarCitas = async(filtros:FiltrosCita,limit:number, offset:number
         offset,
         distinct:true,
         col:'id_cita',
-        attributes:['id_cita','fecha_hora_inicio', 'fecha_hora_fin', 'estado'],
+        attributes:['id_cita','fecha_hora_inicio', 'fecha_hora_fin', 'estado', 'tipo_cita'],
         include:[
             {
                 model:Paciente,

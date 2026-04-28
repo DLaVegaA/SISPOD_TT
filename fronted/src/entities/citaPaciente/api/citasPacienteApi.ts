@@ -18,7 +18,7 @@ export const citasApi = {
     return httpClient.post('/citas', data)
   },
   listarMisCitas: (estado?: string) => {
-    return httpClient.get('/citas', { params: { estado } })
+    return httpClient.get('/citas', { params: { estado, limit: 100 } })
   },
   editarCita: (id: number, data: { fecha_hora_inicio: string }) => {
     return httpClient.post(`/citas/${id}`, data)

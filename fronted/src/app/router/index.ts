@@ -23,6 +23,7 @@ const DentistPatients = () => import('@/pages/dentista/patient/ui/DentistPatient
 const PatientDashboard = () => import('@/pages/paciente/dashboard/ui/PatientDashboard.vue')
 const PatientProfile = () => import('@/pages/paciente/profile/ui/PatientProfile.vue')
 const PatientAppointment = () => import('@/pages/paciente/appointment/ui/PatientAppointment.vue')
+const PatientFollowUp = () => import('@/pages/paciente/followUp/ui/PatientFollowUp.vue')
 const AssistantDashboard = () => import('@/pages/asistente/dashboard/ui/AssistantDashboard.vue')
 
 const router = createRouter({
@@ -125,6 +126,12 @@ const router = createRouter({
       name: ROUTE_NAMES.PATIENT_APPOINTMENT,
       component: PatientAppointment,
       meta: { title: 'Citas del Paciente', requiresAuth: true, allowedRoles: ['patient'] },
+    },
+    {
+      path: ROUTE_PATHS.PATIENT_FOLLOW_UP,
+      name: ROUTE_NAMES.PATIENT_FOLLOW_UP,
+      component: PatientFollowUp,
+      meta: { title: 'Seguimiento del Paciente', requiresAuth: true, allowedRoles: ['patient'] },
     },
     {
       path: ROUTE_PATHS.ASSISTANT_HOME,

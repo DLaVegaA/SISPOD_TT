@@ -1,0 +1,1 @@
+export { default as FollowUp } from './ui/PatientFollowUp.vue'
