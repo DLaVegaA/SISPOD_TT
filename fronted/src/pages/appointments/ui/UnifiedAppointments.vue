@@ -94,6 +94,11 @@ const horariosDisponibles = ref<string[]>([])
 const horaSeleccionada = ref<string | null>(null)
 const horariosDisponiblesDentista = ref<string[]>([])
 const horaSeleccionadaDentista = ref<string | null>(null)
+const dentistSelectedAppointment = ref<DentistAppointment | null>(null)
+const isEditingDentist = ref(false)
+const dentistEditSlots = ref<string[]>([])
+const dentistEditTime = ref<string | null>(null)
+const isLoadingDentistEditSlots = ref(false)
 
 const ID_DENTISTA = 1
 const formCita = ref({ tipo_cita: 1 })
@@ -153,6 +158,11 @@ function appointmentBadgeClass(status: string): string {
   }
 
   return 'bg-accent text-white'
+}
+
+function dentistTypeLabel(type: string): string {
+  const match = APPOINTMENT_TYPE_OPTIONS.find((option) => option.value === type)
+  return match?.label ?? `Tipo ${type}`
 }
 
 function formatHora(isoString: string): string {
@@ -241,13 +251,32 @@ const selectedCellKey = computed(() => {
   return `${y}-${parseInt(m ?? '0')}-${parseInt(d ?? '0')}`
 })
 
+const dentistAppointmentsForSelectedDate = computed(() => {
+  if (!selectedDate.value) return []
+  const key = fromInputDateToKey(selectedDate.value)
+  return dentistAppointments.value
+    .filter((appointment) => {
+      const start = new Date(appointment.startAt)
+      return toCalendarKey(start) === key
+    })
+    .sort((a, b) => a.startAt.localeCompare(b.startAt))
+})
+
 const panelTitle = computed(() => {
   if (isPatient.value && citaSeleccionada.value) {
     return isEditing.value ? 'Modificar Horario' : 'Detalles de la Cita'
   }
 
+  if (isDentist.value && isEditingDentist.value) {
+    return 'Editar Cita'
+  }
+
   if (showForm.value) {
     return 'Agendar Cita'
+  }
+
+  if (isDentist.value && selectedDate.value) {
+    return 'Citas del Día'
   }
 
   return 'Selecciona una fecha'
@@ -277,6 +306,10 @@ function resetPanelState() {
   horaEditada.value = null
   horaSeleccionada.value = null
   horaSeleccionadaDentista.value = null
+  dentistSelectedAppointment.value = null
+  isEditingDentist.value = false
+  dentistEditSlots.value = []
+  dentistEditTime.value = null
   horariosDisponibles.value = []
   horariosEdicion.value = []
   horariosDisponiblesDentista.value = []
@@ -312,7 +345,7 @@ async function selectDay(cell: CalendarCell) {
   selectedDate.value = formattedDate
 
   resetPanelState()
-  showForm.value = true
+  showForm.value = isPatient.value
 
   if (isDentist.value) {
     dentistForm.value.date = formattedDate
@@ -349,6 +382,59 @@ function onTipoCitaChange() {
   if (!isPatient.value) return
   horaSeleccionada.value = null
   fetchDisponibilidad()
+}
+
+function openDentistCreateForm() {
+  if (!isDentist.value) return
+  errorMsg.value = null
+  dentistSelectedAppointment.value = null
+  isEditingDentist.value = false
+  showForm.value = true
+  if (selectedDate.value) {
+    dentistForm.value.date = selectedDate.value
+  }
+  void fetchDisponibilidadDentista()
+}
+
+async function selectDentistAppointment(appointment: DentistAppointment) {
+  if (!isDentist.value) return
+
+  const date = new Date(appointment.startAt)
+  const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate(),
+  ).padStart(2, '0')}`
+
+  selectedDate.value = dateKey
+  dentistForm.value.date = dateKey
+  dentistForm.value.type = appointment.type
+  dentistSelectedAppointment.value = appointment
+  isEditingDentist.value = true
+  showForm.value = false
+  errorMsg.value = null
+  dentistEditTime.value = null
+  await fetchDentistEditSlots(dateKey, appointment.type)
+}
+
+async function fetchDentistEditSlots(date: string, tipo: string) {
+  if (!isDentist.value) return
+
+  isLoadingDentistEditSlots.value = true
+  dentistEditSlots.value = []
+
+  try {
+    const res = (await citasApi.obtenerDisponibilidad(
+      date,
+      Number(tipo),
+      ID_DENTISTA,
+    )) as DisponibilidadResponse
+
+    dentistEditSlots.value = res?.disponibles ?? []
+  } catch (error) {
+    console.error('Error al buscar horarios para edición dentista:', error)
+    dentistEditSlots.value = []
+  } finally {
+    isLoadingDentistEditSlots.value = false
+  }
 }
 
 async function fetchDisponibilidadDentista() {
@@ -586,6 +672,37 @@ async function handleCrearCitaDentista() {
   }
 }
 
+async function handleGuardarEdicionDentista() {
+  if (!isDentist.value || !dentistSelectedAppointment.value || !dentistEditTime.value) return
+
+  isSaving.value = true
+  errorMsg.value = null
+
+  try {
+    await citasApi.editarCita(dentistSelectedAppointment.value.id, {
+      fecha_hora_inicio: dentistEditTime.value,
+    })
+
+    successMsg.value = 'Horario actualizado correctamente'
+    dentistSelectedAppointment.value = null
+    isEditingDentist.value = false
+    dentistEditTime.value = null
+    await loadDentistAppointmentsByMonth()
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } } }
+    errorMsg.value = err.response?.data?.message ?? 'No se pudo editar la cita.'
+  } finally {
+    isSaving.value = false
+  }
+}
+
+function cancelarEdicionDentista() {
+  isEditingDentist.value = false
+  dentistSelectedAppointment.value = null
+  dentistEditTime.value = null
+  errorMsg.value = null
+}
+
 watch([currentYear, currentMonth], () => {
   if (isDentist.value) {
     void loadDentistAppointmentsByMonth()
@@ -602,6 +719,8 @@ watch(
       horariosDisponiblesDentista.value = []
       horaSeleccionadaDentista.value = null
       dentistForm.value.startTime = ''
+      dentistEditSlots.value = []
+      dentistEditTime.value = null
       return
     }
 
@@ -630,6 +749,9 @@ watch(
     horaSeleccionadaDentista.value = null
     dentistForm.value.startTime = ''
     void fetchDisponibilidadDentista()
+    if (dentistSelectedAppointment.value) {
+      void fetchDentistEditSlots(dentistForm.value.date, dentistForm.value.type)
+    }
   },
 )
 
@@ -665,7 +787,7 @@ onMounted(async () => {
   <div class="fade-in max-w-7xl mx-auto">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       <div>
-        <div class="flex items-center gap-1.5 text-xs text-muted font-medium mb-2">
+        <div class="flex items-center gap-1.5 text-xs text-muted font-medium my-2">
           <span class="text-muted/60">🏠</span>
           <span class="text-muted/60">&gt;</span>
           <span class="bg-card border border-border px-2 py-0.5 rounded-lg">Citas</span>
@@ -897,6 +1019,97 @@ onMounted(async () => {
             </template>
           </div>
 
+          <div
+            v-else-if="isDentist && isEditingDentist && dentistSelectedAppointment"
+            class="space-y-4"
+          >
+            <div class="p-4 bg-surface rounded-2xl border border-border">
+              <p class="text-xs text-muted font-bold uppercase mb-1">Cita Programada</p>
+              <p class="text-sm font-bold text-black">
+                {{ selectedDate }} · {{ formatHora(dentistSelectedAppointment.startAt) }}
+              </p>
+              <p class="text-sm text-muted mt-0.5">
+                {{ dentistSelectedAppointment.patientName }} ·
+                {{ dentistTypeLabel(dentistSelectedAppointment.type) }}
+              </p>
+
+              <div class="mt-3 flex items-center gap-2">
+                <span
+                  :class="[
+                    'text-xs font-bold px-2 py-1 rounded-full',
+                    appointmentBadgeClass(dentistSelectedAppointment.status),
+                  ]"
+                >
+                  {{ dentistSelectedAppointment.status }}
+                </span>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-[10px] font-bold text-muted uppercase px-1">
+                Selecciona un nuevo horario
+              </label>
+
+              <div
+                v-if="isLoadingDentistEditSlots"
+                class="text-center py-4 text-xs text-muted animate-pulse"
+              >
+                Buscando horarios disponibles...
+              </div>
+
+              <div
+                v-else-if="dentistEditSlots.length === 0"
+                class="text-center py-4 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
+              >
+                No hay otros horarios disponibles este día.
+              </div>
+
+              <div v-else class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                <button
+                  v-for="slot in dentistEditSlots"
+                  :key="slot"
+                  :class="[
+                    'py-2 text-xs font-bold rounded-xl transition-all border',
+                    dentistEditTime === slot
+                      ? 'bg-accent text-white border-accent shadow-sm'
+                      : 'bg-white border-border text-black hover:border-accent/50 hover:bg-accent/5',
+                  ]"
+                  @click="dentistEditTime = slot"
+                >
+                  {{ formatHora(slot) }}
+                </button>
+              </div>
+            </div>
+
+            <div
+              v-if="errorMsg"
+              class="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-400/30 text-red-600 rounded-xl text-xs font-medium"
+            >
+              <AlertCircle class="w-3.5 h-3.5 shrink-0" />
+              {{ errorMsg }}
+            </div>
+
+            <button
+              :disabled="!dentistEditTime || isSaving"
+              :class="[
+                'w-full py-3 rounded-2xl text-sm font-bold transition-all',
+                dentistEditTime && !isSaving
+                  ? 'bg-accent text-white shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95'
+                  : 'bg-surface text-muted cursor-not-allowed border border-border',
+              ]"
+              @click="handleGuardarEdicionDentista"
+            >
+              {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
+            </button>
+
+            <button
+              class="w-full py-2 text-xs font-bold text-muted hover:text-black transition-colors"
+              @click="cancelarEdicionDentista"
+            >
+              Cancelar Edición
+            </button>
+          </div>
+
           <div v-else-if="showForm" class="space-y-4">
             <div class="p-4 bg-surface rounded-2xl border border-border">
               <p class="text-xs text-muted font-bold uppercase mb-1">Fecha seleccionada</p>
@@ -1098,6 +1311,59 @@ onMounted(async () => {
             </button>
           </div>
 
+          <div v-else-if="isDentist" class="space-y-4">
+            <div class="flex items-center justify-between">
+              <p class="text-xs text-muted font-bold uppercase">
+                {{ selectedDate ? 'Citas del día' : 'Selecciona una fecha' }}
+              </p>
+              <button
+                v-if="selectedDate"
+                class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-accent text-white shadow-sm hover:scale-[1.02] active:scale-95 transition-all"
+                @click="openDentistCreateForm"
+              >
+                <Plus class="w-3.5 h-3.5" />
+                Crear cita
+              </button>
+            </div>
+
+            <div v-if="!selectedDate" class="text-center py-6 text-xs text-muted">
+              Selecciona una fecha para crear o ver las citas.
+            </div>
+
+            <div
+              v-else-if="dentistAppointmentsForSelectedDate.length === 0"
+              class="text-center py-6 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
+            >
+              No hay citas registradas para este día.
+            </div>
+
+            <div v-else class="space-y-2">
+              <button
+                v-for="appt in dentistAppointmentsForSelectedDate"
+                :key="appt.id"
+                class="w-full text-left p-3 rounded-2xl border border-border bg-surface hover:border-accent/50 hover:bg-accent/5 transition-all"
+                @click="selectDentistAppointment(appt)"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-bold text-black">
+                    {{ formatHora(appt.startAt) }} · {{ appt.patientName }}
+                  </span>
+                  <span
+                    :class="[
+                      'text-[10px] font-bold px-2 py-1 rounded-full',
+                      appointmentBadgeClass(appt.status),
+                    ]"
+                  >
+                    {{ appt.status }}
+                  </span>
+                </div>
+                <p class="text-xs text-muted mt-1">
+                  {{ dentistTypeLabel(appt.type) }}
+                </p>
+              </button>
+            </div>
+          </div>
+
           <div v-else class="text-center py-8">
             <div
               class="w-16 h-16 bg-surface rounded-full flex items-center justify-center mx-auto mb-4 border border-border"
@@ -1105,11 +1371,8 @@ onMounted(async () => {
               <Info class="w-8 h-8 text-muted/30" />
             </div>
             <p class="text-xs text-muted leading-relaxed px-4">
-              {{
-                isDentist
-                  ? 'Haz clic en un día para agendar una nueva cita.'
-                  : 'Haz clic en un día disponible para agendar, o en una cita existente para ver sus detalles.'
-              }}
+              Haz clic en un día disponible para agendar, o en una cita existente para ver sus
+              detalles.
             </p>
           </div>
         </div>
