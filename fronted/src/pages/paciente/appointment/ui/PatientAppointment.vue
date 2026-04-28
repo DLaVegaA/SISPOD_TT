@@ -29,7 +29,7 @@ interface DisponibilidadResponse {
   message?: string
 }
 
-interface CitasResponse {
+/* interface CitasResponse {
   citas: Array<{
     id_cita: number
     fecha_hora_inicio: string
@@ -37,7 +37,7 @@ interface CitasResponse {
     estado: string
   }>
   total: number
-}
+} */
 
 // ── State del Calendario ──────────────────────────────────────────────────
 const today = new Date()
@@ -74,11 +74,14 @@ const formCita = ref({ tipo_cita: 1 })
 // ── Carga Centralizada de Citas ───────────────────────────────────────────
 async function cargarCitasDelCalendario() {
   try {
-    const res = await citasApi.listarMisCitas() as CitasResponse
+    const response = await citasApi.listarMisCitas();
+    // Extraemos la data de Axios de forma segura
+    const res = (response as any).data || response;
+    
     const map: Record<string, Appointment[]> = {}
 
     if (res?.citas) {
-      res.citas.forEach((cita) => {
+      res.citas.forEach((cita: any) => {
         if (cita.estado === 'Cancelada') return
 
         const d = new Date(cita.fecha_hora_inicio)
