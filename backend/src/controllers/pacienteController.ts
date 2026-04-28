@@ -244,13 +244,14 @@ export const obtenerPaciente = async (req: Request, res: Response) => {
   }
 };
 
-export const actualizarPaciente = async (req: Request, res: Response) => {
-  const id_paciente = Number(req.params.id);
+export const actualizarPaciente = async (req: CustomRequest, res: Response) => {
+  const id_param = Number(req.params.id);
   const {
     nombre,
     apellido_paterno,
     apellido_materno,
-    correo,
+    fecha_nacimiento,
+    //correo,
     telefono,
     calle,
     num_ext,
@@ -260,16 +261,18 @@ export const actualizarPaciente = async (req: Request, res: Response) => {
     estado,
     codigo_postal,
   } = req.body;
-  if (isNaN(id_paciente)) {
+  if (isNaN(id_param)) {
     return res.status(400).json({ message: 'ID inválido' });
   }
-  if (!nombre || !apellido_materno || !apellido_paterno || !correo || !telefono) {
+  //if (!nombre || !apellido_materno || !apellido_paterno || !correo || !telefono) {
+  if (!nombre || !apellido_materno || !apellido_paterno || !fecha_nacimiento || !telefono) {
     return res.status(400).json({
       message: 'Faltan datos obligatorios',
     });
   }
 
-  if (!calle || !num_ext || !num_int || !colonia || !municipio || !estado || !codigo_postal) {
+  //if (!calle || !num_ext || !num_int || !colonia || !municipio || !estado || !codigo_postal) {
+  if (!calle || !num_ext || !colonia || !municipio || !estado || !codigo_postal) {
     return res.status(400).json({
       message: 'Faltan datos en dirección',
     });
@@ -282,7 +285,19 @@ export const actualizarPaciente = async (req: Request, res: Response) => {
 
   const t = await sequelize.transaction();
   try {
-    const paciente = await Paciente.findByPk(id_paciente, { transaction: t });
+    let paciente;
+
+    // 🔴 LA MAGIA DE SEGURIDAD E IDs ESTÁ AQUÍ 🔴
+    if (req.userData?.id_rol === 3) {
+      // Si es un paciente, ignoramos la URL y buscamos SU paciente usando su token
+      paciente = await Paciente.findOne({ 
+        where: { id_usuario: req.userData.id }, 
+        transaction: t 
+      });
+    } else {
+      // Si es el dentista/admin, sí le hacemos caso al ID de la URL
+      paciente = await Paciente.findByPk(id_param, { transaction: t });
+    }
 
     if (!paciente) {
       await t.rollback();
@@ -290,7 +305,8 @@ export const actualizarPaciente = async (req: Request, res: Response) => {
     }
 
     await Usuario.update(
-      { nombre, apellido_paterno, apellido_materno, correo, telefono },
+      //{ nombre, apellido_paterno, apellido_materno, correo, telefono },
+      { nombre, apellido_paterno, apellido_materno, fecha_nacimiento, telefono },
       { where: { id_usuario: paciente.id_usuario }, transaction: t },
     );
 
@@ -307,7 +323,8 @@ export const actualizarPaciente = async (req: Request, res: Response) => {
     if (t) await t.rollback();
     console.log('Error al editar paciente: ', error);
     if (error.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({ message: 'El correo electrónico ya esta registrado' });
+      //return res.status(400).json({ message: 'El correo electrónico ya esta registrado' });
+      return res.status(400).json({ message: 'Algún dato de contacto (como el teléfono) ya está en uso por otro paciente.' });
     }
     return res.status(500).json({ message: 'Error del servidor' });
   }
@@ -336,16 +353,22 @@ export const obtenerPerfilPaciente = async (req: CustomRequest, res: Response) =
     });
 
     if (!perfil) {
-      return res.status(404).json({
-        message: 'Perfil no encontrado',
-      });
+      return res.status(404).json({ message: 'Perfil no encontrado' });
     }
 
-    return res.json(perfil);
+    // 🔴 LA MAGIA: Aplanamos la respuesta para el frontend
+    const usuarioData = perfil.get('usuario') as any;
+    const direccionData = perfil.get('direccion') as any;
+
+    const perfilAplanado = {
+      ...usuarioData.toJSON(), // Saca nombre, apellidos, correo a la raíz del JSON
+      id_paciente: perfil.id_paciente,
+      direccion: direccionData ? direccionData.toJSON() : null
+    };
+
+    return res.json(perfilAplanado);
   } catch (error) {
     console.log('Error al obtener perfil del paciente: ', error);
-    return res.status(500).json({
-      message: 'Error del servidor',
-    });
+    return res.status(500).json({ message: 'Error del servidor' });
   }
 };

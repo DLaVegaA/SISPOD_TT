@@ -9,6 +9,6 @@ router.post('/',registrarPaciente);
 router.get('/',listarPacientes);
 router.get('/me', verificarToken,permitirRoles(3),obtenerPerfilPaciente); //Primero las rutas fijas
 router.get('/:id',obtenerPaciente); //despues rutas con parametros
-router.put('/:id',actualizarPaciente);
+router.put('/:id', verificarToken, actualizarPaciente);
 
 export default router;

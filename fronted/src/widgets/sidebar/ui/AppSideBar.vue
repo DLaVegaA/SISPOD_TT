@@ -77,9 +77,11 @@ import { ROUTE_NAMES, ROUTE_PATHS } from '@/shared/routes'
 const sessionStore = useSessionStore()
 const router = useRouter()
 
-const currentUserId = computed(() =>
-  String(sessionStore.user?.id ?? sessionStore.user?.id_usuario ?? 0),
-)
+const currentUserId = computed(() => {
+  // 👈 Le ponemos "as any" para que TypeScript no se queje de propiedades nuevas
+  const u = sessionStore.user as any; 
+  return String(u?.id ?? u?.id_usuario ?? u?.id_paciente ?? 0);
+})
 
 const navItems = computed(() => {
   const params = { id: currentUserId.value }
@@ -142,6 +144,12 @@ const navItems = computed(() => {
           label: 'Inicio',
         },
         {
+          key: 'patient-profile',
+          to: { name: ROUTE_NAMES.PATIENT_PROFILE, params },
+          icon: UserRound,
+          label: 'Perfil',
+        },
+        {
           key: 'patient-appointments',
           to: { name: ROUTE_NAMES.PATIENT_APPOINTMENT, params },
           icon: CalendarDays,
@@ -162,7 +170,18 @@ const navItems = computed(() => {
   }
 })
 
-const userName = computed(() => sessionStore.user?.name ?? 'Usuario')
+const userName = computed(() => {
+  // 👈 Le ponemos "as any" aquí también
+  const u = sessionStore.user as any; 
+  if (!u) return 'Usuario';
+  
+  if (u.nombre && u.apellido_paterno) {
+    return `${u.nombre} ${u.apellido_paterno}`;
+  }
+  
+  return u.name ?? u.nombre ?? 'Usuario';
+})
+
 const userEmail = computed(
   () => sessionStore.user?.correo ?? sessionStore.user?.email ?? 'sin-correo',
 )
@@ -179,10 +198,15 @@ const roleLabel = computed(() => {
 })
 
 const userInitials = computed(() => {
-  const [first = '', second = ''] = userName.value.trim().split(/\s+/)
-  const joined = `${first.charAt(0)}${second.charAt(0)}`.toUpperCase()
+  // Ahora cortamos el userName que ya viene limpio y validado
+  const nameToSplit = userName.value === 'Usuario' ? 'US' : userName.value;
+  const [first = '', second = ''] = nameToSplit.trim().split(/\s+/);
+  
+  // Si hay un segundo nombre/apellido, tomamos la primera letra, si no, tomamos la segunda letra del primer nombre
+  const secondChar = second ? second.charAt(0) : first.charAt(1);
+  const joined = `${first.charAt(0)}${secondChar}`.toUpperCase();
 
-  return joined || 'US'
+  return joined || 'US';
 })
 
 const handleLogout = async () => {
