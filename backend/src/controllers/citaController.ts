@@ -89,7 +89,11 @@ export const crearCita = async (req:CustomRequest, res:Response) =>{
                 message: 'Datos incompletos'
             });
         }
-        
+        if(isNaN(Number(req.body.tipo_cita))){
+            return res.status(400).json({
+                message: 'Tipo de cita inválido'
+            });
+        }
        const nuevaCita = await CrearCitaService(req.body, req.userData);
         return res.status(201).json({
             message:'Cita creada correctamente',

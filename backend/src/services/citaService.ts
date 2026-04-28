@@ -1,38 +1,42 @@
-import {Cita, Dentista, Paciente, Usuario} from '../models/index';
+import {Cita, Dentista, Paciente, Usuario, TipoCita} from '../models/index';
 import {Model, NUMBER, Op, WhereOptions} from 'sequelize';
 import {AppError} from '../helpers/AppError';
 import { obtenerPacientePorUsuario } from './pacienteService';
 import {enviarCorreoCita} from '../services/emailService';
 import { FiltrosCita } from '../controllers/citaController';
+import { obtenerTipoCita } from '../controllers/tipoCitaController';
 type CitaFormateada = {
     inicio:string,
     fin:string
 }
-type TiposCita = {
-  [key: number]: number
-}
+// type TiposCita = {
+//   [key: number]: number
+// }
 
-const tipos:TiposCita = {
-    1:60,
-    2:30
-}
+// const tipos:TiposCita = {
+//     1:60,
+//     2:30
+// }
 
 type CitaCompleta = Cita & {
   paciente: Paciente & { usuario: Usuario };
   dentista: Dentista & { usuario: Usuario };
+  tipo:TipoCita;
 };
-export const validarTipoCita =(tipo_cita:number,user:any)=>{
-    let tipo = Number(tipo_cita);
+export const validarTipoCita =async (id_tipo_cita:number,user:any)=>{
+    let tipoCita;
     let duracion;
-    if(user.id_rol===3){
-        tipo =1;
-        duracion = tipos[tipo];
-    }
-    if(isNaN(tipo)){
+    let tipo;
+    if(isNaN(Number(id_tipo_cita))){
         throw new AppError('Tipo cita inválido',400);
     }
-    duracion = tipos[tipo_cita];
-    if(!duracion){
+    if(user.id_rol===3){
+        id_tipo_cita =1;
+    }
+    tipoCita = await obtenerTipoCita(id_tipo_cita)
+    tipo = tipoCita?.id_tipocita;
+    duracion = tipoCita?.duracion;
+    if(!tipoCita || !tipoCita.duracion){
         throw new AppError('Tipo cita inválido',400);
     }
 
@@ -107,8 +111,9 @@ export const obtenerDisponibilidad = async(fecha:string, id_dentista:number, tip
     const diaSemana = new Date(fecha).getUTCDay();
     let inicio = '09:00';
     let fin = '20:00';
+    const tipoCita = await obtenerTipoCita(tipo_cita)
     const intervalo =30;
-    const duracion = tipos[tipo_cita]//ver que hacer con tipo cita (tabla en bd o objeto en codigo)
+    const duracion = tipoCita?.duracion//ver que hacer con tipo cita (tabla en bd o objeto en codigo)
     if(!duracion){
         throw new AppError('Tipo cita invalido',400);
     }
@@ -133,7 +138,10 @@ export const crearCita = async(data:any, user:any) =>{
     const inicio = validarFechas(fecha_hora_inicio);
     validarAnticipacion(inicio, 48, 'agendar');
 
-    let {tipo, duracion} = validarTipoCita(tipo_cita,user);
+    let {tipo, duracion} = await validarTipoCita(tipo_cita,user);
+    if(!duracion){
+        throw new AppError('Tipo cita invalido',400);
+    }
     const id_dentista = await  resolverDentista(user,data);
     const id_paciente = await  resolverPaciente(user,data);
     const fin = new Date(inicio.getTime()+duracion*60000);
@@ -146,7 +154,7 @@ export const crearCita = async(data:any, user:any) =>{
         fecha_hora_fin: fin,
         id_dentista,
         id_paciente,
-        tipo_cita: tipo,
+        id_tipocita: tipo,
         estado: 'Pendiente'
     });
 
@@ -164,7 +172,14 @@ export const crearCita = async(data:any, user:any) =>{
 export const editarCita = async(data:any, user:any, id_cita:number)=>{
     const {fecha_hora_inicio} = data
 
-    const cita = await Cita.findByPk(id_cita);
+    const cita = await Cita.findByPk(id_cita,{
+        include:[
+            {
+                model:TipoCita,
+                as:'tipo'
+            }
+        ]
+    });
     if(!cita){
         throw new AppError('Cita no encontrado', 404);
     }
@@ -179,7 +194,7 @@ export const editarCita = async(data:any, user:any, id_cita:number)=>{
     validarAnticipacion(cita.fecha_hora_inicio,36, 'editar');
 
     const inicio = new Date(fecha_hora_inicio);
-    let duracion = Number(cita.tipo_cita) ===1 ? 60:30;
+    let duracion = (cita as any).tipo.duracion;
     const fin = new Date(inicio.getTime());
     fin.setMinutes(fin.getMinutes()+duracion);
     const ahora = new Date();
@@ -195,8 +210,8 @@ export const editarCita = async(data:any, user:any, id_cita:number)=>{
         throw new AppError('No se puede agendar una cita en el pasado', 400);
     }
     await Promise.all([
-        validarTraslape(inicio,fin,cita.id_dentista,2),
-        validarTraslape(inicio,fin,cita.id_paciente,3)
+        validarTraslape(inicio,fin,cita.id_dentista,2,cita.id_cita),
+        validarTraslape(inicio,fin,cita.id_paciente,3,cita.id_cita)
     ]);
 
     await cita.update({
@@ -281,7 +296,7 @@ const resolverPaciente = async(user:any,data:any) =>{
     return paciente.id_paciente;
 }
 
-const validarTraslape = async(inicio:Date, fin:Date, id:number, rol:number) =>{
+const validarTraslape = async(inicio:Date, fin:Date, id:number, rol:number,id_cita_excluir?: number) =>{
     const condicionTraslape = {
         [Op.or]:[
             {
@@ -308,6 +323,10 @@ const validarTraslape = async(inicio:Date, fin:Date, id:number, rol:number) =>{
         },
         ...condicionTraslape
     };
+
+    if (id_cita_excluir) {
+        whereFiltro.id_cita = { [Op.ne]: id_cita_excluir };
+    }
     if(rol===2){
         whereFiltro.id_dentista = id;
     }
@@ -371,6 +390,10 @@ const obtenerCitaCompleta = async(id_cita:number) =>{
                         attributes:['id_usuario','correo','nombre','telefono']
                     }
                 ]
+            },
+            {
+                model:TipoCita,
+                as:'tipo'
             }
         ]
     })
@@ -446,6 +469,11 @@ export const listarCitas = async(filtros:FiltrosCita,limit:number, offset:number
                         attributes:['id_usuario','nombre','apellido_paterno','apellido_materno']
                     }
                 ]
+            },
+            {
+                model:TipoCita,
+                as:'tipo',
+                attributes:['nombre_corto']
             }
         ],
         order:[['fecha_hora_inicio', 'ASC']]

@@ -7,7 +7,7 @@ export class Cita extends Model{
     declare id_dentista:number;
     declare fecha_hora_inicio:Date;
     declare fecha_hora_fin:Date;
-    declare tipo_cita:string;
+    declare id_tipo_cita:number;
     declare estado:string;
 }
 
@@ -49,9 +49,13 @@ Cita.init(
                 }
             }
         },
-        tipo_cita:{
-            type:DataTypes.STRING,
-            allowNull:false
+        id_tipocita:{
+            type:DataTypes.INTEGER,
+            allowNull:false,
+            references:{
+                model:'tipocitas',
+                key:'id_tipocita'
+            }
         }, 
         estado:{
             type:DataTypes.STRING,

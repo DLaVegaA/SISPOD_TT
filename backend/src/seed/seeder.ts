@@ -2,8 +2,10 @@ import { exit } from 'node:process'
 import {sequelize} from '../config/database';
 import roles from './roles';
 import usuarios from './usuarios';
+import tipo_citas from './tipo_cita';
 import { Usuario, Role } from '../models';
 import { seedDentista, seedPacientes } from "./Dentista_pacientes";
+import { TipoCita } from '../models/Tipo_Citas';
 
 const importarDatos = async() =>{
     try{
@@ -13,6 +15,10 @@ const importarDatos = async() =>{
 
        await Role.bulkCreate(roles,{
             ignoreDuplicates:true
+       });
+
+       await TipoCita.bulkCreate(tipo_citas,{
+        ignoreDuplicates:true
        });
     //    await 
        await Usuario.bulkCreate(usuarios,{
