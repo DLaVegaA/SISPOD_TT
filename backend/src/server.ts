@@ -10,6 +10,7 @@ import citasRoutes from './routes/citasRoutes';
 import dentistaRoutes from './routes/dentistaRoutes';
 import telegramRoutes from './routes/telegramRoutes';
 import rolesRoutes from './routes/rolesRoutes';
+import tipoCitasRoutes from './routes/tipoCitasRoutes';
 import bot from './config/telegram';
 import { configurarBot } from './services/telegramService';
 
@@ -86,6 +87,7 @@ app.use('/dentistas', dentistaRoutes);
 app.use('/citas', citasRoutes);
 app.use('/telegram', telegramRoutes);
 app.use('/roles', rolesRoutes);
+app.use('/tipo-cita', tipoCitasRoutes);
 configurarBot();
 startServer();
 process.once('SIGINT', () => bot.stop('SIGINT'));
