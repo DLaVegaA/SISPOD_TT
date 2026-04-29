@@ -29,9 +29,9 @@ const currentUserId = computed(() =>
 // Refleja exactamente la respuesta del backend (modelo Cita de Sequelize)
 interface CitaAPI {
   id_cita: number
-  fecha_hora_inicio: string   // ISO 8601 — ej. "2026-03-18T11:30:00.000Z"
+  fecha_hora_inicio: string // ISO 8601 — ej. "2026-03-18T11:30:00.000Z"
   fecha_hora_fin: string
-  tipo_cita: number           // 1 = Consulta General (60 min) | 2 = Otro (30 min)
+  tipo_cita: number // 1 = Consulta General (60 min) | 2 = Otro (30 min)
   estado: 'Pendiente' | 'Confirmada' | 'Cancelada'
   id_paciente: number
   id_dentista: number
@@ -49,8 +49,8 @@ interface ListarCitasResponse {
 
 interface CitaDisplay {
   id: number
-  date: string   // "18 Mar 2026"
-  time: string   // "11:30 AM"
+  date: string // "18 Mar 2026"
+  time: string // "11:30 AM"
   title: string
   status: string
   badgeBg: string
@@ -106,8 +106,8 @@ function resolverNombreTipoCita(cita: CitaAPI): string {
 
 const BADGE_MAP: Record<string, { bg: string; text: string; label: string }> = {
   Confirmada: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Confirmada' },
-  Pendiente:  { bg: 'bg-amber-100',   text: 'text-amber-700',   label: 'Pendiente' },
-  Cancelada:  { bg: 'bg-red-100',     text: 'text-red-600',     label: 'Cancelada' },
+  Pendiente: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Pendiente' },
+  Cancelada: { bg: 'bg-red-100', text: 'text-red-600', label: 'Cancelada' },
 }
 
 function resolverBadge(estado: string) {
@@ -134,12 +134,14 @@ async function fetchCitas() {
   try {
     // httpClient ya devuelve response.data directamente (igual que en PatientAppointment)
     // Respuesta: { total: number, citas: CitaAPI[] }
-    const res = await citasApi.listarMisCitas() as ListarCitasResponse
+    const res = (await citasApi.listarMisCitas()) as ListarCitasResponse
 
     const ahora = new Date()
     const citasFuturas = (res?.citas ?? [])
       .filter((c) => new Date(c.fecha_hora_inicio) >= ahora && c.estado !== 'Cancelada')
-      .sort((a, b) => new Date(a.fecha_hora_inicio).getTime() - new Date(b.fecha_hora_inicio).getTime())
+      .sort(
+        (a, b) => new Date(a.fecha_hora_inicio).getTime() - new Date(b.fecha_hora_inicio).getTime(),
+      )
 
     // Guardar datos crudos para usarlos al abrir el modal de modificación
     citasRawMap.value = new Map(citasFuturas.map((c) => [c.id_cita, c]))
@@ -165,27 +167,27 @@ const proximaCitaDisplay = computed(() => {
 
 const metricas = computed(() => [
   {
-    titulo:    'Próxima Cita',
-    numero:    proximaCitaDisplay.value.numero,
+    titulo: 'Próxima Cita',
+    numero: proximaCitaDisplay.value.numero,
     subtitulo: proximaCitaDisplay.value.subtitulo,
-    icon:      CalendarCheck,
-    iconBg:    'bg-accent-dim',
+    icon: CalendarCheck,
+    iconBg: 'bg-accent-dim',
     iconClass: 'text-accent',
   },
   {
-    titulo:    'Cuestionarios',
-    numero:    2,
+    titulo: 'Cuestionarios',
+    numero: 2,
     subtitulo: 'Pendientes',
-    icon:      ClipboardCheck,
-    iconBg:    'bg-emerald-500/10',
+    icon: ClipboardCheck,
+    iconBg: 'bg-emerald-500/10',
     iconClass: 'text-emerald-500',
   },
   {
-    titulo:    'Seguimiento',
-    numero:    'Activo',
+    titulo: 'Seguimiento',
+    numero: 'Activo',
     subtitulo: 'Postoperatorio',
-    icon:      Stethoscope,
-    iconBg:    'bg-indigo-500/10',
+    icon: Stethoscope,
+    iconBg: 'bg-indigo-500/10',
     iconClass: 'text-indigo-500',
   },
 ])
@@ -239,7 +241,9 @@ async function confirmarModificacion() {
   modalSaving.value = true
   modalError.value = null
   try {
-    await citasApi.editarCita(modalCita.value.id, { fecha_hora_inicio: modalHoraSeleccionada.value })
+    await citasApi.editarCita(modalCita.value.id, {
+      fecha_hora_inicio: modalHoraSeleccionada.value,
+    })
     cerrarModal()
     await fetchCitas()
   } catch (err: any) {
@@ -286,7 +290,7 @@ async function handleCancelar(id: number) {
           <span class="text-muted/60">&gt;</span>
           <span class="bg-card border border-border px-2 py-0.5 rounded-lg">Inicio</span>
         </div>
-        <h1 class="font-display text-2xl font-extrabold text-black">Hola, Anuar 👋</h1>
+        <h1 class="font-display text-4xl font-semibold text-black">Hola, Anuar</h1>
         <p class="text-sm text-muted mt-1">Este es el resumen de tu actividad.</p>
       </div>
 
@@ -307,14 +311,18 @@ async function handleCancelar(id: number) {
         class="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3 shadow-sm"
       >
         <div class="flex items-center gap-2">
-          <div :class="['w-8 h-8 rounded-xl flex items-center justify-center shrink-0', item.iconBg]">
+          <div
+            :class="['w-8 h-8 rounded-xl flex items-center justify-center shrink-0', item.iconBg]"
+          >
             <component :is="item.icon" :class="['w-4 h-4', item.iconClass]" />
           </div>
           <p class="text-sm font-semibold text-black">{{ item.titulo }}</p>
         </div>
         <div class="flex items-center justify-between">
           <span class="text-2xl font-display font-extrabold text-black">{{ item.numero }}</span>
-          <span class="text-[10px] font-bold text-muted px-3 py-1 bg-surface border border-border rounded-full uppercase tracking-wide">
+          <span
+            class="text-[10px] font-bold text-muted px-3 py-1 bg-surface border border-border rounded-full uppercase tracking-wide"
+          >
             {{ item.subtitulo }}
           </span>
         </div>
@@ -324,8 +332,12 @@ async function handleCancelar(id: number) {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Próximas Citas -->
       <section class="lg:col-span-2">
-        <div class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col h-full">
-          <div class="flex items-center justify-between px-6 py-5 border-b border-border bg-surface/50">
+        <div
+          class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col h-full"
+        >
+          <div
+            class="flex items-center justify-between px-6 py-5 border-b border-border bg-surface/50"
+          >
             <h2 class="font-display font-bold text-black text-lg">Próximas Citas</h2>
             <button
               @click="handleVerCalendario"
@@ -347,10 +359,7 @@ async function handleCancelar(id: number) {
             <div v-else-if="error" class="flex flex-col items-center justify-center py-10 gap-3">
               <AlertCircle class="w-6 h-6 text-red-400" />
               <p class="text-sm text-muted font-medium text-center">{{ error }}</p>
-              <button
-                @click="fetchCitas"
-                class="text-xs font-bold text-accent hover:underline"
-              >
+              <button @click="fetchCitas" class="text-xs font-bold text-accent hover:underline">
                 Reintentar
               </button>
             </div>
@@ -363,23 +372,37 @@ async function handleCancelar(id: number) {
                 class="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border bg-surface/30 hover:bg-surface/60 transition-colors gap-4"
               >
                 <div class="flex items-center gap-4">
-                  <div class="bg-card border border-border rounded-xl p-3 text-center min-w-18.75 shadow-sm">
-                    <span class="block text-[10px] uppercase font-bold text-muted">{{ cita.date.split(' ')[1] }}</span>
-                    <span class="block text-xl font-extrabold text-black">{{ cita.date.split(' ')[0] }}</span>
+                  <div
+                    class="bg-card border border-border rounded-xl p-3 text-center min-w-18.75 shadow-sm"
+                  >
+                    <span class="block text-[10px] uppercase font-bold text-muted">{{
+                      cita.date.split(' ')[1]
+                    }}</span>
+                    <span class="block text-xl font-extrabold text-black">{{
+                      cita.date.split(' ')[0]
+                    }}</span>
                   </div>
                   <div>
                     <h3 class="font-bold text-black text-sm">{{ cita.title }}</h3>
                     <div class="flex items-center gap-2 mt-1.5">
                       <span class="text-xs font-medium text-muted">{{ cita.time }}</span>
                       <span class="w-1 h-1 rounded-full bg-border"></span>
-                      <span :class="['text-[10px] font-bold px-2 py-0.5 rounded-md', cita.badgeBg, cita.badgeText]">
+                      <span
+                        :class="[
+                          'text-[10px] font-bold px-2 py-0.5 rounded-md',
+                          cita.badgeBg,
+                          cita.badgeText,
+                        ]"
+                      >
                         {{ cita.status }}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div class="flex items-center gap-2 opacity-90 group-hover:opacity-100 transition-opacity">
+                <div
+                  class="flex items-center gap-2 opacity-90 group-hover:opacity-100 transition-opacity"
+                >
                   <button
                     @click="handleReprogramar(cita)"
                     class="flex items-center gap-1.5 px-3 py-2 bg-white border border-border rounded-lg text-xs font-bold text-black hover:bg-surface transition-colors shadow-sm"
@@ -400,7 +423,10 @@ async function handleCancelar(id: number) {
               <!-- Estado vacío -->
               <div v-if="proximasCitas.length === 0" class="text-center py-10">
                 <p class="text-sm text-muted font-medium mb-3">No tienes citas programadas.</p>
-                <button @click="handleAgendar" class="text-xs font-bold text-accent hover:underline">
+                <button
+                  @click="handleAgendar"
+                  class="text-xs font-bold text-accent hover:underline"
+                >
                   Agendar tu primera cita ahora
                 </button>
               </div>
@@ -419,7 +445,8 @@ async function handleCancelar(id: number) {
             <h3 class="font-display font-bold text-black text-sm">Guía de Cuidados</h3>
           </div>
           <p class="text-xs text-muted mb-4 leading-relaxed">
-            Consulta las recomendaciones y los cuidados específicos para tu recuperación postoperatoria.
+            Consulta las recomendaciones y los cuidados específicos para tu recuperación
+            postoperatoria.
           </p>
           <button
             class="w-full flex items-center gap-2 justify-center bg-ink/65 text-text-secondary hover:bg-ink/80 px-4 py-2.5 rounded-2xl text-xs font-medium transition-all hover:scale-105 active:scale-95"
@@ -443,7 +470,9 @@ async function handleCancelar(id: number) {
             class="w-full flex items-center justify-between p-3 bg-surface border border-border rounded-xl hover:border-indigo-400/30 transition-colors cursor-pointer group"
           >
             <span class="text-xs font-bold text-black">Entrar a tu seguimiento</span>
-            <ArrowRight class="w-4 h-4 text-indigo-600 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight
+              class="w-4 h-4 text-indigo-600 group-hover:translate-x-1 transition-transform"
+            />
           </button>
         </div>
       </section>
@@ -462,8 +491,9 @@ async function handleCancelar(id: number) {
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="cerrarModal" />
 
         <!-- Panel -->
-        <div class="relative bg-card border border-border rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5">
-
+        <div
+          class="relative bg-card border border-border rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5"
+        >
           <!-- Cabecera -->
           <div class="flex items-start justify-between">
             <div>
@@ -474,7 +504,13 @@ async function handleCancelar(id: number) {
               @click="cerrarModal"
               class="p-1.5 rounded-xl hover:bg-surface transition-colors text-muted hover:text-black"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -485,16 +521,23 @@ async function handleCancelar(id: number) {
             <CalendarClock class="w-4 h-4 text-muted shrink-0" />
             <div>
               <p class="text-[10px] font-bold text-muted uppercase">Horario actual</p>
-              <p class="text-sm font-bold text-black">{{ modalCita?.date }} · {{ modalCita?.time }}</p>
+              <p class="text-sm font-bold text-black">
+                {{ modalCita?.date }} · {{ modalCita?.time }}
+              </p>
             </div>
           </div>
 
           <!-- Slots de horario -->
           <div class="space-y-3">
-            <p class="text-[10px] font-bold text-muted uppercase px-1">Selecciona un nuevo horario</p>
+            <p class="text-[10px] font-bold text-muted uppercase px-1">
+              Selecciona un nuevo horario
+            </p>
 
             <!-- Loading -->
-            <div v-if="modalSlotsLoading" class="flex items-center justify-center py-6 gap-2 text-muted">
+            <div
+              v-if="modalSlotsLoading"
+              class="flex items-center justify-center py-6 gap-2 text-muted"
+            >
               <Loader2 class="w-4 h-4 animate-spin" />
               <span class="text-xs font-medium">Buscando horarios...</span>
             </div>
@@ -508,7 +551,10 @@ async function handleCancelar(id: number) {
             </div>
 
             <!-- Grid de slots -->
-            <div v-else-if="modalSlots.length > 0" class="grid grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1">
+            <div
+              v-else-if="modalSlots.length > 0"
+              class="grid grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1"
+            >
               <button
                 v-for="slot in modalSlots"
                 :key="slot"
@@ -516,7 +562,7 @@ async function handleCancelar(id: number) {
                   'py-2 text-xs font-bold rounded-xl transition-all border',
                   modalHoraSeleccionada === slot
                     ? 'bg-accent text-white border-accent shadow-sm'
-                    : 'bg-white border-border text-black hover:border-accent/50 hover:bg-accent/5'
+                    : 'bg-white border-border text-black hover:border-accent/50 hover:bg-accent/5',
                 ]"
                 @click="modalHoraSeleccionada = slot"
               >
@@ -542,7 +588,7 @@ async function handleCancelar(id: number) {
                 'w-full py-3 rounded-2xl text-sm font-bold transition-all',
                 modalHoraSeleccionada && !modalSaving
                   ? 'bg-accent text-white shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95'
-                  : 'bg-surface text-muted cursor-not-allowed border border-border'
+                  : 'bg-surface text-muted cursor-not-allowed border border-border',
               ]"
               @click="confirmarModificacion"
             >
@@ -559,7 +605,6 @@ async function handleCancelar(id: number) {
       </div>
     </Transition>
   </Teleport>
-
 </template>
 
 <style scoped>

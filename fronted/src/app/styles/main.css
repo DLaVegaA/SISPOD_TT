@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
 @import 'tailwindcss';
 
 @theme {
   /* Fuentes */
-  --font-display: 'Syne', 'sans-serif';
-  --font-body: 'DM Sans', 'sans-serif';
+  --font-display: 'Figtree', sans-serif;
+  --font-body: 'Inter', sans-serif;
 
   /* Colores */
   --color-ink: #4382b5;
@@ -20,12 +20,14 @@
   --color-text-primary: #000000;
   --color-text-secondary: #ffffff;
 }
+
 body {
   background: #f4f9fd;
   color: #000000;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
   min-height: 100vh;
 }
+
 /* ── Animaciones de vista ───────────────────────────────────────────────── */
 .fade-in {
   animation: fadeIn 0.25s ease;
@@ -56,7 +58,7 @@ body {
   }
 }
 
-/* clase para el bagdge de usuario */
+/* clase para el badge de usuario */
 .role-badge {
   display: inline-flex;
   align-items: center;
@@ -70,20 +72,18 @@ body {
 }
 
 @layer base {
-  /* El texto general usará Inter */
   html {
     font-family: 'Inter', sans-serif;
     scroll-behavior: smooth;
   }
 
-  /* Todos los títulos usarán Poppins */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6 {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Figtree', sans-serif;
   }
 }
 
