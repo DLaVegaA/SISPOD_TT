@@ -2,7 +2,7 @@ import {Cita, Dentista, Paciente, Usuario, TipoCita} from '../models/index';
 import {Model, NUMBER, Op, WhereOptions} from 'sequelize';
 import {AppError} from '../helpers/AppError';
 import { obtenerPacientePorUsuario } from './pacienteService';
-import {enviarCorreoCita} from '../services/emailService';
+import {notificarCancelacionCita, notificarEdicionCita, notificarNuevaCita} from '../services/emailService';
 import { FiltrosCita } from '../controllers/citaController';
 import { obtenerTipoCita } from '../controllers/tipoCitaController';
 type CitaFormateada = {
@@ -162,8 +162,8 @@ export const crearCita = async(data:any, user:any) =>{
     const usuario_paciente= citaCompleta.paciente.usuario;
     const usuario_dentista= citaCompleta.dentista.usuario;
 
-    enviarCorreoCita(cita, usuario_paciente,'Nueva Cita', 'citaNueva').catch(console.error)
-    enviarCorreoCita(cita, usuario_dentista,'Nueva Cita', 'citaNueva').catch(console.error)
+    notificarNuevaCita(citaCompleta, usuario_paciente,3).catch(console.error)
+    notificarNuevaCita(citaCompleta, usuario_dentista,2).catch(console.error)
 
   return cita;
     
@@ -213,11 +213,17 @@ export const editarCita = async(data:any, user:any, id_cita:number)=>{
         validarTraslape(inicio,fin,cita.id_dentista,2,cita.id_cita),
         validarTraslape(inicio,fin,cita.id_paciente,3,cita.id_cita)
     ]);
-
+    const fechaInicioAnterior = new Date(cita.fecha_hora_inicio);
     await cita.update({
         fecha_hora_inicio:inicio,
         fecha_hora_fin:fin
     });
+    const citaCompleta = await obtenerCitaCompleta(cita.id_cita) as CitaCompleta;
+    const usuario_paciente= citaCompleta.paciente.usuario;
+    const usuario_dentista= citaCompleta.dentista.usuario;
+    console.log('Correo enviado para editar')
+    notificarEdicionCita(citaCompleta,fechaInicioAnterior,usuario_paciente,3).catch(console.error);
+    notificarEdicionCita(citaCompleta,fechaInicioAnterior,usuario_dentista,2).catch(console.error);
     return cita;
 }
 
@@ -363,6 +369,12 @@ export const cancelarCita = async(id:number, user:any) =>{
     await cita.update({
         estado:'Cancelada'
     });
+    const citaCompleta = await obtenerCitaCompleta(cita.id_cita) as CitaCompleta;
+    const usuario_paciente= citaCompleta.paciente.usuario;
+    const usuario_dentista= citaCompleta.dentista.usuario;
+
+    notificarCancelacionCita(citaCompleta, usuario_paciente,3).catch(console.error);
+    notificarCancelacionCita(citaCompleta, usuario_dentista,2).catch(console.error);
     return cita;
 }
 
