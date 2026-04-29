@@ -60,7 +60,7 @@
           </div>
         </div>
       </div>
-      <RouterView />
+      <RouterView class="mt-3" />
     </main>
   </div>
 </template>

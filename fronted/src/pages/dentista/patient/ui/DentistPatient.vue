@@ -71,7 +71,7 @@ const currentDay = ref('NOV 7')
     </div>
 
     <!-- ── Table ───────────────────────────────────────────────────────── -->
-    <div class="bg-card border border-border rounded-2xl overflow-hidden">
+    <div class="hidden md:block bg-card border border-border rounded-2xl overflow-hidden">
       <table class="w-full">
         <!-- Head -->
         <thead>
@@ -151,7 +151,7 @@ const currentDay = ref('NOV 7')
             <td class="px-5 py-5 text-sm text-black">{{ patient.edad }}</td>
 
             <!-- Género -->
-            <td class="px-5 py-5">
+            <td class="px-5 py-5 text-center">
               <span class="text-sm font-bold text-accent">{{ patient.genero }}</span>
             </td>
 
@@ -183,7 +183,7 @@ const currentDay = ref('NOV 7')
             </td>
 
             <!-- Teléfono -->
-            <td class="px-5 py-5 text-xs text-muted">{{ patient.telefono }}</td>
+            <td class="px-3 py-5 text-xs text-muted">{{ patient.telefono }}</td>
 
             <!-- Expedientes -->
             <td class="px-5 py-5">
@@ -208,6 +208,73 @@ const currentDay = ref('NOV 7')
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Cards: se muestran en móvil, se ocultan en desktop -->
+    <div class="md:hidden space-y-3">
+      <div
+        v-for="(patient, i) in patients"
+        :key="i"
+        class="bg-card border border-border rounded-2xl p-4"
+      >
+        <!-- Fila superior: nombre + badge -->
+        <div class="flex justify-between items-start mb-3">
+          <div>
+            <p class="font-bold text-sm text-black">{{ patient.nombre }}</p>
+            <p class="text-xs text-muted font-mono">
+              {{ patient.id }} · {{ patient.edad }} años ·
+              <span class="text-accent font-bold">{{ patient.genero }}</span>
+            </p>
+          </div>
+          <span
+            :class="[
+              'role-badge',
+              patient.estado === 'activo'
+                ? 'bg-emerald-500/10 text-emerald-600'
+                : 'bg-red-500/10 text-red-500',
+            ]"
+          >
+            <span
+              class="w-1.5 h-1.5 rounded-full"
+              :class="patient.estado === 'activo' ? 'bg-emerald-500' : 'bg-red-500'"
+            />
+            {{ patient.estado === 'activo' ? '+ Activo' : '• Inactivo' }}
+          </span>
+        </div>
+
+        <!-- Grid 2 columnas con los campos clave -->
+        <div class="grid grid-cols-2 gap-x-4 gap-y-2 mb-3">
+          <div>
+            <p class="text-[10px] text-muted uppercase tracking-wider">Última cita</p>
+            <p class="text-xs text-black">{{ patient.ultimaCita }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] text-muted uppercase tracking-wider">Próxima cita</p>
+            <p class="text-xs text-black">{{ patient.proximaCita }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] text-muted uppercase tracking-wider">Último Tratamiento</p>
+            <p class="text-xs text-black">{{ patient.ultimoTratamiento }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] text-muted uppercase tracking-wider">Teléfono</p>
+            <p class="text-xs text-muted">{{ patient.telefono }}</p>
+          </div>
+        </div>
+
+        <!-- Acciones en fila horizontal -->
+        <div class="flex gap-4 pt-3 border-t border-border justify-center">
+          <button class="flex items-center gap-1 text-[10px] font-semibold text-accent uppercase">
+            <FileText class="w-3 h-3" /> Historial
+          </button>
+          <button class="flex items-center gap-1 text-[10px] font-semibold text-accent uppercase">
+            <Download class="w-3 h-3" /> Descargar
+          </button>
+          <button class="flex items-center gap-1 text-[10px] font-semibold text-accent uppercase">
+            <Eye class="w-3 h-3" /> Ver
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
