@@ -1,0 +1,219 @@
+{
+  "message": "Pacientes",
+  "total": 10,
+  "pagina": 1,
+  "totalPaginas": 1,
+  "limit": 500,
+  "pacientes": [
+    {
+      "id_paciente": 51,
+      "id_usuario": 68,
+      "createdAt": "2026-04-27T22:03:16.493Z",
+      "updatedAt": "2026-04-27T22:03:16.493Z",
+      "usuario": {
+        "id_usuario": 68,
+        "id_rol": 3,
+        "nombre": "PacientePrueba1",
+        "apellido_paterno": "Sistema",
+        "apellido_materno": "ESCOM",
+        "correo": "paciente_prueba1@sispod.com",
+        "telefono": "5500000001",
+        "fecha_nacimiento": "1990-05-15",
+        "curp": "SISP900515HDFRRS01",
+        "genero": "Masculino",
+        "estado": "activo",
+        "createdAt": "2026-04-27T22:03:16.427Z",
+        "updatedAt": "2026-04-27T22:03:16.427Z"
+      }
+    },
+    {
+      "id_paciente": 52,
+      "id_usuario": 69,
+      "createdAt": "2026-04-27T22:03:16.586Z",
+      "updatedAt": "2026-04-27T22:03:16.586Z",
+      "usuario": {
+        "id_usuario": 69,
+        "id_rol": 3,
+        "nombre": "PacientePrueba2",
+        "apellido_paterno": "Sistema",
+        "apellido_materno": "ESCOM",
+        "correo": "paciente_prueba2@sispod.com",
+        "telefono": "5500000002",
+        "fecha_nacimiento": "1990-05-15",
+        "curp": "SISP900515HDFRRS02",
+        "genero": "Femenino",
+        "estado": "activo",
+        "createdAt": "2026-04-27T22:03:16.522Z",
+        "updatedAt": "2026-04-27T22:03:16.522Z"
+      }
+    },
+    {
+      "id_paciente": 53,
+      "id_usuario": 70,
+      "createdAt": "2026-04-27T22:03:16.679Z",
+      "updatedAt": "2026-04-27T22:03:16.679Z",
+      "usuario": {
+        "id_usuario": 70,
+        "id_rol": 2,
+        "nombre": "PacientePrueba3",
+        "apellido_paterno": "Sistema",
+        "apellido_materno": "ESCOM",
+        "correo": "paciente_prueba3@sispod.com",
+        "telefono": "5500000003",
+        "fecha_nacimiento": "1990-05-15",
+        "curp": "SISP900515HDFRRS03",
+        "genero": "Masculino",
+        "estado": "activo",
+        "createdAt": "2026-04-27T22:03:16.612Z",
+        "updatedAt": "2026-04-27T22:21:36.017Z"
+      }
+    },
+    {
+      "id_paciente": 54,
+      "id_usuario": 71,
+      "createdAt": "2026-04-27T22:03:16.777Z",
+      "updatedAt": "2026-04-27T22:03:16.777Z",
+      "usuario": {
+        "id_usuario": 71,
+        "id_rol": 3,
+        "nombre": "PacientePrueba4",
+        "apellido_paterno": "Sistema",
+        "apellido_materno": "ESCOM",
+        "correo": "paciente_prueba4@sispod.com",
+        "telefono": "5500000004",
+        "fecha_nacimiento": "1990-05-15",
+        "curp": "SISP900515HDFRRS04",
+        "genero": "Femenino",
+        "estado": "activo",
+        "createdAt": "2026-04-27T22:03:16.709Z",
+        "updatedAt": "2026-04-27T22:03:16.709Z"
+      }
+    },
+    {
+      "id_paciente": 55,
+      "id_usuario": 72,
+      "createdAt": "2026-04-27T22:03:16.873Z",
+      "updatedAt": "2026-04-27T22:03:16.873Z",
+      "usuario": {
+        "id_usuario": 72,
+        "id_rol": 3,
+        "nombre": "PacientePrueba5",
+        "apellido_paterno": "Sistema",
+        "apellido_materno": "ESCOM",
+        "correo": "paciente_prueba5@sispod.com",
+        "telefono": "5500000005",
+        "fecha_nacimiento": "1990-05-15",
+        "curp": "SISP900515HDFRRS05",
+        "genero": "Masculino",
+        "estado": "activo",
+        "createdAt": "2026-04-27T22:03:16.807Z",
+        "updatedAt": "2026-04-27T22:03:16.807Z"
+      }
+    },
+    {
+      "id_paciente": 56,
+      "id_usuario": 73,
+      "createdAt": "2026-04-27T22:03:16.959Z",
+      "updatedAt": "2026-04-27T22:03:16.959Z",
+      "usuario": {
+        "id_usuario": 73,
+        "id_rol": 3,
+        "nombre": "PacientePrueba6",
+        "apellido_paterno": "Sistema",
+        "apellido_materno": "ESCOM",
+        "correo": "paciente_prueba6@sispod.com",
+        "telefono": "5500000006",
+        "fecha_nacimiento": "1990-05-15",
+        "curp": "SISP900515HDFRRS06",
+        "genero": "Femenino",
+        "estado": "activo",
+        "createdAt": "2026-04-27T22:03:16.902Z",
+        "updatedAt": "2026-04-27T22:03:16.902Z"
+      }
+    },
+    {
+      "id_paciente": 57,
+      "id_usuario": 74,
+      "createdAt": "2026-04-27T22:03:17.050Z",
+      "updatedAt": "2026-04-27T22:03:17.050Z",
+      "usuario": {
+        "id_usuario": 74,
+        "id_rol": 3,
+        "nombre": "PacientePrueba7",
+        "apellido_paterno": "Sistema",
+        "apellido_materno": "ESCOM",
+        "correo": "paciente_prueba7@sispod.com",
+        "telefono": "5500000007",
+        "fecha_nacimiento": "1990-05-15",
+        "curp": "SISP900515HDFRRS07",
+        "genero": "Masculino",
+        "estado": "activo",
+        "createdAt": "2026-04-27T22:03:16.994Z",
+        "updatedAt": "2026-04-27T22:03:16.994Z"
+      }
+    },
+    {
+      "id_paciente": 58,
+      "id_usuario": 75,
+      "createdAt": "2026-04-27T22:03:17.128Z",
+      "updatedAt": "2026-04-27T22:03:17.128Z",
+      "usuario": {
+        "id_usuario": 75,
+        "id_rol": 3,
+        "nombre": "PacientePrueba8",
+        "apellido_paterno": "Sistema",
+        "apellido_materno": "ESCOM",
+        "correo": "paciente_prueba8@sispod.com",
+        "telefono": "5500000008",
+        "fecha_nacimiento": "1990-05-15",
+        "curp": "SISP900515HDFRRS08",
+        "genero": "Femenino",
+        "estado": "activo",
+        "createdAt": "2026-04-27T22:03:17.073Z",
+        "updatedAt": "2026-04-27T22:03:17.073Z"
+      }
+    },
+    {
+      "id_paciente": 59,
+      "id_usuario": 76,
+      "createdAt": "2026-04-27T22:03:17.199Z",
+      "updatedAt": "2026-04-27T22:03:17.199Z",
+      "usuario": {
+        "id_usuario": 76,
+        "id_rol": 3,
+        "nombre": "PacientePrueba9",
+        "apellido_paterno": "Sistema",
+        "apellido_materno": "ESCOM",
+        "correo": "paciente_prueba9@sispod.com",
+        "telefono": "5500000009",
+        "fecha_nacimiento": "1990-05-15",
+        "curp": "SISP900515HDFRRS09",
+        "genero": "Masculino",
+        "estado": "activo",
+        "createdAt": "2026-04-27T22:03:17.145Z",
+        "updatedAt": "2026-04-27T22:03:17.145Z"
+      }
+    },
+    {
+      "id_paciente": 60,
+      "id_usuario": 77,
+      "createdAt": "2026-04-27T22:03:17.272Z",
+      "updatedAt": "2026-04-27T22:03:17.272Z",
+      "usuario": {
+        "id_usuario": 77,
+        "id_rol": 3,
+        "nombre": "PacientePrueba10",
+        "apellido_paterno": "Sistema",
+        "apellido_materno": "ESCOM",
+        "correo": "paciente_prueba10@sispod.com",
+        "telefono": "5500000010",
+        "fecha_nacimiento": "1990-05-15",
+        "curp": "SISP900515HDFRRS10",
+        "genero": "Femenino",
+        "estado": "activo",
+        "createdAt": "2026-04-27T22:03:17.217Z",
+        "updatedAt": "2026-04-27T22:03:17.217Z"
+      }
+    }
+  ]
+}

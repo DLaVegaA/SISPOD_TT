@@ -711,15 +711,3 @@ function formatHora(isoString: string) {
     </div>
   </div>
 </template>
-
-<style scoped>
-.toast-enter-active,
-.toast-leave-active {
-  transition: all 0.3s ease;
-}
-.toast-enter-from,
-.toast-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-</style>
