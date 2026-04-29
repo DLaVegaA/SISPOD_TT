@@ -18,6 +18,7 @@ import { Catalogo_Procedimientos } from "./Catalogo_Procedimientos";
 import { Respuesta_paciente } from "./Respuesta_paciente";
 import { Pregunta } from "./Pregunta";
 import { Cuestionario } from "./Cuestionario";
+import { TipoCita } from "./Tipo_Citas";
 
 Usuario.belongsTo(Role, {
   foreignKey: 'id_rol',
@@ -99,6 +100,15 @@ Dentista.hasMany(Cita,{
 Cita.belongsTo(Dentista,{
   foreignKey:'id_dentista',
   as:'dentista'
+});
+
+Cita.belongsTo(TipoCita, {
+  foreignKey:'id_tipocita',
+  as:'tipo'
+});
+TipoCita.hasMany(Cita,{
+  foreignKey:'id_tipocita',
+  as:'citas'
 });
 
 Paciente.hasOne(Telegram,{
@@ -271,5 +281,6 @@ export {
   Catalogo_Procedimientos,
   Pregunta,
   Cuestionario,
-  Respuesta_paciente
+  Respuesta_paciente,
+  TipoCita
 }

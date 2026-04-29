@@ -37,9 +37,38 @@ export const listarDisponibilidad = async (req: CustomRequest, res: Response) =>
         });
       }
 
-      id_dentista = dentista.id_dentista;
-    } else {
-      id_dentista = Number(req.query.id_dentista);
+export const crearCita = async (req:CustomRequest, res:Response) =>{
+    try{
+        
+        if (!req.userData) {
+            return res.status(401).json({ message: 'No autenticado' });
+        }
+
+        if(!req.body.fecha_hora_inicio || !req.body.tipo_cita){
+            return res.status(400).json({
+                message: 'Datos incompletos'
+            });
+        }
+        if(isNaN(Number(req.body.tipo_cita))){
+            return res.status(400).json({
+                message: 'Tipo de cita inválido'
+            });
+        }
+       const nuevaCita = await CrearCitaService(req.body, req.userData);
+        return res.status(201).json({
+            message:'Cita creada correctamente',
+            cita:nuevaCita
+        })
+    }catch(error){
+        console.log('Error al crear cita: ', error);
+        if(error instanceof AppError){
+            return res.status(error.status).json({
+                message: error.message
+            })
+        }
+        return res.status(500).json({
+            message:'Error del servidor'
+        });
     }
 
     if (!fecha || !id_dentista || !tipo_cita) {
