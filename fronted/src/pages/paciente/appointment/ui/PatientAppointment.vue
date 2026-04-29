@@ -29,6 +29,12 @@ interface DisponibilidadResponse {
   message?: string
 }
 
+interface TipoCitaInfo {
+  id_tipocita: number;
+  nombre_corto: string;
+  duracion: number;
+}
+
 /* interface CitasResponse {
   citas: Array<{
     id_cita: number
@@ -69,7 +75,9 @@ const horariosDisponibles = ref<string[]>([])
 const horaSeleccionada = ref<string | null>(null)
 
 const ID_DENTISTA = 1
-const formCita = ref({ tipo_cita: 1 })
+const infoTipoCita = ref<TipoCitaInfo | null>(null);
+const formCita = ref({ id_tipocita: 1 })
+const isLoadingTipo = ref(false) 
 
 // ── Carga Centralizada de Citas ───────────────────────────────────────────
 async function cargarCitasDelCalendario() {
@@ -89,7 +97,7 @@ async function cargarCitasDelCalendario() {
         if (!map[key]) map[key] = []
         map[key].push({
           id: cita.id_cita,
-          title: cita.tipo_cita === 1 ? 'Revisión (60m)' : 'Consulta (30m)',
+          title: cita.tipo.nombre_corto,
           time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           status: cita.estado,
         })
@@ -100,10 +108,24 @@ async function cargarCitasDelCalendario() {
     console.error('Error al recargar citas:', error)
   }
 }
+async function cargarDetalleTipoCita() {
+  isLoadingTipo.value = true // 1. Empezamos a cargar
+  try {
+    const res = await citasApi.obtenerDetalleTipoCita(1)
+    const data = (res as any).data || res
+    infoTipoCita.value = data
+    formCita.value.id_tipocita = data.id_tipocita 
+  } catch (error) {
+    console.error('Error:', error)
+  } finally {
+    isLoadingTipo.value = false // 2. Terminamos de cargar (pase lo que pase)
+  }
+}
 
 // ── Carga Inicial ─────────────────────────────────────────────────────────
 onMounted(() => {
-  cargarCitasDelCalendario()
+  cargarCitasDelCalendario();
+  cargarDetalleTipoCita();
 })
 
 // ── Grid del Calendario ───────────────────────────────────────────────────
@@ -184,6 +206,9 @@ async function selectDay(cell: CalendarCell) {
   horaSeleccionada.value = null
   errorMsg.value = null
   successMsg.value = null
+  if(!infoTipoCita.value){
+    await cargarDetalleTipoCita()
+  }
   showForm.value = true
   await fetchDisponibilidad()
 }
@@ -197,7 +222,7 @@ async function fetchDisponibilidad() {
   try {
     const res = await citasApi.obtenerDisponibilidad(
       selectedDate.value,
-      formCita.value.tipo_cita,
+      formCita.value.id_tipocita,
       ID_DENTISTA,
     ) as DisponibilidadResponse
 
@@ -272,7 +297,7 @@ async function handleConfirmarCita() {
 
     await citasApi.crearCita({
       fecha_hora_inicio: inicio.toISOString(),
-      tipo_cita: formCita.value.tipo_cita,
+      tipo_cita: formCita.value.id_tipocita,
       id_dentista: ID_DENTISTA,
     })
 
@@ -334,7 +359,11 @@ function formatHora(isoString: string) {
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       <div>
         <div class="flex items-center gap-1.5 text-xs text-muted font-medium mb-2">
-          <span class="text-muted/60">🏠</span>
+          <span class="text-muted/60">🏠</span> 
+
+
+
+          
           <span class="text-muted/60">&gt;</span>
           <span class="bg-card border border-border px-2 py-0.5 rounded-lg">Citas</span>
         </div>
@@ -572,14 +601,21 @@ function formatHora(isoString: string) {
 
             <div class="space-y-2">
               <label class="text-[10px] font-bold text-muted uppercase px-1">Motivo de consulta</label>
-              <select
-                v-model="formCita.tipo_cita"
-                class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-accent/20 outline-none transition-all"
-                @change="onTipoCitaChange"
-              >
-                <option :value="1">Revisión o Tratamiento Mayor (60 min)</option>
-                <option :value="2">Revisión de Rutina (30 min)</option>
-              </select>
+              
+              <div v-if="isLoadingTipo" class="animate-pulse h-20 bg-surface border border-border rounded-2xl flex items-center px-4 gap-3">
+                <div class="w-10 h-10 bg-border rounded-xl"></div>
+                <div class="flex-1 space-y-2">
+                  <div class="h-3 bg-border rounded w-1/2"></div>
+                </div>
+              </div>
+
+              <div v-else-if="infoTipoCita" class="p-4 bg-accent/5 border border-accent/20 rounded-2xl flex items-start gap-3">
+                <Info class="w-4 h-4 text-accent mt-1" />
+                <div>
+                  <p class="text-sm font-bold text-black">{{ infoTipoCita.nombre_corto }} ({{ infoTipoCita.duracion }} min)</p>
+                </div>
+                <CheckCircle2 class="w-4 h-4 text-emerald-500 ml-auto" />
+              </div>
             </div>
 
             <div class="space-y-2">

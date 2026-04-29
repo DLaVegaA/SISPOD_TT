@@ -25,5 +25,9 @@ export const citasApi = {
   },
   cancelarCita: (id: number) => {
     return httpClient.post(`/citas/${id}/cancelar`)
+  },
+  obtenerDetalleTipoCita: async (id: number) => {
+    // Asegúrate de que la ruta coincida con la que pusiste en tu backend
+    return await httpClient.get(`/tipo-cita/${id}`); 
   }
 }

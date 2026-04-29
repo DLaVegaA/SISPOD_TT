@@ -35,6 +35,10 @@ interface CitaAPI {
   estado: 'Pendiente' | 'Confirmada' | 'Cancelada'
   id_paciente: number
   id_dentista: number
+  tipo?:{
+    id_tipocita: number
+    nombre_corto: string
+  }
 }
 
 // Respuesta de GET /citas
@@ -94,8 +98,8 @@ const TIPO_CITA_MAP: Record<number, string> = {
   2: 'Limpieza Dental',
 }
 
-function resolverNombreTipoCita(tipo: number): string {
-  return TIPO_CITA_MAP[tipo] ?? `Cita tipo ${tipo}`
+function resolverNombreTipoCita(cita: CitaAPI): string {
+  return cita.tipo?.nombre_corto ?? 'Consulta General'
 }
 
 // Estado viene capitalizado desde el backend: 'Pendiente' | 'Confirmada' | 'Cancelada'
@@ -116,7 +120,7 @@ function transformarCita(cita: CitaAPI): CitaDisplay {
     id:        cita.id_cita,
     date:      formatFecha(cita.fecha_hora_inicio),
     time:      formatHora(cita.fecha_hora_inicio),
-    title:     resolverNombreTipoCita(cita.tipo_cita),
+    title:     resolverNombreTipoCita(cita),
     status:    badge.label,
     badgeBg:   badge.bg,
     badgeText: badge.text,
@@ -210,7 +214,9 @@ async function handleReprogramar(cita: CitaDisplay) {
   try {
     // Extraer la fecha en YYYY-MM-DD desde el ISO del backend
     const fecha = raw.fecha_hora_inicio.slice(0, 10)
-    const res = await citasApi.obtenerDisponibilidad(fecha, raw.tipo_cita, raw.id_dentista) as { disponibles: string[] }
+    const idTipo = raw.tipo?.id_tipocita || 1
+    const idDentista = raw.id_dentista || 1
+    const res = await citasApi.obtenerDisponibilidad(fecha,  idTipo, idDentista) as { disponibles: string[] }
     modalSlots.value = res?.disponibles ?? []
   } catch (err) {
     console.error('Error al obtener horarios:', err)
@@ -248,7 +254,10 @@ function formatSlot(iso: string): string {
   // Los slots llegan como ISO o como "HH:MM" — manejamos ambos
   if (iso.includes('T') || iso.includes(' ')) return formatHora(iso)
   // Si viene como "HH:MM" directo
-  const [h, m] = iso.split(':').map(Number)
+  const parts = iso.split(':')
+  if (parts.length !== 2) return iso
+  const h = Number(parts[0])
+  const m = Number(parts[1])
   const sufijo = h >= 12 ? 'PM' : 'AM'
   const h12 = h % 12 || 12
   return `${h12}:${String(m).padStart(2, '0')} ${sufijo}`
