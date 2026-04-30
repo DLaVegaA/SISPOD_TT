@@ -18,6 +18,7 @@ Consentimiento.init(
         id_cita: {
             type: DataTypes.INTEGER,
             allowNull: false,
+            unique:true,
             references: {
                 model: 'citas',
                 key: 'id_cita'
@@ -29,7 +30,7 @@ Consentimiento.init(
             allowNull: false,
             defaultValue: DataTypes.NOW
         },
-        archivo_url: {
+        nombre_archivo: {
             type: DataTypes.STRING,
             allowNull: false
         }

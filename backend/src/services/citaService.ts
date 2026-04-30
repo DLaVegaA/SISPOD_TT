@@ -498,3 +498,7 @@ export const listarCitas = async(filtros:FiltrosCita,limit:number, offset:number
         limitResponse:limit
     }
 }
+
+export const obtenerCitaId = async (id_cita: number) => {
+  return await Cita.findByPk(id_cita);
+};
