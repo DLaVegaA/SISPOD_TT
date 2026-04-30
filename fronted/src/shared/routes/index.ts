@@ -1,3 +1,5 @@
+import DentistBinnacle from "@/pages/dentista/binnacle/ui/DentistBinnacle.vue"
+
 export const ROUTE_NAMES = {
   HOME: 'home',
   LOGIN: 'login',
@@ -11,11 +13,13 @@ export const ROUTE_NAMES = {
   DENTIST_CALENDAR: 'dentist-calendar',
   DENTIST_CLINICAL_HISTORY: 'dentist-clinical-history',
   DENTIST_PATIENTS: 'dentist-patients',
+  DENTIST_BINNACLE: 'dentist-binnacle',
   PATIENT_HOME: 'patient-home',
   PATIENT_PROFILE: 'patient-profile',
   PATIENT_APPOINTMENT: 'patient-appointment',
   PATIENT_FOLLOW_UP: 'patient-follow-up',
   ASSISTANT_HOME: 'assistant-home',
+  ASSISTANT_BINNACLE: 'assistant-binnacle',
 } as const
 
 export type RouteName = (typeof ROUTE_NAMES)[keyof typeof ROUTE_NAMES]
@@ -42,11 +46,13 @@ export const ROUTE_PATHS = {
   DENTIST_CALENDAR: '/dentista:id/calendario',
   DENTIST_CLINICAL_HISTORY: '/dentista:id/historial-clinico',
   DENTIST_PATIENTS: '/dentista:id/pacientes',
+  DENTIST_BINNACLE: '/dentista:id/bitacora',
   PATIENT_HOME: '/paciente:id/home',
   PATIENT_PROFILE: '/paciente:id/perfil',
   PATIENT_APPOINTMENT: '/paciente:id/citas',
   PATIENT_FOLLOW_UP: '/paciente:id/seguimiento',
   ASSISTANT_HOME: '/asistente:id/home',
+  ASSISTANT_BINNACLE: '/asistente:id/bitacora',
 } as const
 
 const ID_ROLE_MAP: Record<number, AppRole> = {

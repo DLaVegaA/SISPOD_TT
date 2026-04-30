@@ -20,12 +20,15 @@ const DentistCalendar = () => import('@/pages/dentista/calendar/ui/DentistCalend
 const DentistClinicalHistory = () =>
   import('@/pages/dentista/clinicalHistory/ui/DentistClinicalHistory.vue')
 const DentistDashboard = () => import('@/pages/dentista/dashboard/ui/DentistDashboard.vue')
+const DentistPatients1 = () => import('@/pages/dentista/patient/ui/DentistPatient.vue')
+const DentistBinnacle = () => import('@/pages/dentista/binnacle/ui/DentistBinnacle.vue')
 const DentistPatients = () => import('@/pages/patients/ui/PatientsPage.vue')
 const PatientDashboard = () => import('@/pages/paciente/dashboard/ui/PatientDashboard.vue')
 const PatientProfile = () => import('@/pages/paciente/profile/ui/PatientProfile.vue')
 const PatientAppointment = () => import('@/pages/paciente/appointment/ui/PatientAppointment.vue')
 const PatientFollowUp = () => import('@/pages/paciente/followUp/ui/PatientFollowUp.vue')
 const AssistantDashboard = () => import('@/pages/asistente/dashboard/ui/AssistantDashboard.vue')
+const AssistantBinnacle = () => import('@/pages/asistente/binnacle/ui/AssistantBinnacle.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -111,6 +114,12 @@ const router = createRouter({
       meta: { title: 'Pacientes del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
     },
     {
+      path: ROUTE_PATHS.DENTIST_BINNACLE,
+      name: ROUTE_NAMES.DENTIST_BINNACLE,
+      component: DentistBinnacle,
+      meta: { title: 'Bitácora del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
+    },
+    {
       path: ROUTE_PATHS.PATIENT_HOME,
       name: ROUTE_NAMES.PATIENT_HOME,
       component: PatientDashboard,
@@ -139,6 +148,12 @@ const router = createRouter({
       name: ROUTE_NAMES.ASSISTANT_HOME,
       component: AssistantDashboard,
       meta: { title: 'Dashboard del Asistente', requiresAuth: true, allowedRoles: ['assistant'] },
+    },
+    {
+      path: ROUTE_PATHS.ASSISTANT_BINNACLE,
+      name: ROUTE_NAMES.ASSISTANT_BINNACLE,
+      component: AssistantBinnacle,
+      meta: { title: 'Bitácora del Asistente', requiresAuth: true, allowedRoles: ['assistant'] },
     },
   ],
 })
