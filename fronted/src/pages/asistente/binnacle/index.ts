@@ -1,0 +1,1 @@
+export { default as AssistantBinnacle } from './ui/AssistantBinnacle.vue'

@@ -153,6 +153,12 @@ const navItems = computed(() => {
           icon: FileText,
           label: 'Historial',
         },
+        {
+            key: 'dentist-binnacle',
+            to: { name: ROUTE_NAMES.DENTIST_BINNACLE, params },
+            icon: FileText,
+            label: 'Bitácora',
+          },
       ]
     case 'patient':
       return [
@@ -174,6 +180,12 @@ const navItems = computed(() => {
           icon: CalendarDays,
           label: 'Citas',
         },
+        {
+          key: 'patient-follow-up',
+          to: { name: ROUTE_NAMES.PATIENT_FOLLOW_UP, params },
+          icon: FileText,
+          label: 'Seguimiento',
+        },
       ]
     case 'assistant':
       return [
@@ -182,6 +194,12 @@ const navItems = computed(() => {
           to: { name: ROUTE_NAMES.ASSISTANT_HOME, params },
           icon: UserRound,
           label: 'Inicio',
+        },
+        {
+          key: 'assistant-binnacle',
+          to: { name: ROUTE_NAMES.ASSISTANT_BINNACLE, params },
+          icon: FileText,
+          label: 'Bitácora',
         },
       ]
     default:

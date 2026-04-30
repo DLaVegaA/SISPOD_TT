@@ -1,0 +1,1 @@
+export { default as Binnacle } from './ui/DentistBinnacle.vue';
