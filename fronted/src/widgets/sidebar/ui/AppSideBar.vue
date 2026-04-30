@@ -151,7 +151,7 @@ const navItems = computed(() => {
           key: 'dentist-history',
           to: { name: ROUTE_NAMES.DENTIST_CLINICAL_HISTORY, params },
           icon: FileText,
-          label: 'Historial',
+          label: 'Historial Clínico',
         },
         {
             key: 'dentist-binnacle',
