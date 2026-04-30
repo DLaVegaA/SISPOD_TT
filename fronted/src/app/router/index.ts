@@ -20,7 +20,6 @@ const DentistCalendar = () => import('@/pages/dentista/calendar/ui/DentistCalend
 const DentistClinicalHistory = () =>
   import('@/pages/dentista/clinicalHistory/ui/DentistClinicalHistory.vue')
 const DentistDashboard = () => import('@/pages/dentista/dashboard/ui/DentistDashboard.vue')
-const DentistPatients1 = () => import('@/pages/dentista/patient/ui/DentistPatient.vue')
 const DentistBinnacle = () => import('@/pages/dentista/binnacle/ui/DentistBinnacle.vue')
 const DentistPatients = () => import('@/pages/patients/ui/PatientsPage.vue')
 const PatientDashboard = () => import('@/pages/paciente/dashboard/ui/PatientDashboard.vue')
