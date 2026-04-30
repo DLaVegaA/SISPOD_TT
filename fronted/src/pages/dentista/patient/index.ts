@@ -1,1 +1,0 @@
-export { default as DentistPatient } from './ui/DentistPatient.vue';

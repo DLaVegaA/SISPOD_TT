@@ -6,6 +6,8 @@ interface BackendPacienteUsuario {
   apellido_paterno?: string
   apellido_materno?: string
   telefono?: string
+  fecha_nacimiento?: string
+  genero?: string
 }
 
 interface BackendPaciente {
@@ -41,6 +43,8 @@ export interface DentistPatientOption {
   id: number
   fullName: string
   phone: string
+  birthDate?: string
+  gender?: string
 }
 
 export interface DentistAppointment {
@@ -100,6 +104,8 @@ export async function listPatientsForAppointments(): Promise<DentistPatientOptio
     id: paciente.id_paciente,
     fullName: composePatientName(paciente.usuario),
     phone: paciente.usuario?.telefono ?? 'Sin telefono',
+    birthDate: paciente.usuario?.fecha_nacimiento,
+    gender: paciente.usuario?.genero,
   }))
 }
 

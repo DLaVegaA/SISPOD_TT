@@ -60,7 +60,7 @@
           </div>
         </div>
       </div>
-      <RouterView class="mt-3" />
+      <RouterView :class="isAuth ? 'mt-3' : ''" />
     </main>
   </div>
 </template>
