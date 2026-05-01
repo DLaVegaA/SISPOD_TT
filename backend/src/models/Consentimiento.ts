@@ -5,7 +5,7 @@ export class Consentimiento extends Model {
     declare id_consentimiento: number;
     declare id_cita: number;
     declare fecha_consentimiento: Date;
-    declare archivo_url: string;
+    declare nombre_archivo: string;
 }
 
 Consentimiento.init(
