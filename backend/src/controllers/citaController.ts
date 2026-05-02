@@ -20,7 +20,6 @@ export type FiltrosCita = {
   nombre?: string;
 };
 
-// 1. LISTAR DISPONIBILIDAD
 export const listarDisponibilidad = async (req: CustomRequest, res: Response) => {
   try {
     const { fecha, tipo_cita } = req.query;
@@ -58,7 +57,7 @@ export const listarDisponibilidad = async (req: CustomRequest, res: Response) =>
   }
 };
 
-// 2. CREAR CITA
+
 export const crearCita = async (req: CustomRequest, res: Response) => {
   try {
     if (!req.userData) {
@@ -83,7 +82,7 @@ export const crearCita = async (req: CustomRequest, res: Response) => {
   }
 };
 
-// 3. EDITAR CITA
+
 export const editarCita = async (req: CustomRequest, res: Response) => {
   const { fecha_hora_inicio } = req.body;
   const id = Number(req.params.id);
@@ -107,7 +106,7 @@ export const editarCita = async (req: CustomRequest, res: Response) => {
   }
 };
 
-// 4. CANCELAR CITA
+
 export const cancelarCita = async (req: CustomRequest, res: Response) => {
   const id = Number(req.params.id);
   if (isNaN(id)) {
@@ -128,7 +127,7 @@ export const cancelarCita = async (req: CustomRequest, res: Response) => {
   }
 };
 
-// 5. LISTAR CITAS
+
 export const listarCitas = async (req: CustomRequest, res: Response) => {
   try {
     const { estado, desde, hasta, nombre } = req.query;
@@ -166,7 +165,6 @@ export const listarCitas = async (req: CustomRequest, res: Response) => {
   }
 };
 
-// 6. CONFIRMAR CITA (Boceto)
 export const confirmarCita = async (req: CustomRequest, res: Response) => {
   const id_cita = Number(req.params.id);
   if (isNaN(id_cita)) return res.status(400).json({ message: 'ID inválido' });

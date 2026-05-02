@@ -5,7 +5,7 @@ export class Consentimiento extends Model {
     declare id_consentimiento: number;
     declare id_cita: number;
     declare fecha_consentimiento: Date;
-    declare archivo_url: string;
+    declare nombre_archivo: string;
 }
 
 Consentimiento.init(
@@ -18,6 +18,7 @@ Consentimiento.init(
         id_cita: {
             type: DataTypes.INTEGER,
             allowNull: false,
+            unique:true,
             references: {
                 model: 'citas',
                 key: 'id_cita'
@@ -29,7 +30,7 @@ Consentimiento.init(
             allowNull: false,
             defaultValue: DataTypes.NOW
         },
-        archivo_url: {
+        nombre_archivo: {
             type: DataTypes.STRING,
             allowNull: false
         }

@@ -11,6 +11,8 @@ import dentistaRoutes from './routes/dentistaRoutes';
 import telegramRoutes from './routes/telegramRoutes';
 import rolesRoutes from './routes/rolesRoutes';
 import tipoCitasRoutes from './routes/tipoCitasRoutes';
+import consentimientoRoutes from './routes/consentimientoRoutes';
+import {errorHandler} from './middleware/errorMiddleware'
 import bot from './config/telegram';
 import { configurarBot } from './services/telegramService';
 
@@ -88,6 +90,8 @@ app.use('/citas', citasRoutes);
 app.use('/telegram', telegramRoutes);
 app.use('/roles', rolesRoutes);
 app.use('/tipo-cita', tipoCitasRoutes);
+app.use('/consentimiento', consentimientoRoutes);
+app.use('/consentimiento', errorHandler); // Provisional en lo que cambio la demas logica
 configurarBot();
 startServer();
 process.once('SIGINT', () => bot.stop('SIGINT'));
