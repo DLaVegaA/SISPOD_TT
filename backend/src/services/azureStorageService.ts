@@ -26,7 +26,9 @@ export const generarSAS = async(blobName:string) =>{
         {
             containerName,
             permissions:BlobSASPermissions.parse('r'),
-            expiresOn:expiraEn
+            expiresOn:expiraEn,
+            contentDisposition: 'inline',
+            contentType: 'application/pdf'
         },
         blobServiceClient.credential as any
     ).toString();
