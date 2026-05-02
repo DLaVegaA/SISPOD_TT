@@ -1,5 +1,5 @@
 import {Consentimiento} from '../models/index'
-import {subirArchivoAzure, generarSAS} from '../services/azureStorageService';
+import {subirArchivoAzure, generarSAS, EliminarArchivo} from '../services/azureStorageService';
 import {AppError} from '../helpers/AppError'
 import {obtenerCitaId} from '../services/citaService'
 import fs from 'fs';
@@ -71,4 +71,25 @@ export const obtenerConsentimientoConSAS = async(id_cita:number)=>{
     consentimiento,
     url
   }
+}
+
+export const eliminarConsentimientoService = async(id_cita:number) =>{
+  const existe = await verificarConsentimientoEnCita(id_cita)
+  if(!existe){
+    throw new AppError('La cita no tiene un consentimiento', 404);
+  }
+  const consentimiento = await Consentimiento.findOne({
+    where:{
+      id_cita
+    }
+  });
+
+  if(!consentimiento){
+     throw new AppError('Consentimiento no encontrado', 404);
+  }
+
+  await EliminarArchivo(consentimiento.nombre_archivo);
+
+  await consentimiento.destroy();
+  
 }

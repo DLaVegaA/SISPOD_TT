@@ -1,9 +1,18 @@
 import {Response, NextFunction } from "express";
 import { CustomRequest } from '../middleware/authMiddleware';
 import {AppError} from '../helpers/AppError'
+import fs from 'fs'
 
 export const errorHandler = (err:any, req:CustomRequest, res:Response, next:NextFunction) =>{
     console.error('Error: ', err);
+
+    if (req.file?.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {
+        console.error('Error al eliminar archivo:', e);
+      }
+    }
     if(err instanceof AppError){
       return res.status(err.status).json({ message: err.message });
     }
@@ -20,7 +29,7 @@ export const errorHandler = (err:any, req:CustomRequest, res:Response, next:Next
       });
     }
     return res.status(500).json({
-        message: 'Error interno del servidor'
+        message: err.message
     });
 }
   

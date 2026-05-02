@@ -2,7 +2,7 @@ import { Response, NextFunction, Request} from 'express';
 import { Cita, Dentista } from '../models/index';
 import { CustomRequest } from '../middleware/authMiddleware';
 import { AppError } from '../helpers/AppError';
-import {crearConsentimientoService, obtenerConsentimientoConSAS} from '../services/consentimientoService';
+import {crearConsentimientoService, eliminarConsentimientoService, obtenerConsentimientoConSAS} from '../services/consentimientoService';
 
 export const crearConsentimiento = async(req:CustomRequest, res:Response, next:NextFunction) =>{
     const file = req.file;
@@ -46,6 +46,23 @@ export const verConsentimiento = async(req:Request, res:Response, next:NextFunct
             url
         });
     } catch (error) {
+        next(error)
+    }
+}
+
+export const eliminarConsentimiento = async(req:Request, res:Response, next:NextFunction) =>{
+    const {id_cita} = req.params;
+
+    if(isNaN(Number(id_cita))){
+        throw new AppError('Cita inválida',400);
+    }
+
+    try{
+        await eliminarConsentimientoService(Number(id_cita));
+        return res.json({
+            message:'Consentimiento eliminado'
+        })
+    }catch(error){
         next(error)
     }
 }

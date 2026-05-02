@@ -33,3 +33,10 @@ export const generarSAS = async(blobName:string) =>{
 
     return `${blockBlobClient.url}?${sasToken}`;
 }
+
+export const EliminarArchivo = async(blobName:string) =>{
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blockBlobClient =containerClient.getBlobClient(blobName);
+
+    await blockBlobClient.deleteIfExists()
+}
