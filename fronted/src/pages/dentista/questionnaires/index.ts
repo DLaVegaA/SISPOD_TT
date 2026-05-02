@@ -1,0 +1,1 @@
+export { default as DentistQuestionnaires } from './ui/DentistQuestionnaires.vue';

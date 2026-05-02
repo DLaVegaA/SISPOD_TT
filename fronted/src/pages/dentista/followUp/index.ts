@@ -1,0 +1,1 @@
+export { default as DentistFollowUp } from './ui/DentistFollowUp.vue';
