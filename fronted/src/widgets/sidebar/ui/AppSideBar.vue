@@ -88,6 +88,9 @@ import {
   Tag,
   Users,
   UserRound,
+  ClipboardList,
+  FileSignature,
+  Activity,
 } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
@@ -154,11 +157,29 @@ const navItems = computed(() => {
           label: 'Historial Clínico',
         },
         {
-            key: 'dentist-binnacle',
-            to: { name: ROUTE_NAMES.DENTIST_BINNACLE, params },
-            icon: FileText,
-            label: 'Bitácora',
-          },
+          key: 'dentist-binnacle',
+          to: { name: ROUTE_NAMES.DENTIST_BINNACLE, params },
+          icon: ClipboardList,
+          label: 'Bitácora',
+        },
+        {
+          key: 'dentist-consent',
+          to: { name: ROUTE_NAMES.DENTIST_CONSENT, params },
+          icon: FileSignature,
+          label: 'Consentimiento',
+        },
+        {
+          key: 'dentist-follow-up',
+          to: { name: ROUTE_NAMES.DENTIST_FOLLOW_UP, params },
+          icon: Activity,
+          label: 'Seguimiento',
+        },
+        {
+          key: 'dentist-questionnaires',
+          to: { name: ROUTE_NAMES.DENTIST_QUESTIONNAIRES, params },
+          icon: BarChart2,
+          label: 'Cuestionarios',
+        },
       ]
     case 'patient':
       return [

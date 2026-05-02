@@ -1,5 +1,3 @@
-import DentistBinnacle from "@/pages/dentista/binnacle/ui/DentistBinnacle.vue"
-
 export const ROUTE_NAMES = {
   HOME: 'home',
   LOGIN: 'login',
@@ -14,6 +12,10 @@ export const ROUTE_NAMES = {
   DENTIST_CLINICAL_HISTORY: 'dentist-clinical-history',
   DENTIST_PATIENTS: 'dentist-patients',
   DENTIST_BINNACLE: 'dentist-binnacle',
+  DENTIST_CONSENT: 'dentist-consent',
+  DENTIST_FOLLOW_UP: 'dentist-follow-up',
+  DENTIST_QUESTIONNAIRES: 'dentist-questionnaires',
+  DENTIST_NEW_QUESTIONNAIRES: 'dentist-new-questionnaires',
   PATIENT_HOME: 'patient-home',
   PATIENT_PROFILE: 'patient-profile',
   PATIENT_APPOINTMENT: 'patient-appointment',
@@ -38,21 +40,29 @@ export const ROUTE_PATHS = {
   LOGIN: '/login',
   RECOVER_PASSWORD: '/recuperar-contrasena',
   RESET_PASSWORD: '/restablecer-contrasena/:token',
-  ADMIN_HOME: '/admin:id/home',
-  ADMIN_USERS: '/admin:id/users',
-  ADMIN_ROLES: '/admin:id/roles',
-  ADMIN_STATS: '/admin:id/stats',
-  DENTIST_HOME: '/dentista:id/home',
-  DENTIST_CALENDAR: '/dentista:id/calendario',
-  DENTIST_CLINICAL_HISTORY: '/dentista:id/historial-clinico',
-  DENTIST_PATIENTS: '/dentista:id/pacientes',
-  DENTIST_BINNACLE: '/dentista:id/bitacora',
-  PATIENT_HOME: '/paciente:id/home',
-  PATIENT_PROFILE: '/paciente:id/perfil',
-  PATIENT_APPOINTMENT: '/paciente:id/citas',
-  PATIENT_FOLLOW_UP: '/paciente:id/seguimiento',
-  ASSISTANT_HOME: '/asistente:id/home',
-  ASSISTANT_BINNACLE: '/asistente:id/bitacora',
+
+  ADMIN_HOME: '/admin/:id/home',
+  ADMIN_USERS: '/admin/:id/users',
+  ADMIN_ROLES: '/admin/:id/roles',
+  ADMIN_STATS: '/admin/:id/stats',
+  
+  DENTIST_HOME: '/dentista/:id/home',
+  DENTIST_CALENDAR: '/dentista/:id/calendario',
+  DENTIST_CLINICAL_HISTORY: '/dentista/:id/historial-clinico',
+  DENTIST_PATIENTS: '/dentista/:id/pacientes',
+  DENTIST_BINNACLE: '/dentista/:id/bitacora',
+  DENTIST_CONSENT: '/dentista/:id/consentimiento',
+  DENTIST_FOLLOW_UP: '/dentista/:id/seguimiento',
+  DENTIST_QUESTIONNAIRES: '/dentista/:id/cuestionarios',
+  DENTIST_NEW_QUESTIONNAIRES: '/dentista/:id/nuevos-cuestionarios',
+  
+  PATIENT_HOME: '/paciente/:id/home',
+  PATIENT_PROFILE: '/paciente/:id/perfil',
+  PATIENT_APPOINTMENT: '/paciente/:id/citas',
+  PATIENT_FOLLOW_UP: '/paciente/:id/seguimiento',
+  
+  ASSISTANT_HOME: '/asistente/:id/home',
+  ASSISTANT_BINNACLE: '/asistente/:id/bitacora',
 } as const
 
 const ID_ROLE_MAP: Record<number, AppRole> = {
@@ -106,5 +116,5 @@ export function buildRoleHomePath(role: unknown, userId: unknown): string | null
     return null
   }
 
-  return `/${ROLE_SEGMENT_BY_ROLE[normalizedRole]}${normalizedId}/home`
+  return `/${ROLE_SEGMENT_BY_ROLE[normalizedRole]}/${normalizedId}/home`
 }
