@@ -1,5 +1,5 @@
 import { Response, NextFunction, Request} from 'express';
-import { Cita, Dentista } from '../models/index';
+import { Cita, Dentista, Expediente, Usuario, Paciente, TipoCita, Consentimiento } from '../models/index';
 import { CustomRequest } from '../middleware/authMiddleware';
 import { AppError } from '../helpers/AppError';
 import {crearConsentimientoService, eliminarConsentimientoService, obtenerConsentimientoConSAS} from '../services/consentimientoService';
@@ -64,5 +64,46 @@ export const eliminarConsentimiento = async(req:Request, res:Response, next:Next
         })
     }catch(error){
         next(error)
+    }
+}
+
+export const obtenerTodosConsentimientos = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const consentimientos = await Consentimiento.findAll({
+            include: [
+                {
+                    model: Cita,
+                    as: 'cita', // Basado en Consentimiento.belongsTo(Cita, { as: 'cita' })
+                    include: [
+                        {
+                            model: Paciente,
+                            as: 'paciente', // Basado en Cita.belongsTo(Paciente, { as: 'paciente' })
+                            include: [
+                                {
+                                    model: Usuario,
+                                    as: 'usuario',
+                                    // attributes: ['nombre', 'apellidos'] // Opcional: para no traer todo el usuario
+                                },
+                                {
+                                    model: Expediente,
+                                    as: 'expediente',
+                                    // attributes: ['id_expediente'] // Opcional: Ajusta al nombre de tu columna
+                                }
+                            ]
+                        },
+                        {
+                            model: TipoCita,
+                            as: 'tipo', // Basado en Cita.belongsTo(TipoCita, { as: 'tipo' })
+                            // attributes: ['nombre'] // Ajusta al nombre de tu columna en TipoCita
+                        }
+                    ]
+                }
+            ]
+        });
+
+        // Retornamos el JSON con toda la estructura anidada
+        return res.json(consentimientos);
+    } catch (error) {
+        next(error);
     }
 }
