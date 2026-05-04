@@ -21,7 +21,11 @@ const DentistClinicalHistory = () =>
   import('@/pages/dentista/clinicalHistory/ui/DentistClinicalHistory.vue')
 const DentistDashboard = () => import('@/pages/dentista/dashboard/ui/DentistDashboard.vue')
 const DentistBinnacle = () => import('@/pages/dentista/binnacle/ui/DentistBinnacle.vue')
+const DentistConsent = () => import('@/pages/dentista/consent/ui/DentistConsent.vue')
 const DentistPatients = () => import('@/pages/patients/ui/PatientsPage.vue')
+const DentistFollowUp = () => import('@/pages/dentista/followUp/ui/DentistFollowUp.vue')
+const DentistQuestionnaires = () => import('@/pages/dentista/questionnaires/ui/DentistQuestionnaires.vue')
+const DentistNewQuestionnaires = () => import('@/pages/dentista/newQuestionnaires/ui/DentistNewQuestionnaires.vue')
 const PatientDashboard = () => import('@/pages/paciente/dashboard/ui/PatientDashboard.vue')
 const PatientProfile = () => import('@/pages/paciente/profile/ui/PatientProfile.vue')
 const PatientAppointment = () => import('@/pages/paciente/appointment/ui/PatientAppointment.vue')
@@ -117,6 +121,30 @@ const router = createRouter({
       name: ROUTE_NAMES.DENTIST_BINNACLE,
       component: DentistBinnacle,
       meta: { title: 'Bitácora del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
+    },
+    {
+      path: ROUTE_PATHS.DENTIST_CONSENT,
+      name: ROUTE_NAMES.DENTIST_CONSENT,
+      component: DentistConsent,
+      meta: { title: 'Consentimiento del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
+    },
+    {
+      path: ROUTE_PATHS.DENTIST_FOLLOW_UP,
+      name: ROUTE_NAMES.DENTIST_FOLLOW_UP,
+      component: DentistFollowUp,
+      meta: { title: 'Seguimiento del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
+    },
+    {
+      path: ROUTE_PATHS.DENTIST_QUESTIONNAIRES,
+      name: ROUTE_NAMES.DENTIST_QUESTIONNAIRES,
+      component: DentistQuestionnaires,
+      meta: { title: 'Cuestionarios del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
+    },
+    {
+      path: ROUTE_PATHS.DENTIST_NEW_QUESTIONNAIRES,
+      name: ROUTE_NAMES.DENTIST_NEW_QUESTIONNAIRES,
+      component: DentistNewQuestionnaires,
+      meta: { title: 'Nuevos Cuestionarios del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
     },
     {
       path: ROUTE_PATHS.PATIENT_HOME,

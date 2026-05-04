@@ -1,0 +1,1 @@
+export { default as Consent } from './ui/DentistConsent.vue';
