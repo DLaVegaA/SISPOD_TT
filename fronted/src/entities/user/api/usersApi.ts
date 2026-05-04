@@ -111,7 +111,7 @@ export async function getUsers(): Promise<User[]> {
   return users.map(mapBackendUser)
 }
 
-export async function createUser(dto: CreateUserDto): Promise<User> {
+/* export async function createUser(dto: CreateUserDto): Promise<User> {
   const basePersona = {
     nombre: dto.name,
     apellido_paterno: dto.apellidoPaterno.trim(),
@@ -167,6 +167,70 @@ export async function createUser(dto: CreateUserDto): Promise<User> {
 
   const createdRoleId = data.usuario?.id_rol ?? ROLE_TO_ID[dto.role]
   const createdStatus = dto.role === 'patient' ? 'inactive' : dto.status
+
+  return {
+    id: data.usuario?.id ?? data.usuario?.id_usuario ?? Date.now(),
+    name: data.usuario?.nombre ?? dto.name,
+    email: data.usuario?.correo ?? dto.email,
+    role: toRole(createdRoleId),
+    status: createdStatus,
+    createdAt: formatDate(),
+  }
+} */
+
+export async function createUser(dto: CreateUserDto): Promise<User> {
+  let endpoint: '/usuarios' | '/dentistas' | '/pacientes' = '/usuarios'
+  let payload: Record<string, unknown>
+
+  if (dto.role === 'dentist') {
+    endpoint = '/dentistas'
+    payload = {
+      nombre: dto.name,
+      apellido_paterno: dto.apellidoPaterno.trim(),
+      apellido_materno: dto.apellidoMaterno?.trim() || null,
+      correo: dto.email,
+      telefono: dto.telefono?.trim(),
+      fecha_nacimiento: dto.fechaNacimiento,
+      curp: dto.curp.trim().toUpperCase(),
+      genero: dto.genero?.trim(),
+      contrasena: dto.password,
+      id_rol: ROLE_TO_ID.dentist,
+      no_cedula: dto.noCedula?.trim(),
+    }
+  } else if (dto.role === 'patient') {
+    // RN3: Pre-registro solo con la información mínima requerida
+    endpoint = '/pacientes'
+    payload = {
+      nombre: dto.name,
+      apellido_paterno: dto.apellidoPaterno.trim(),
+      apellido_materno: dto.apellidoMaterno?.trim() || null,
+      correo: dto.email,
+      fecha_nacimiento: dto.fechaNacimiento,
+      curp: dto.curp.trim().toUpperCase(),
+      id_rol: ROLE_TO_ID.patient,
+    }
+  } else {
+    // Para roles Administrativos y Asistentes
+    payload = {
+      nombre: dto.name,
+      correo: dto.email,
+      contrasena: dto.password,
+      id_rol: ROLE_TO_ID[dto.role],
+      estado: dto.status ? FRONT_TO_BACK_STATUS[dto.status] : 'activo',
+      apellido_paterno: dto.apellidoPaterno?.trim() || 'Pendiente',
+      apellido_materno: dto.apellidoMaterno?.trim() || 'Pendiente',
+      telefono: dto.telefono?.trim() || '0000000000',
+      fecha_nacimiento: dto.fechaNacimiento || '2000-01-01',
+      curp: dto.curp?.trim().toUpperCase() || buildCurpSeed(),
+      genero: dto.genero?.trim() || 'No especificado',
+    }
+  }
+
+  const data = await httpClient.post<CreateUserResponse, Record<string, unknown>>(endpoint, payload)
+
+  const createdRoleId = data.usuario?.id_rol ?? ROLE_TO_ID[dto.role]
+  // El paciente siempre inicia como inactivo (pendiente) hasta que activa su cuenta
+  const createdStatus = dto.role === 'patient' ? 'inactive' : (dto.status || 'active')
 
   return {
     id: data.usuario?.id ?? data.usuario?.id_usuario ?? Date.now(),

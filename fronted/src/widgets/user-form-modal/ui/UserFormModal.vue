@@ -9,12 +9,12 @@
       <!--Nombre -->
       <div>
         <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
-          >Nombre Completo</label
+          >Nombre</label
         >
         <input
           v-model="form.name"
           type="text"
-          placeholder="Ej. María García"
+          placeholder="Ej. María"
           :class="inputCls(!!errors.name)"
         />
         <p v-if="errors.name" class="text-red-400 text-xs mt-1">{{ errors.name }}</p>
@@ -34,7 +34,7 @@
         <p v-if="errors.email" class="text-red-400 text-xs mt-1">{{ errors.email }}</p>
       </div>
 
-      <!-- Datos personales requeridos para paciente y dentista -->
+      <!-- Datos personales base (Siempre visibles para Pacientes y Dentistas) -->
       <template v-if="showExtendedFields">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
@@ -62,7 +62,7 @@
             <input
               v-model="createForm.apellidoMaterno"
               type="text"
-              placeholder="Apellido materno"
+              placeholder="Apellido materno (opcional)"
               :class="inputCls(!!(errors as CreateUserErrors).apellidoMaterno)"
             />
             <p
@@ -70,21 +70,6 @@
               class="text-red-400 text-xs mt-1"
             >
               {{ (errors as CreateUserErrors).apellidoMaterno }}
-            </p>
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
-              >Teléfono</label
-            >
-            <input
-              v-model="createForm.telefono"
-              type="tel"
-              placeholder="10 dígitos"
-              :class="inputCls(!!(errors as CreateUserErrors).telefono)"
-            />
-            <p v-if="(errors as CreateUserErrors).telefono" class="text-red-400 text-xs mt-1">
-              {{ (errors as CreateUserErrors).telefono }}
             </p>
           </div>
 
@@ -121,7 +106,24 @@
             </p>
           </div>
 
-          <div>
+          <!-- Teléfono (Oculto para pacientes en pre-registro) -->
+          <div v-if="showPhoneAndGender">
+            <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
+              >Teléfono</label
+            >
+            <input
+              v-model="createForm.telefono"
+              type="tel"
+              placeholder="10 dígitos"
+              :class="inputCls(!!(errors as CreateUserErrors).telefono)"
+            />
+            <p v-if="(errors as CreateUserErrors).telefono" class="text-red-400 text-xs mt-1">
+              {{ (errors as CreateUserErrors).telefono }}
+            </p>
+          </div>
+
+          <!-- Género (Oculto para pacientes en pre-registro) -->
+          <div v-if="showPhoneAndGender">
             <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
               >Género</label
             >
@@ -154,98 +156,7 @@
         </p>
       </div>
 
-      <!-- Dirección requerida para paciente -->
-      <template v-if="showPatientFields">
-        <div class="pt-1">
-          <p class="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Dirección</p>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div class="md:col-span-2">
-              <input
-                v-model="createForm.calle"
-                type="text"
-                placeholder="Calle"
-                :class="inputCls(!!(errors as CreateUserErrors).calle)"
-              />
-              <p v-if="(errors as CreateUserErrors).calle" class="text-red-400 text-xs mt-1">
-                {{ (errors as CreateUserErrors).calle }}
-              </p>
-            </div>
-
-            <div>
-              <input
-                v-model="createForm.numExt"
-                type="text"
-                placeholder="Número exterior"
-                :class="inputCls(!!(errors as CreateUserErrors).numExt)"
-              />
-              <p v-if="(errors as CreateUserErrors).numExt" class="text-red-400 text-xs mt-1">
-                {{ (errors as CreateUserErrors).numExt }}
-              </p>
-            </div>
-
-            <div>
-              <input
-                v-model="createForm.numInt"
-                type="text"
-                placeholder="Número interior (opcional)"
-                :class="inputCls(false)"
-              />
-            </div>
-
-            <div>
-              <input
-                v-model="createForm.colonia"
-                type="text"
-                placeholder="Colonia"
-                :class="inputCls(!!(errors as CreateUserErrors).colonia)"
-              />
-              <p v-if="(errors as CreateUserErrors).colonia" class="text-red-400 text-xs mt-1">
-                {{ (errors as CreateUserErrors).colonia }}
-              </p>
-            </div>
-
-            <div>
-              <input
-                v-model="createForm.municipio"
-                type="text"
-                placeholder="Municipio"
-                :class="inputCls(!!(errors as CreateUserErrors).municipio)"
-              />
-              <p v-if="(errors as CreateUserErrors).municipio" class="text-red-400 text-xs mt-1">
-                {{ (errors as CreateUserErrors).municipio }}
-              </p>
-            </div>
-
-            <div>
-              <input
-                v-model="createForm.estadoDireccion"
-                type="text"
-                placeholder="Estado"
-                :class="inputCls(!!(errors as CreateUserErrors).estadoDireccion)"
-              />
-              <p
-                v-if="(errors as CreateUserErrors).estadoDireccion"
-                class="text-red-400 text-xs mt-1"
-              >
-                {{ (errors as CreateUserErrors).estadoDireccion }}
-              </p>
-            </div>
-
-            <div>
-              <input
-                v-model="createForm.codigoPostal"
-                type="text"
-                maxlength="5"
-                placeholder="Código postal"
-                :class="inputCls(!!(errors as CreateUserErrors).codigoPostal)"
-              />
-              <p v-if="(errors as CreateUserErrors).codigoPostal" class="text-red-400 text-xs mt-1">
-                {{ (errors as CreateUserErrors).codigoPostal }}
-              </p>
-            </div>
-          </div>
-        </div>
-      </template>
+      <!-- Dirección eliminada del modal porque el paciente la llena después -->
 
       <!-- Contraseña -->
       <div v-if="showPasswordField && 'password' in form">
@@ -271,6 +182,7 @@
           {{ (errors as CreateUserErrors).password }}
         </p>
       </div>
+      
       <!-- Rol -->
       <div>
         <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
@@ -297,6 +209,7 @@
           {{ errors.role }}
         </p>
       </div>
+      
       <!-- Estado -->
       <div v-if="showStatusField">
         <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
@@ -330,6 +243,7 @@
         </div>
       </div>
     </div>
+    
     <!-- Footer -->
     <div class="px-6 py-4 border-t border-border flex gap-3 justify-end">
       <button
@@ -350,6 +264,7 @@
     </div>
   </UiModal>
 </template>
+
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
@@ -397,12 +312,18 @@ const roles = ROLES_LIST
 const createForm = computed(() => props.form as CreateUserDto)
 const selectedRole = computed<RoleId>(() => (createForm.value.role ?? 'patient') as RoleId)
 
+// Mostrar los datos principales si es paciente o dentista
 const showExtendedFields = computed(
   () => !props.isEdit && (selectedRole.value === 'patient' || selectedRole.value === 'dentist'),
 )
-const showPatientFields = computed(() => !props.isEdit && selectedRole.value === 'patient')
+
+// Magia aquí: Ocultar teléfono y género si el rol es 'patient'
+const showPhoneAndGender = computed(() => !props.isEdit && selectedRole.value !== 'patient')
+
 const showDentistFields = computed(() => !props.isEdit && selectedRole.value === 'dentist')
 const showPasswordField = computed(() => !props.isEdit && selectedRole.value !== 'patient')
+
+// Mostrar el selector de estado solo en edición, o si vas a crear un admin/asistente
 const showStatusField = computed(
   () => props.isEdit || selectedRole.value === 'admin' || selectedRole.value === 'assistant',
 )
@@ -414,15 +335,7 @@ function setRole(role: RoleId): void {
     createForm.value.noCedula = ''
   }
 
-  if (role !== 'patient') {
-    createForm.value.calle = ''
-    createForm.value.numExt = ''
-    createForm.value.numInt = ''
-    createForm.value.colonia = ''
-    createForm.value.municipio = ''
-    createForm.value.estadoDireccion = ''
-    createForm.value.codigoPostal = ''
-  }
+  // Ya no reseteamos la dirección aquí porque simplemente no existe en el modal
 }
 
 function inputCls(hasError: boolean): string {

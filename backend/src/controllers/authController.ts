@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
-import { Usuario, Token, Paciente } from '../models/index';
+import { Usuario, Token, Paciente, Direccion } from '../models/index';
 import { generarToken } from '../helpers/generarToken';
 import transporter from '../config/mailer';
 import jwt from 'jsonwebtoken';
 import { verificarTokenReset } from '../services/authService';
+import { sequelize } from '../config/database';
+import { Op } from 'sequelize';
 //import { message } from 'telegraf/filters';
 
 export const login = async (req: Request, res: Response) => {
@@ -78,7 +80,7 @@ export const cerrarSesion = async (req: Request, res: Response) => {
  * POST  /auth/activar-cuenta/:token
  * Cambia el estado del pacienta a activo, mediante el token enviado por correo despues de crearse un paciente
  */
-export const activarCuenta = async (req: Request, res: Response) => {
+/* export const activarCuenta = async (req: Request, res: Response) => {
   try {
     const token = req.params.token;
     const { password } = req.body;
@@ -132,6 +134,129 @@ export const activarCuenta = async (req: Request, res: Response) => {
     return res.status(500).json({
       message: 'Error del servidor',
     });
+  }
+}; */
+
+export const activarCuenta = async (req: Request, res: Response) => {
+  const { token } = req.params; // El token viene en la URL: ?token=...
+  const {
+    contrasena,
+    telefono,
+    genero,
+    calle,
+    num_ext,
+    num_int,
+    colonia,
+    municipio,
+    estado,
+    codigo_postal,
+  } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: 'Token de activación no proporcionado' });
+  }
+
+  // RN7: Validar que envíe todos los datos faltantes
+  if (!contrasena || !telefono || !genero || !calle || !num_ext || !colonia || !municipio || !estado || !codigo_postal) {
+    return res.status(400).json({ message: 'Faltan datos obligatorios para completar el perfil' });
+  }
+
+  // RN4: Validación estricta del teléfono
+  const telefonoRegex = /^[0-9]{10}$/;
+  if (!telefonoRegex.test(telefono)) {
+    return res.status(400).json({ message: 'El teléfono debe contener exactamente 10 números' });
+  }
+
+  // RN16: Validación estricta de la nueva contraseña
+  // Mínimo 12 caracteres, al menos una mayúscula, una minúscula, un número y un carácter especial
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-={}[\]|;:,.<>?]).{12,}$/;
+  if (!passwordRegex.test(contrasena)) {
+    return res.status(400).json({ 
+      message: 'La contraseña debe tener al menos 12 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos especiales.' 
+    });
+  }
+
+  const t = await sequelize.transaction();
+  let committed = false;
+
+  try {
+    // 1. Verificar que el token existe, es de activación y no ha expirado
+    const tokenRegistro = await Token.findOne({
+      where: {
+        token: token as string,
+        tipo: 'activacion'
+        // Puedes agregar la validación de expiración si la configuraste en tu DB:
+        // expira_en: { [Op.gt]: new Date() } 
+      },
+      transaction: t
+    });
+
+    if (!tokenRegistro) {
+      await t.rollback();
+      return res.status(400).json({ message: 'Token inválido o expirado' });
+    }
+
+    // 2. Buscar al usuario asociado al token
+    const usuario = await Usuario.findByPk(tokenRegistro.id_usuario, { transaction: t });
+    if (!usuario) {
+      await t.rollback();
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    if (usuario.estado === 'activo') {
+      await t.rollback();
+      return res.status(400).json({ message: 'Esta cuenta ya ha sido activada previamente' });
+    }
+
+    // 3. Buscar el paciente para actualizar su dirección
+    const paciente = await Paciente.findOne({
+      where: { id_usuario: usuario.id_usuario },
+      transaction: t
+    });
+
+    if (!paciente) {
+      await t.rollback();
+      return res.status(404).json({ message: 'Perfil de paciente no encontrado' });
+    }
+
+    // 4. Actualizar Usuario (Estado, teléfono, género y CONTRASEÑA)
+    // Nota: Al usar usuario.update(), Sequelize ejecutará el hook "beforeUpdate" 
+    // definido en tu Usuario.ts, el cual encriptará la nueva contraseña automáticamente.
+    await usuario.update({
+      telefono,
+      genero,
+      contrasena, // Aquí entra en texto plano y el modelo lo hashea
+      estado: 'activo'
+    }, { transaction: t });
+
+    // 5. Actualizar Dirección del paciente
+    await Direccion.update({
+      calle,
+      num_ext,
+      num_int: num_int || null,
+      colonia,
+      municipio,
+      estado,
+      codigo_postal
+    }, {
+      where: { id_paciente: paciente.id_paciente },
+      transaction: t
+    });
+
+    // 6. Eliminar el token para que no se pueda volver a usar
+    await tokenRegistro.destroy({ transaction: t });
+
+    await t.commit();
+    committed = true;
+
+    return res.status(200).json({
+      message: 'Cuenta activada y perfil completado con éxito. Ya puedes iniciar sesión.'
+    });
+
+  } catch (error) {
+    if (!committed) await t.rollback();
+    console.log('Error al activar la cuenta: ', error);
+    return res.status(500).json({ message: 'Error del servidor al activar la cuenta' });
   }
 };
 
@@ -228,6 +353,14 @@ export const resetPassword = async (req: Request, res: Response) => {
     if (!contrasena) {
       return res.status(400).json({ message: 'La contraseña es obligatoria' });
     }
+
+    /* // RN16: Validación estricta de la nueva contraseña en la recuperación
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-={}[\]|;:,.<>?]).{12,}$/;
+    if (!passwordRegex.test(contrasena)) {
+      return res.status(400).json({ 
+        message: 'La contraseña debe tener al menos 12 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos especiales.' 
+      });
+    } */
 
     const usuario = await Usuario.findByPk(tokenBD.id_usuario);
 

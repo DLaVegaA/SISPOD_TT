@@ -32,11 +32,11 @@ Direccion.init(
         },
         calle:{
             type:DataTypes.STRING,
-            allowNull:false
+            allowNull:true
         },
         num_ext:{
             type:DataTypes.STRING,
-            allowNull:false
+            allowNull:true
         },
         num_int:{
             type:DataTypes.STRING,
@@ -44,19 +44,19 @@ Direccion.init(
         },
         colonia:{
             type:DataTypes.STRING,
-            allowNull:false
+            allowNull:true
         },
         municipio:{
             type:DataTypes.STRING,
-            allowNull:false
+            allowNull:true
         },
         estado:{
             type:DataTypes.STRING,
-            allowNull:false
+            allowNull:true
         },
         codigo_postal:{
             type:DataTypes.STRING(5),
-            allowNull:false
+            allowNull:true
         }
     },
     {
