@@ -53,8 +53,8 @@ Bitacora.init(
             type: DataTypes.ENUM(
                 'Pendiente',
                 'Revisado',
-                'Anulada', //?????
-                'Completado' //?????
+                'Anulada' //?????
+                // 'Completado' //?????
             ),
             allowNull: false,
             defaultValue: 'Pendiente'

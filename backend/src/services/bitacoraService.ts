@@ -55,7 +55,7 @@ export const editarBitacoraService = async(data:BitacoraDTO, id_bitacora:number)
         throw new Error('La bitácora no existe');
     }
 
-    if(bitacora.estado_bitacora !== 'pendiente'){
+    if(bitacora.estado_bitacora !== 'Pendiente'){
         throw new Error('Solo se puede editar una bitácora pendiente');
     }
 
