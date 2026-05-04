@@ -5,8 +5,9 @@ import { generarContra } from '../helpers/generarContra';
 import { generarToken } from '../helpers/generarToken';
 import transporter from '../config/mailer';
 import { CustomRequest } from '../middleware/authMiddleware';
+import crypto from 'crypto';
 
-export const registrarPaciente = async (req: Request, res: Response) => {
+/* export const registrarPaciente = async (req: Request, res: Response) => {
   const {
     nombre,
     id_rol,
@@ -40,6 +41,22 @@ export const registrarPaciente = async (req: Request, res: Response) => {
     return res.status(400).json({
       message: 'Faltan datos obligatorios',
     });
+  }
+
+  // RN4: Validaciones estrictas de formato
+  const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+  if (!soloLetrasRegex.test(nombre) || !soloLetrasRegex.test(apellido_paterno) || !soloLetrasRegex.test(apellido_materno)) {
+    return res.status(400).json({ message: 'Nombre y apellidos solo deben contener letras' });
+  }
+
+  const curpRegex = /^[A-Z0-9]{18}$/;
+  if (!curpRegex.test(curp)) {
+    return res.status(400).json({ message: 'La CURP debe tener exactamente 18 caracteres alfanuméricos en mayúscula' });
+  }
+
+  const telefonoRegex = /^[0-9]{10}$/;
+  if (!telefonoRegex.test(telefono)) {
+    return res.status(400).json({ message: 'El teléfono debe contener exactamente 10 números' });
   }
 
   if (!calle || !num_ext || !colonia || !municipio || !estado || !codigo_postal) {
@@ -155,6 +172,127 @@ export const registrarPaciente = async (req: Request, res: Response) => {
     if (!committed) {
       await t.rollback();
     }
+    console.log('Error al registrar Paciente: ', error);
+    return res.status(500).json({ message: 'Error del servidor' });
+  }
+}; */
+
+export const registrarPaciente = async (req: Request, res: Response) => {
+  const {
+    nombre,
+    id_rol,
+    apellido_paterno,
+    apellido_materno,
+    correo,
+    fecha_nacimiento,
+    curp,
+  } = req.body;
+
+  // RN3: Validamos solo la información mínima para el pre-registro
+  if (!nombre || !apellido_paterno || !correo || !fecha_nacimiento || !curp || !id_rol) {
+    return res.status(400).json({ message: 'Faltan datos obligatorios para el pre-registro' });
+  }
+
+  if (id_rol !== 3) {
+    return res.status(400).json({ message: 'El rol no corresponde a un paciente' });
+  }
+
+  // RN4: Validaciones estrictas de formato
+  const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+  if (!soloLetrasRegex.test(nombre) || !soloLetrasRegex.test(apellido_paterno) || (apellido_materno && !soloLetrasRegex.test(apellido_materno))) {
+    return res.status(400).json({ message: 'Nombre y apellidos solo deben contener letras' });
+  }
+
+  const curpRegex = /^[A-Z0-9]{18}$/;
+  if (!curpRegex.test(curp)) {
+    return res.status(400).json({ message: 'La CURP debe tener exactamente 18 caracteres alfanuméricos en mayúscula' });
+  }
+
+  const t = await sequelize.transaction();
+  let committed = false;
+  try {
+    const correoExiste = await Usuario.findOne({ where: { correo }, transaction: t });
+    if (correoExiste) {
+      await t.rollback();
+      return res.status(400).json({ message: 'El correo electrónico ya está registrado' });
+    }
+
+    const curpExiste = await Usuario.findOne({ where: { curp }, transaction: t });
+    if (curpExiste) {
+      await t.rollback();
+      return res.status(400).json({ message: 'La CURP ya está registrada' });
+    }
+
+    // Generamos un hash aleatorio largo como placeholder para la DB.
+    // Nadie conocerá esta contraseña, el usuario pondrá la suya al activar la cuenta.
+    const passwordPlaceholder = crypto.randomBytes(32).toString('hex');
+
+    const usuarioNuevo = await Usuario.create(
+      {
+        id_rol,
+        nombre,
+        apellido_paterno,
+        apellido_materno: apellido_materno || null,
+        correo,
+        contrasena: passwordPlaceholder, 
+        fecha_nacimiento,
+        curp,
+        estado: 'pendiente', // Se activará cuando complete el perfil
+      },
+      { transaction: t },
+    );
+
+    const pacienteNuevo = await Paciente.create(
+      { id_usuario: usuarioNuevo.id_usuario },
+      { transaction: t },
+    );
+
+    // Dirección vacía a la espera de que el paciente la llene
+    await Direccion.create(
+      { id_paciente: pacienteNuevo.id_paciente },
+      { transaction: t },
+    );
+
+    const token = generarToken();
+    const expira = new Date();
+    expira.setHours(expira.getHours() + 24);
+    
+    await Token.create(
+      {
+        id_usuario: usuarioNuevo.id_usuario,
+        token,
+        tipo: 'activacion',
+        expira_en: expira,
+      },
+      { transaction: t },
+    );
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    // En el correo ya NO enviamos ninguna contraseña, solo el link seguro.
+    await transporter.sendMail({
+      to: usuarioNuevo.correo,
+      subject: 'Activa tu cuenta en SISPOD',
+      template: 'activarCuentaPaciente',
+      context: {
+        nombre: usuarioNuevo.nombre,
+        link: `${frontendUrl}/activar-cuenta/${token}`,
+        year: new Date().getFullYear(),
+      },
+    } as any);
+
+    await t.commit();
+    committed = true;
+    return res.status(200).json({
+      message: 'Pre-registro exitoso. Se ha enviado el enlace de activación al paciente.',
+      usuario: {
+        id: usuarioNuevo.id_usuario,
+        nombre: usuarioNuevo.nombre,
+        correo: usuarioNuevo.correo,
+      },
+    });
+  } catch (error) {
+    if (!committed) await t.rollback();
     console.log('Error al registrar Paciente: ', error);
     return res.status(500).json({ message: 'Error del servidor' });
   }

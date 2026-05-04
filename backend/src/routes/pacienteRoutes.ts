@@ -5,7 +5,7 @@ import { permitirRoles } from '../middleware/rolesMiddleware'
 
 const router = Router();
 
-router.post('/',registrarPaciente);
+router.post('/', verificarToken, permitirRoles(1, 2, 4), registrarPaciente);
 router.get('/',listarPacientes);
 router.get('/me', verificarToken,permitirRoles(3),obtenerPerfilPaciente); //Primero las rutas fijas
 router.get('/:id',obtenerPaciente); //despues rutas con parametros

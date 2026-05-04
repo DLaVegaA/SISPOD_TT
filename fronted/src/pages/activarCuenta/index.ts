@@ -1,0 +1,1 @@
+export { default as ActivateAccount } from './ui/ActivateAccountPage.vue';

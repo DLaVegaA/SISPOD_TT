@@ -62,7 +62,7 @@ Usuario.init(
         },
         telefono:{
             type:DataTypes.STRING(10),
-            allowNull: false
+            allowNull: true //Para seguir la regla de negocio y registro
         },
         fecha_nacimiento:{
             type:DataTypes.DATEONLY,
@@ -75,7 +75,7 @@ Usuario.init(
         },
         genero:{
             type:DataTypes.STRING(20),
-            allowNull:false
+            allowNull:true //Para seguir la regla de negocio y registro
         },
         estado:{
             type:DataTypes.ENUM(

@@ -13,6 +13,7 @@ const HomePage = () => import('@/pages/home/ui/HomePage.vue')
 const LoginPage = () => import('@/pages/login/ui/LoginPage.vue')
 const RecoverPasswordPage = () => import('@/pages/recuperarContrasena/ui/RecoverPasswordPage.vue')
 const ResetPasswordPage = () => import('@/pages/restablecerContrasena/ui/ResetPasswordPage.vue')
+const ActivateAccountPage = () => import('@/pages/activarCuenta/ui/ActivateAccountPage.vue')
 const UsersPage = () => import('@/pages/users')
 const RolesPage = () => import('@/pages/roles/ui/RolesPage.vue')
 const StatsPage = () => import('@/pages/stats/ui/StatsPage.vue')
@@ -63,6 +64,12 @@ const router = createRouter({
       name: ROUTE_NAMES.RESET_PASSWORD,
       component: ResetPasswordPage,
       meta: { title: 'Restablecer Contraseña', guestOnly: true },
+    },
+    {
+      path: ROUTE_PATHS.ACTIVATE_ACCOUNT,
+      name: ROUTE_NAMES.ACTIVATE_ACCOUNT,
+      component: ActivateAccountPage,
+      meta: { title: 'Activar Cuenta', guestOnly: true },
     },
     {
       path: ROUTE_PATHS.ADMIN_HOME,
