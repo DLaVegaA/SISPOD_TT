@@ -51,13 +51,13 @@ Bitacora.init(
         },
         estado_bitacora: {
             type: DataTypes.ENUM(
-                'pendiente',
-                'revisado',
-                'rechazado', //?????
-                'completado' //?????
+                'Pendiente',
+                'Revisado',
+                'Anulada', //?????
+                'Completado' //?????
             ),
             allowNull: false,
-            defaultValue: 'pendiente'
+            defaultValue: 'Pendiente'
         }
     },
     {

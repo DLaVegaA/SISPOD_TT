@@ -7,7 +7,7 @@ export class Cita extends Model{
     declare id_dentista:number;
     declare fecha_hora_inicio:Date;
     declare fecha_hora_fin:Date;
-    declare id_tipo_cita:number;
+    declare id_tipocita:number;
     declare estado:string;
 }
 
