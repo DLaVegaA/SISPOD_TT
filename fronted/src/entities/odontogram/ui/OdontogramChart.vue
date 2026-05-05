@@ -3,10 +3,12 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 interface Props {
   preview?: boolean
+  patientId?: string | number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   preview: false,
+  patientId: undefined,
 })
 
 type Surf = 'top' | 'bottom' | 'left' | 'right' | 'center'
@@ -16,7 +18,12 @@ type ToothState = {
 }
 
 const SURFS: Surf[] = ['top', 'bottom', 'left', 'right', 'center']
-const STORAGE_KEY = 'odontogram_draft_v2'
+
+// Clave dinámica por paciente
+const storageKey = computed(() => {
+  if (!props.patientId) return 'odontogram_draft_v2' // fallback
+  return `odontogram_patient_${props.patientId}`
+})
 
 const TOOL_COLORS: Record<string, string> = {
   caries: '#ef4444',
@@ -93,6 +100,7 @@ const upperRight = [18, 17, 16, 15, 14, 13, 12, 11]
 const upperLeft = [21, 22, 23, 24, 25, 26, 27, 28]
 const lowerRight = [48, 47, 46, 45, 44, 43, 42, 41]
 const lowerLeft = [31, 32, 33, 34, 35, 36, 37, 38]
+const mobileLabels = ['SUP. DERECHO', 'SUP. IZQUIERDO', 'INF. IZQUIERDO', 'INF. DERECHO']
 
 const teeth = computed(() => {
   const { w, rows } = viewConfig.value
@@ -163,15 +171,20 @@ function resetAll() {
     initState()
     selectedTooth.value = null
   }
+  saveDraft()
 }
 function selectTooth(num: number) {
-  if (!props.preview) selectedTooth.value = num
+  // if (!props.preview) selectedTooth.value = num
+  selectedTooth.value = num
 }
 
 function handleSurfaceClick(num: number, surf: Surf) {
-  if (props.preview) return
-  selectTooth(num)
+  selectTooth(num) // siempre selecciona el diente
+
+  if (props.preview) return // si es preview, no modifica nada más
+
   const tooth = state.value[num]
+  if (!tooth) return
   const tool = activeTool.value
   if (tool === 'crown' || tool === 'extracted') {
     tooth.condition = tooth.condition === tool ? null : tool
@@ -197,11 +210,14 @@ function isSelected(num: number) {
   return selectedTooth.value === num
 }
 
+// Guardar borrador (solo si no es preview y hay patientId)
 function saveDraft() {
   if (props.preview) return
+  if (!props.patientId) return // no guardar si no hay paciente
   try {
+    if (saveTimeout) window.clearTimeout(saveTimeout)
     window.localStorage.setItem(
-      STORAGE_KEY,
+      storageKey.value,
       JSON.stringify({
         state: state.value,
         selectedTooth: selectedTooth.value,
@@ -209,19 +225,66 @@ function saveDraft() {
       }),
     )
     saveStatus.value = 'saved'
-    setTimeout(() => (saveStatus.value = 'idle'), 2000)
+    saveTimeout = window.setTimeout(() => {
+      saveStatus.value = 'idle'
+      saveTimeout = undefined
+    }, 2000)
+  } catch {
+    saveStatus.value = 'error'
+  }
+}
+// Cargar borrador (solo si no preview y hay patientId)
+function loadDraft() {
+  if (!props.patientId) return
+  try {
+    const raw = window.localStorage.getItem(storageKey.value)
+    if (!raw) return
+    const parsed = JSON.parse(raw) as {
+      state?: Record<string, ToothState>
+      selectedTooth?: number | null
+      activeTool?: string
+    }
+    const nextState = buildEmptyState()
+    if (parsed.state) {
+      Object.entries(parsed.state).forEach(([key, value]) => {
+        const toothNum = Number(key)
+        if (!nextState[toothNum] || typeof value !== 'object' || value === null) return
+        const toothValue = value as ToothState
+        nextState[toothNum] = {
+          surfaces: {
+            top: toothValue.surfaces?.top ?? null,
+            bottom: toothValue.surfaces?.bottom ?? null,
+            left: toothValue.surfaces?.left ?? null,
+            right: toothValue.surfaces?.right ?? null,
+            center: toothValue.surfaces?.center ?? null,
+          },
+          condition: toothValue.condition ?? null,
+        }
+      })
+    }
+    state.value = nextState
+    selectedTooth.value = parsed.selectedTooth ?? null
+    if (parsed.activeTool && parsed.activeTool in TOOL_COLORS) {
+      activeTool.value = parsed.activeTool
+    }
   } catch {
     saveStatus.value = 'error'
   }
 }
 
+// En onMounted y onUnmounted igual, pero loadDraft ahora respeta preview y patientId
 onMounted(() => {
   updateLayout()
   window.addEventListener('resize', updateLayout)
-  // Logic to load draft omitted for brevity, same as original
+  loadDraft() // ya tiene las condiciones internas
 })
 
-onUnmounted(() => window.removeEventListener('resize', updateLayout))
+onUnmounted(() => {
+  window.removeEventListener('resize', updateLayout)
+  if (saveTimeout) {
+    window.clearTimeout(saveTimeout)
+  }
+})
 
 const selectedState = computed(() =>
   selectedTooth.value ? state.value[selectedTooth.value] : null,
@@ -230,21 +293,27 @@ const selectedState = computed(() =>
 const detailChips = computed(() => {
   if (!selectedTooth.value || !selectedState.value) return []
   const tooth = selectedState.value
-  const chips = SURFS.map((surf) => ({
+  const chips: Array<{
+    key: Surf | 'condition'
+    label: string
+    value: string
+    color: string
+    active: boolean
+  }> = SURFS.map((surf) => ({
     key: surf,
     label: SURF_LABELS[surf],
     value: tooth.surfaces[surf]
-      ? (TOOL_LABELS[tooth.surfaces[surf]!] ?? tooth.surfaces[surf])
+      ? (TOOL_LABELS[tooth.surfaces[surf]!] ?? tooth.surfaces[surf]!)
       : '-',
-    color: tooth.surfaces[surf] ? TOOL_COLORS[tooth.surfaces[surf]!] : '',
+    color: tooth.surfaces[surf] ? (TOOL_COLORS[tooth.surfaces[surf]!] ?? '') : '',
     active: !!tooth.surfaces[surf],
   }))
   if (tooth.condition) {
     chips.push({
-      key: 'cond',
+      key: 'condition',
       label: 'Diente',
-      value: TOOL_LABELS[tooth.condition],
-      color: TOOL_COLORS[tooth.condition],
+      value: TOOL_LABELS[tooth.condition] ?? tooth.condition,
+      color: TOOL_COLORS[tooth.condition] ?? '',
       active: true,
     })
   }
@@ -254,20 +323,22 @@ const detailChips = computed(() => {
 const treatmentItems = computed(() => {
   if (!selectedTooth.value || !selectedState.value) return []
   const tooth = selectedState.value
-  const items: any[] = []
-  if (tooth.condition)
+  const items: Array<{ label: string; color: string; surface: string }> = []
+  if (tooth.condition) {
     items.push({
-      label: TOOL_LABELS[tooth.condition],
-      color: TOOL_COLORS[tooth.condition],
+      label: TOOL_LABELS[tooth.condition] ?? tooth.condition,
+      color: TOOL_COLORS[tooth.condition] ?? '',
       surface: 'Diente completo',
     })
+  }
   SURFS.forEach((s) => {
-    if (tooth.surfaces[s])
+    if (tooth.surfaces[s]) {
       items.push({
-        label: TOOL_LABELS[tooth.surfaces[s]!],
-        color: TOOL_COLORS[tooth.surfaces[s]!],
+        label: TOOL_LABELS[tooth.surfaces[s]!] ?? tooth.surfaces[s]!,
+        color: TOOL_COLORS[tooth.surfaces[s]!] ?? '',
         surface: SURF_LABELS[s],
       })
+    }
   })
   return items
 })
@@ -296,10 +367,7 @@ const activeToolStyle = computed(() => (toolKey: string) => {
         :style="activeToolStyle(tool.key)"
         @click="setTool(tool.key)"
       >
-        <span
-          class="w-2 h-2 rounded-sm flex-shrink-0"
-          :style="{ background: TOOL_COLORS[tool.key] }"
-        />
+        <span class="w-2 h-2 rounded-sm shrink-0" :style="{ background: TOOL_COLORS[tool.key] }" />
         <span class="hidden sm:inline">{{ tool.label }}</span>
         <span class="sm:hidden">{{ tool.shortLabel }}</span>
       </button>
@@ -356,15 +424,10 @@ const activeToolStyle = computed(() => (toolKey: string) => {
         <!-- Etiquetas de Fila (Solo Móvil) -->
         <template v-else>
           <text
-            v-for="(label, idx) in [
-              'SUP. DERECHO',
-              'SUP. IZQUIERDO',
-              'INF. IZQUIERDO',
-              'INF. DERECHO',
-            ]"
+            v-for="(label, idx) in mobileLabels"
             :key="idx"
             :x="viewConfig.w / 2 - 100"
-            :y="viewConfig.rows[idx] - 8"
+            :y="(viewConfig.rows[idx] ?? 0) - 8"
             class="row-text"
           >
             {{ label }}
@@ -450,7 +513,7 @@ const activeToolStyle = computed(() => (toolKey: string) => {
     </div>
 
     <!-- Paneles de Detalles (Originales) -->
-    <div v-if="!preview" class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
       <div class="bg-white border border-gray-200 rounded-xl p-2.5 sm:p-3">
         <p class="text-[11px] text-gray-400 mb-1.5">Superficies del diente</p>
         <div v-if="!selectedTooth" class="text-[11px] text-gray-400 italic">
@@ -493,7 +556,7 @@ const activeToolStyle = computed(() => (toolKey: string) => {
             :key="idx"
             class="flex items-center gap-2 py-1 border-b border-gray-100 text-[11px] text-gray-900"
           >
-            <span class="w-2 h-2 rounded-full flex-shrink-0" :style="{ background: item.color }" />
+            <span class="w-2 h-2 rounded-full shrink-0" :style="{ background: item.color }" />
             <span>{{ item.label }}</span>
             <span class="ml-auto text-[10px] text-gray-400">{{ item.surface }}</span>
           </div>

@@ -54,7 +54,7 @@ export const ROUTE_PATHS = {
   DENTIST_CALENDAR: '/dentista/:id/calendario',
   DENTIST_CLINICAL_HISTORY: '/dentista/:id/historial-clinico',
   DENTIST_CLINICAL_HISTORY_DETAIL: '/dentista/:id/historial-clinico/:patientId',
-  DENTIST_ODONTOGRAM: '/dentista/:id/odontograma',
+  DENTIST_ODONTOGRAM: '/dentista/:id/odontograma/:patientId',
   DENTIST_PATIENTS: '/dentista/:id/pacientes',
   DENTIST_BINNACLE: '/dentista/:id/bitacora',
   DENTIST_CONSENT: '/dentista/:id/consentimiento',

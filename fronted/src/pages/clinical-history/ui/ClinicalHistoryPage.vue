@@ -12,11 +12,12 @@ import { BinnaclePreview } from '@/widgets/binnacle-preview'
 const sessionStore = useSessionStore()
 const route = useRoute()
 
+const patientId = computed(() => route.params.patientId as string | undefined)
 const sessionUser = computed<SessionUser | null>(() => sessionStore.user)
 const userId = computed(
   () => normalizeUserId(sessionUser.value?.id ?? sessionUser.value?.id_usuario) ?? '0',
 )
-
+console.log('[ClinicalHistoryPage] patientId:', patientId.value)
 const routeParams = computed(() => ({ id: userId.value }))
 const isReadOnly = computed(() => route.query.mode === 'view')
 const modeLabel = computed(() => (isReadOnly.value ? 'Modo vista' : 'Modo edicion'))
@@ -121,7 +122,10 @@ const antecedentesNoPatologicos = ref<Record<string, string>>({
         <RouterLink
           :to="{
             name: ROUTE_NAMES.DENTIST_ODONTOGRAM,
-            params: routeParams,
+            params: {
+              id: userId, // propaga { id: userId }
+              patientId: patientId, // añade el patientId
+            },
             query: { mode: isReadOnly ? 'view' : 'edit' },
           }"
           class="inline-flex items-center gap-2 px-4 py-2 bg-accent text-white text-sm font-semibold rounded-xl shadow-sm hover:bg-accent-light transition-colors"
@@ -291,10 +295,6 @@ const antecedentesNoPatologicos = ref<Record<string, string>>({
           </div>
         </section>
 
-        <section class="space-y-4">
-          <OdontogramPreview updatedAt="04 / may / 2026" />
-        </section>
-
         <section class="bg-card border border-border rounded-2xl p-5 shadow-sm">
           <div class="flex items-center justify-between mb-4">
             <div>
@@ -368,6 +368,9 @@ const antecedentesNoPatologicos = ref<Record<string, string>>({
         </section>
       </div>
     </div>
+    <section class="space-y-4 pt-6">
+      <OdontogramPreview updatedAt="04 / may / 2026" :patientId="patientId" />
+    </section>
   </div>
 </template>
 

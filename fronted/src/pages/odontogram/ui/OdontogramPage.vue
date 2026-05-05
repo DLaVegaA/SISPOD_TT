@@ -13,7 +13,7 @@ const sessionUser = computed<SessionUser | null>(() => sessionStore.user)
 const userId = computed(
   () => normalizeUserId(sessionUser.value?.id ?? sessionUser.value?.id_usuario) ?? '0',
 )
-
+const patientId = computed(() => route.params.patientId as string | undefined)
 const routeParams = computed(() => ({ id: userId.value }))
 const isReadOnly = computed(() => route.query.mode === 'view')
 </script>
@@ -40,7 +40,7 @@ const isReadOnly = computed(() => route.query.mode === 'view')
     </div>
 
     <section class="bg-card border border-border rounded-2xl p-5 shadow-sm">
-      <OdontogramChart :preview="isReadOnly" />
+      <OdontogramChart :preview="isReadOnly" :patient-id="patientId" />
     </section>
   </div>
 </template>
