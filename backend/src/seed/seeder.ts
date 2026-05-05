@@ -3,9 +3,10 @@ import {sequelize} from '../config/database';
 import roles from './roles';
 import usuarios from './usuarios';
 import tipo_citas from './tipo_cita';
-import { Usuario, Role } from '../models';
+import { Usuario, Role, Padecimiento } from '../models';
 import { seedDentista, seedPacientes } from "./Dentista_pacientes";
 import { TipoCita } from '../models/Tipo_Citas';
+import padecimientos from './padecimientos'
 
 const importarDatos = async() =>{
     try{
@@ -24,6 +25,10 @@ const importarDatos = async() =>{
        await Usuario.bulkCreate(usuarios,{
             ignoreDuplicates:true
        });
+
+       await Padecimiento.bulkCreate(padecimientos,{
+            ignoreDuplicates:true
+       })
 
        console.log('Datos importados correctamente');
     }catch(error){

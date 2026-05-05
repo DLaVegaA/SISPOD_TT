@@ -13,6 +13,8 @@ import rolesRoutes from './routes/rolesRoutes';
 import tipoCitasRoutes from './routes/tipoCitasRoutes';
 import consentimientoRoutes from './routes/consentimientoRoutes';
 import bitacoraRoutes from './routes/bitacoraRoute';
+import expedienteRoutes from './routes/expedienteRoutes'
+import padecimientosRoutes from './routes/padecimientosRoutes';
 import {errorHandler} from './middleware/errorMiddleware'
 import bot from './config/telegram';
 import { configurarBot } from './services/telegramService';
@@ -93,6 +95,10 @@ app.use('/roles', rolesRoutes);
 app.use('/tipo-cita', tipoCitasRoutes);
 app.use('/consentimiento', consentimientoRoutes);
 app.use('/bitacora', bitacoraRoutes);
+app.use('/expediente', expedienteRoutes)
+app.use('/padecimiento',padecimientosRoutes);
+app.use('/padecimiento',errorHandler);
+app.use('/expediente', errorHandler)
 app.use('/bitacora', errorHandler); // Provisional en lo que cambio la demas logica
 app.use('/consentimiento', errorHandler); // Provisional en lo que cambio la demas logica
 configurarBot();
