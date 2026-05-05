@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Search, FileText, Download, Pencil, X, Plus, Filter } from 'lucide-vue-next'
+import { ROUTE_NAMES } from '@/shared/routes'
 
 const searchQuery = ref('')
 const selectedStatus = ref('todos')
@@ -130,10 +132,22 @@ const getEstadoColor = (estado: string) => {
 const clearSearch = () => {
   searchQuery.value = ''
 }
+
+const router = useRouter()
+const route = useRoute()
+const dentistId = computed(() => String(route.params.id ?? '0'))
+
+function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
+  router.push({
+    name: ROUTE_NAMES.DENTIST_CLINICAL_HISTORY_DETAIL,
+    params: { id: dentistId.value, patientId: String(recordId) },
+    query: { mode },
+  })
+}
 </script>
 
 <template>
-  <div class="fade-in max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="fade-in max-w-7xl">
     <!-- ── Header ───────────────────────────────────────── -->
     <div class="mb-8">
       <div class="flex items-center gap-2 text-sm text-muted/60 mb-3">
@@ -149,7 +163,7 @@ const clearSearch = () => {
           <p class="text-sm text-muted/60 mt-1">Gestión de expedientes y atención odontológica</p>
         </div>
         <button
-          class="inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-light text-white text-sm font-semibold rounded-xl transition-all shadow-sm"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-ink/65 hover:bg-accent-light text-white text-sm font-semibold rounded-xl transition-all shadow-sm"
         >
           <Plus class="w-4 h-4" />
           Nuevo Expediente
@@ -331,18 +345,23 @@ const clearSearch = () => {
           <div class="grid grid-cols-3 divide-x divide-border border-t border-border bg-card/50">
             <button
               class="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted/70 hover:text-accent hover:bg-card transition-colors"
+              type="button"
+              @click="openClinicalHistory(record.id, 'view')"
             >
               <FileText class="w-3.5 h-3.5" />
               Historial
             </button>
             <button
               class="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted/70 hover:text-accent hover:bg-card transition-colors"
+              type="button"
             >
               <Download class="w-3.5 h-3.5" />
               Descargar
             </button>
             <button
               class="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted/70 hover:text-accent hover:bg-card transition-colors"
+              type="button"
+              @click="openClinicalHistory(record.id, 'edit')"
             >
               <Pencil class="w-3.5 h-3.5" />
               Editar
