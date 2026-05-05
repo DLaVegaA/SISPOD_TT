@@ -1,8 +1,7 @@
 <template>
-  <div class="fade-in max-w-7xl mx-auto pb-10 px-4 sm:px-6 lg:px-8">
-
+  <div class="fade-in">
     <!-- ── Header ─────────────────────────────────────────────────────── -->
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 pt-6">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
       <div>
         <div class="flex items-center gap-1.5 text-xs text-muted font-medium mb-2">
           <span class="text-muted/60">🏠</span>
@@ -15,7 +14,6 @@
 
     <!-- ── Toolbar ────────────────────────────────────────────────────── -->
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-
       <!-- Buscador -->
       <div class="relative w-full md:max-w-md">
         <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40" />
@@ -36,14 +34,19 @@
 
       <!-- Filtros y Acción -->
       <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-
         <!-- Paginación Día -->
-        <div class="flex items-center bg-card border border-border rounded-2xl p-1 shrink-0 shadow-sm">
-          <button class="p-1.5 hover:bg-surface rounded-xl text-muted hover:text-black transition-colors">
+        <div
+          class="flex items-center bg-card border border-border rounded-2xl p-1 shrink-0 shadow-sm"
+        >
+          <button
+            class="p-1.5 hover:bg-surface rounded-xl text-muted hover:text-black transition-colors"
+          >
             <ChevronLeft class="w-4 h-4" />
           </button>
           <span class="px-3 text-sm font-bold text-black">Hoy</span>
-          <button class="p-1.5 hover:bg-surface rounded-xl text-muted hover:text-black transition-colors">
+          <button
+            class="p-1.5 hover:bg-surface rounded-xl text-muted hover:text-black transition-colors"
+          >
             <ChevronRight class="w-4 h-4" />
           </button>
         </div>
@@ -60,7 +63,9 @@
             <option value="4">Abril</option>
             <option value="5">Mayo</option>
           </select>
-          <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+          <ChevronDown
+            class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
+          />
         </div>
 
         <!-- Botón Crear Nuevo -->
@@ -76,7 +81,6 @@
 
     <!-- ── Lista de Cuestionarios ─────────────────────────────────────── -->
     <div class="space-y-3">
-
       <div
         v-if="isLoading"
         class="flex flex-col items-center justify-center py-20 gap-3 text-muted/50 bg-card rounded-2xl border border-border"
@@ -101,7 +105,6 @@
         >
           <!-- Info Principal -->
           <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center w-full">
-
             <!-- Nombre -->
             <div class="col-span-3">
               <p class="text-sm font-bold text-black truncate">{{ item.nombre }}</p>
@@ -149,7 +152,6 @@
                 <span class="text-muted ml-1">{{ item.doctor }}</span>
               </div>
             </div>
-
           </div>
 
           <!-- Acciones -->
@@ -171,7 +173,6 @@
           </div>
         </div>
       </template>
-
     </div>
   </div>
 </template>
@@ -181,8 +182,16 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ROUTE_NAMES } from '@/shared/routes'
 import {
-  Search, X, Plus, ChevronLeft, ChevronRight, ChevronDown,
-  Pencil, Trash2, Loader2, FileText,
+  Search,
+  X,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Pencil,
+  Trash2,
+  Loader2,
+  FileText,
 } from 'lucide-vue-next'
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -207,7 +216,7 @@ const cuestionarios = ref<Cuestionario[]>([])
 const filteredCuestionarios = computed(() => {
   if (!searchQuery.value.trim()) return cuestionarios.value
   const q = searchQuery.value.toLowerCase()
-  return cuestionarios.value.filter(c => c.nombre.toLowerCase().includes(q))
+  return cuestionarios.value.filter((c) => c.nombre.toLowerCase().includes(q))
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -227,7 +236,7 @@ function clearSearch() {
 // ── Data Fetching ─────────────────────────────────────────────────────────
 async function fetchCuestionarios() {
   isLoading.value = true
-  await new Promise(r => setTimeout(r, 600))
+  await new Promise((r) => setTimeout(r, 600))
 
   cuestionarios.value = [
     {
@@ -285,12 +294,25 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.fade-in { animation: fadeIn 0.25s ease; }
+.fade-in {
+  animation: fadeIn 0.25s ease;
+}
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.hide-scrollbar::-webkit-scrollbar { display: none; }
-.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 </style>

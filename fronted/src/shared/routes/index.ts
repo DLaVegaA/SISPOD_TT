@@ -11,6 +11,8 @@ export const ROUTE_NAMES = {
   DENTIST_HOME: 'dentist-home',
   DENTIST_CALENDAR: 'dentist-calendar',
   DENTIST_CLINICAL_HISTORY: 'dentist-clinical-history',
+  DENTIST_CLINICAL_HISTORY_DETAIL: 'dentist-clinical-history-detail',
+  DENTIST_ODONTOGRAM: 'dentist-odontogram',
   DENTIST_PATIENTS: 'dentist-patients',
   DENTIST_BINNACLE: 'dentist-binnacle',
   DENTIST_CONSENT: 'dentist-consent',
@@ -47,22 +49,24 @@ export const ROUTE_PATHS = {
   ADMIN_USERS: '/admin/:id/users',
   ADMIN_ROLES: '/admin/:id/roles',
   ADMIN_STATS: '/admin/:id/stats',
-  
+
   DENTIST_HOME: '/dentista/:id/home',
   DENTIST_CALENDAR: '/dentista/:id/calendario',
   DENTIST_CLINICAL_HISTORY: '/dentista/:id/historial-clinico',
+  DENTIST_CLINICAL_HISTORY_DETAIL: '/dentista/:id/historial-clinico/:patientId',
+  DENTIST_ODONTOGRAM: '/dentista/:id/odontograma/:patientId',
   DENTIST_PATIENTS: '/dentista/:id/pacientes',
   DENTIST_BINNACLE: '/dentista/:id/bitacora',
   DENTIST_CONSENT: '/dentista/:id/consentimiento',
   DENTIST_FOLLOW_UP: '/dentista/:id/seguimiento',
   DENTIST_QUESTIONNAIRES: '/dentista/:id/cuestionarios',
   DENTIST_NEW_QUESTIONNAIRES: '/dentista/:id/nuevos-cuestionarios',
-  
+
   PATIENT_HOME: '/paciente/:id/home',
   PATIENT_PROFILE: '/paciente/:id/perfil',
   PATIENT_APPOINTMENT: '/paciente/:id/citas',
   PATIENT_FOLLOW_UP: '/paciente/:id/seguimiento',
-  
+
   ASSISTANT_HOME: '/asistente/:id/home',
   ASSISTANT_BINNACLE: '/asistente/:id/bitacora',
 } as const

@@ -20,13 +20,18 @@ const StatsPage = () => import('@/pages/stats/ui/StatsPage.vue')
 const DentistCalendar = () => import('@/pages/dentista/calendar/ui/DentistCalendar.vue')
 const DentistClinicalHistory = () =>
   import('@/pages/dentista/clinicalHistory/ui/DentistClinicalHistory.vue')
+const DentistClinicalHistoryDetail = () =>
+  import('@/pages/clinical-history/ui/ClinicalHistoryPage.vue')
+const DentistOdontogram = () => import('@/pages/odontogram/ui/OdontogramPage.vue')
 const DentistDashboard = () => import('@/pages/dentista/dashboard/ui/DentistDashboard.vue')
 const DentistBinnacle = () => import('@/pages/dentista/binnacle/ui/DentistBinnacle.vue')
 const DentistConsent = () => import('@/pages/dentista/consent/ui/DentistConsent.vue')
 const DentistPatients = () => import('@/pages/patients/ui/PatientsPage.vue')
 const DentistFollowUp = () => import('@/pages/dentista/followUp/ui/DentistFollowUp.vue')
-const DentistQuestionnaires = () => import('@/pages/dentista/questionnaires/ui/DentistQuestionnaires.vue')
-const DentistNewQuestionnaires = () => import('@/pages/dentista/newQuestionnaires/ui/DentistNewQuestionnaires.vue')
+const DentistQuestionnaires = () =>
+  import('@/pages/dentista/questionnaires/ui/DentistQuestionnaires.vue')
+const DentistNewQuestionnaires = () =>
+  import('@/pages/dentista/newQuestionnaires/ui/DentistNewQuestionnaires.vue')
 const PatientDashboard = () => import('@/pages/paciente/dashboard/ui/PatientDashboard.vue')
 const PatientProfile = () => import('@/pages/paciente/profile/ui/PatientProfile.vue')
 const PatientAppointment = () => import('@/pages/paciente/appointment/ui/PatientAppointment.vue')
@@ -118,6 +123,22 @@ const router = createRouter({
       },
     },
     {
+      path: ROUTE_PATHS.DENTIST_CLINICAL_HISTORY_DETAIL,
+      name: ROUTE_NAMES.DENTIST_CLINICAL_HISTORY_DETAIL,
+      component: DentistClinicalHistoryDetail,
+      meta: {
+        title: 'Historial Clinico',
+        requiresAuth: true,
+        allowedRoles: ['dentist'],
+      },
+    },
+    {
+      path: ROUTE_PATHS.DENTIST_ODONTOGRAM,
+      name: ROUTE_NAMES.DENTIST_ODONTOGRAM,
+      component: DentistOdontogram,
+      meta: { title: 'Odontograma', requiresAuth: true, allowedRoles: ['dentist'] },
+    },
+    {
       path: ROUTE_PATHS.DENTIST_PATIENTS,
       name: ROUTE_NAMES.DENTIST_PATIENTS,
       component: DentistPatients,
@@ -151,7 +172,11 @@ const router = createRouter({
       path: ROUTE_PATHS.DENTIST_NEW_QUESTIONNAIRES,
       name: ROUTE_NAMES.DENTIST_NEW_QUESTIONNAIRES,
       component: DentistNewQuestionnaires,
-      meta: { title: 'Nuevos Cuestionarios del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
+      meta: {
+        title: 'Nuevos Cuestionarios del Dentista',
+        requiresAuth: true,
+        allowedRoles: ['dentist'],
+      },
     },
     {
       path: ROUTE_PATHS.PATIENT_HOME,
