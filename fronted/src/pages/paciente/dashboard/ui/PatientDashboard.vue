@@ -290,7 +290,7 @@ async function handleCancelar(id: number) {
           <span class="text-muted/60">&gt;</span>
           <span class="bg-card border border-border px-2 py-0.5 rounded-lg">Inicio</span>
         </div>
-        <h1 class="font-display text-4xl font-semibold text-black">Hola, Anuar</h1>
+        <h1 class="font-display text-4xl font-semibold text-black">Hola, Diana Cano</h1>
         <p class="text-sm text-muted mt-1">Este es el resumen de tu actividad.</p>
       </div>
 
