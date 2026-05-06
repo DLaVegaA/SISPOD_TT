@@ -3,7 +3,10 @@ import {verificarToken} from '../middleware/authMiddleware';
 import {permitirRoles} from '../middleware/rolesMiddleware';
 import {
     crearBitacora,
-    editarBitacora
+    editarBitacora,
+    eliminarBitacora,
+    listarBitacora,
+    obtenerBitacora
 } from '../controllers/bitacoraController'
 
 
@@ -11,5 +14,7 @@ const router = Router();
 
 router.post('/', verificarToken, crearBitacora)
 router.put('/:id', verificarToken, editarBitacora);
-
+router.delete('/:id/eliminar', verificarToken,eliminarBitacora);
+router.get('/', verificarToken, listarBitacora);
+router.get('/:id', verificarToken, obtenerBitacora);
 export default router;
