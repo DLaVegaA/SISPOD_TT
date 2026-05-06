@@ -6,6 +6,8 @@ import tipo_citas from './tipo_cita';
 import { Usuario, Role, Padecimiento } from '../models';
 import { seedDentista, seedPacientes } from "./Dentista_pacientes";
 import { TipoCita } from '../models/Tipo_Citas';
+import procedimientos_postoperatorios from './catalogo_procedimientos'
+import {Catalogo_Procedimientos} from '../models/Catalogo_Procedimientos'
 import padecimientos from './padecimientos'
 
 const importarDatos = async() =>{
@@ -27,6 +29,10 @@ const importarDatos = async() =>{
        });
 
        await Padecimiento.bulkCreate(padecimientos,{
+            ignoreDuplicates:true
+       })
+
+       await Catalogo_Procedimientos.bulkCreate(procedimientos_postoperatorios,{
             ignoreDuplicates:true
        })
 
