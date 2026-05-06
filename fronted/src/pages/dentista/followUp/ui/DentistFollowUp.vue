@@ -125,7 +125,7 @@ async function fetchSeguimientos() {
       plan_cuidados: 'Evitar alimentos calientes, no usar popote, mantener la zona limpia.',
       indicaciones_medicas: 'Ketorolaco 10mg c/8h por 3 días',
       fecha_inicio: '2026-04-30', fecha_fin: null,
-      pacienteNombre: 'Juan Pérez', procedimientoNombre: 'Extracción de Tercer Molar',
+      pacienteNombre: 'Anuar De la Vega', procedimientoNombre: 'Extracción de Tercer Molar',
     },
     {
       id_seguimiento: 2, id_cita: 98, id_procedimiento: 2,
@@ -133,7 +133,7 @@ async function fetchSeguimientos() {
       plan_cuidados: 'Dieta blanda por 3 días, reposo relativo.',
       indicaciones_medicas: 'Ibuprofeno 400mg c/8h',
       fecha_inicio: '2026-04-20', fecha_fin: '2026-04-25',
-      pacienteNombre: 'María López', procedimientoNombre: 'Implante Dental',
+      pacienteNombre: 'Diana Cano', procedimientoNombre: 'Implante Dental',
     },
     {
       id_seguimiento: 3, id_cita: 102, id_procedimiento: 1,
@@ -141,7 +141,7 @@ async function fetchSeguimientos() {
       plan_cuidados: 'Reposo absoluto. Evitar esfuerzo físico.',
       indicaciones_medicas: 'Amoxicilina 500mg, Ketorolaco 10mg',
       fecha_inicio: '2026-05-01', fecha_fin: null,
-      pacienteNombre: 'Ana Gómez', procedimientoNombre: 'Extracción de Tercer Molar',
+      pacienteNombre: 'Emma Abimelek Rodriguez', procedimientoNombre: 'Extracción de Tercer Molar',
     },
     {
       id_seguimiento: 4, id_cita: 105, id_procedimiento: 3,
@@ -149,7 +149,7 @@ async function fetchSeguimientos() {
       plan_cuidados: 'No consumir alimentos duros, enjuague con agua tibia y sal.',
       indicaciones_medicas: 'Metronidazol 500mg c/8h, Paracetamol 500mg c/6h',
       fecha_inicio: '2026-04-28', fecha_fin: null,
-      pacienteNombre: 'Roberto Sánchez', procedimientoNombre: 'Endodoncia',
+      pacienteNombre: 'Paola Godinez', procedimientoNombre: 'Endodoncia',
     },
     {
       id_seguimiento: 5, id_cita: 95, id_procedimiento: 2,
@@ -157,7 +157,7 @@ async function fetchSeguimientos() {
       plan_cuidados: 'Higiene oral cuidadosa, evitar tabaco.',
       indicaciones_medicas: 'Clorhexidina enjuague c/12h',
       fecha_inicio: '2026-04-10', fecha_fin: '2026-04-17',
-      pacienteNombre: 'Patricia Flores', procedimientoNombre: 'Implante Dental',
+      pacienteNombre: 'Christian Cavazos', procedimientoNombre: 'Implante Dental',
     },
   ]
   isLoading.value = false
