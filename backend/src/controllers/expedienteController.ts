@@ -80,7 +80,7 @@ export const obtenerExpediente = async(req:Request, res:Response, next:NextFunct
     const id_expediente = Number(req.params.id_expediente);
     try{
         if (Number.isNaN(id_expediente)) {
-            throw new AppError('id inválido', 400);
+            throw new AppError('Expediente inválido', 400);
         }
 
         const expediente = await obtenerExpedienteService(id_expediente);

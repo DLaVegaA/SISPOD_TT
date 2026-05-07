@@ -1,8 +1,11 @@
 import {Request, Response, NextFunction } from 'express';
 import { AppError } from '../helpers/AppError';
-import {crearSeguimientoService} from '../services/seguimientoService'
-import { message } from 'telegraf/filters';
-
+import {
+    crearSeguimientoService,
+    listarSeguimientosService
+} from '../services/seguimientoService'
+import { Seguimiento } from '../models';
+const ESTADOS_VALIDOS = ['en curso', 'alerta', 'finalizado']
 
 export const crearSeguimiento = async(req:Request, res:Response, next:NextFunction) =>{
     const id_cita = Number(req.body.id_cita);
@@ -38,4 +41,36 @@ export const crearSeguimiento = async(req:Request, res:Response, next:NextFuncti
     } catch (error) {
         next(error)
     }
+}
+
+export const listarSeguimientos = async(req:Request, res:Response, next:NextFunction) =>{
+    const pagina = Number(req.query.pagina) || 1;
+    const limitQuery = Number(req.query.limit) || 10;
+    const limit = Math.max(1, Math.min(limitQuery, 500));
+    const offset = (pagina - 1) * limit;
+    const estadoRaw = req.query.estado;
+
+    try {
+        if(estadoRaw && typeof estadoRaw !== 'string'){
+            throw new AppError('Estado inválido', 400);
+        }
+
+        const estado = estadoRaw as string | undefined;
+            
+        if (estado && !ESTADOS_VALIDOS.includes(estado)) {
+            throw new AppError('Estado de la bitácora inválido', 400);
+        }
+
+        const result = await listarSeguimientosService(limit, offset, estado);
+        return res.json({
+            message:'Seguimientos disponibles',
+            seguimientos:result.listaSeguimiento,
+            total:result.total,
+            totalPaginas:result.totalPaginas,
+            limit:result.limitResponse
+        });
+    } catch (error) {
+        next(error)
+    }
+
 }
