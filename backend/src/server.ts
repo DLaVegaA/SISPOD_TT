@@ -16,6 +16,7 @@ import bitacoraRoutes from './routes/bitacoraRoute';
 import expedienteRoutes from './routes/expedienteRoutes'
 import padecimientosRoutes from './routes/padecimientosRoutes';
 import catalogoProcedimientosRoutes from './routes/catalogoProcedimientosRoutes';
+import seguimientoRoutes from './routes/seguimientoRoutes';
 import {errorHandler} from './middleware/errorMiddleware'
 import bot from './config/telegram';
 import { configurarBot } from './services/telegramService';
@@ -100,6 +101,8 @@ app.use('/expediente', expedienteRoutes)
 app.use('/padecimiento',padecimientosRoutes);
 app.use('/catalogo-procedimientos', catalogoProcedimientosRoutes);
 app.use('/catalogo-procedimientos', errorHandler);
+app.use('/seguimiento', seguimientoRoutes);
+app.use('/seguimiento', errorHandler);
 app.use('/padecimiento',errorHandler);
 app.use('/expediente', errorHandler)
 app.use('/bitacora', errorHandler); // Provisional en lo que cambio la demas logica

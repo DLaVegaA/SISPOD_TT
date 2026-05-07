@@ -8,10 +8,18 @@ export const crearSeguimientoService = async(id_cita:number, id_procedimiento:nu
         throw new AppError('No se encontró la cita',404);
     }
     const procedimiento = await obtenerProcedimientoService(id_procedimiento);
-
+    const fecha_inicio = new Date()
+    const fecha_fin = new Date()
+    fecha_fin.setDate(fecha_inicio.getDate() + procedimiento.dias_seguimiento)
     const seguimiento = await Seguimiento.create({
         id_cita:cita.id_cita,
         id_procedimiento:procedimiento.id_procedimiento,
-        
-    })
+        ...data,
+        fecha_inicio,
+        fecha_fin,
+        fecha_envio_24h:null,
+        fecha_envio_72h:null
+    });
+
+    return seguimiento;
 }
