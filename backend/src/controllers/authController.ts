@@ -41,10 +41,12 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '2h' },
     );
 
-    res.cookie('token', token, {
+    const isProduction = process.env.NODE_ENV === 'production';
+
+     res.cookie('token', token, {
       httpOnly: true,
-      secure: false, //Investigar si al hostear se cambia a true
-      sameSite: 'lax', //Investigar
+      secure: isProduction, // true en producción (requiere HTTPS)
+      sameSite: isProduction ? 'none' : 'lax', // 'none' permite enviar cookies entre distintos dominios
       maxAge: 2 * 60 * 60 * 1000,
     });
 
@@ -59,10 +61,12 @@ export const login = async (req: Request, res: Response) => {
 
 export const cerrarSesion = async (req: Request, res: Response) => {
   try {
+    const isProduction = process.env.NODE_ENV === 'production';
+
     res.clearCookie('token', {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
+      sameSite: isProduction ? 'none' : 'lax',
+      secure: isProduction,
     });
 
     return res.json({
