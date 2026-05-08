@@ -59,23 +59,18 @@ const servicios = [
         </div>
 
         <div class="mt-auto w-full max-w-4xl bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-3xl shadow-2xl text-left">
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div class="grid grid-cols-2 gap-8">
+            
             <div class="flex flex-col items-start">
               <span class="text-4xl md:text-5xl font-bold drop-shadow-sm">+20</span>
               <span class="text-xs md:text-sm uppercase tracking-widest opacity-90 mt-2 font-medium text-blue-50">Años de experiencia</span>
             </div>
-            <div class="flex flex-col items-start">
-              <span class="text-4xl md:text-5xl font-bold drop-shadow-sm">95%</span>
-              <span class="text-xs md:text-sm uppercase tracking-widest opacity-90 mt-2 font-medium text-blue-50">Pacientes satisfechos</span>
-            </div>
+
             <div class="flex flex-col items-start">
               <span class="text-4xl md:text-5xl font-bold drop-shadow-sm">+1000</span>
               <span class="text-xs md:text-sm uppercase tracking-widest opacity-90 mt-2 font-medium text-blue-50">Pacientes atendidos<br>anualmente</span>
             </div>
-            <div class="flex flex-col items-start">
-              <span class="text-4xl md:text-5xl font-bold drop-shadow-sm">+3</span>
-              <span class="text-xs md:text-sm uppercase tracking-widest opacity-90 mt-2 font-medium text-blue-50">Especialidades</span>
-            </div>
+
           </div>
         </div>
       </div>
