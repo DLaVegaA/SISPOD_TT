@@ -26,13 +26,18 @@ interface BackendCitaPaciente {
 
 interface BackendCita {
   id_cita: number
-  id_paciente: number
-  id_dentista: number
   fecha_hora_inicio: string
   fecha_hora_fin: string
-  tipo_cita: string | number
   estado: string
-  paciente?: BackendCitaPaciente
+  // Anidamos id_paciente como lo manda el backend
+  paciente?: {
+    id_paciente: number
+    usuario?: BackendPacienteUsuario
+  }
+  // Añadimos el tipo de cita como lo manda el backend
+  tipo?: {
+    nombre_corto: string
+  }
 }
 
 interface ListCitasResponse {
@@ -125,11 +130,14 @@ export async function listDentistAppointments(
 
   return citas.map((cita) => ({
     id: cita.id_cita,
-    patientId: cita.id_paciente,
+    // Aquí estaba el error que dejaba a todos "Sin citas": 
+    // Buscamos el ID dentro del objeto paciente
+    patientId: cita.paciente?.id_paciente ?? 0, 
     patientName: composePatientName(cita.paciente?.usuario),
     startAt: cita.fecha_hora_inicio,
     endAt: cita.fecha_hora_fin,
-    type: String(cita.tipo_cita),
+    // Extraemos el nombre_corto del tipo
+    type: cita.tipo?.nombre_corto ?? 'General', 
     status: cita.estado,
   }))
 }
