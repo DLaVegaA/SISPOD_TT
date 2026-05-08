@@ -13,11 +13,11 @@ const transporter = nodemailer.createTransport({
 const handlebarOptions = {
   viewEngine: {
     extname: ".hbs",
-    layoutsDir: path.resolve(__dirname, "../emails/layouts"),
-    partialsDir: path.resolve(__dirname, "../emails/partials"),
+    layoutsDir: path.join(__dirname, "../emails/layouts"),
+    partialsDir: path.join(__dirname, "../emails/partials"),
     defaultLayout: "main"
   },
-  viewPath: path.resolve(__dirname, "../emails"),
+  viewPath: path.join(__dirname, "../emails"),
   extName: ".hbs"
 };
 
