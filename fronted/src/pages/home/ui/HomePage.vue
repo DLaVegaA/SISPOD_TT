@@ -1,5 +1,44 @@
 <script setup lang="ts">
 import { PublicNavbar } from '@/widgets/navbar';
+
+const servicios = [
+  {
+    titulo: 'Operatoria Dental',
+    descripcion: 'Restauración estética y funcional de tus dientes utilizando resinas, incrustaciones de resina y cerámicas de alta calidad.'
+  },
+  {
+    titulo: 'Periodoncia',
+    descripcion: 'Diagnóstico y tratamiento especializado para cuidar la salud de tus encías y los tejidos que soportan tus dientes.'
+  },
+  {
+    titulo: 'Endodoncia',
+    descripcion: 'Tratamiento de conductos seguro y efectivo para salvar piezas dentales afectadas por caries profundas o infecciones.'
+  },
+  {
+    titulo: 'Prótesis Fija y Removible',
+    descripcion: 'Rehabilitación oral personalizada mediante coronas, puentes o dentaduras para devolverte una sonrisa completa y natural.'
+  },
+  {
+    titulo: 'Cirugía Bucal',
+    descripcion: 'Procedimientos quirúrgicos con altos estándares de seguridad, incluyendo la extracción de terceros molares (muelas del juicio).'
+  },
+  {
+    titulo: 'Ortodoncia',
+    descripcion: 'Alineación dental y corrección de la mordida para lograr una sonrisa estéticamente armónica y funcional.'
+  },
+  {
+    titulo: 'Ortopedia Maxilar',
+    descripcion: 'Prevención y corrección temprana de problemas en el crecimiento y desarrollo de los huesos maxilares.'
+  },
+  {
+    titulo: 'Odontología Geriátrica',
+    descripcion: 'Atención dental con empatía y técnicas adaptadas a las necesidades específicas de la salud oral en adultos mayores.'
+  },
+  {
+    titulo: 'Odontología Infantil',
+    descripcion: 'Cuidado preventivo y tratamientos amigables para niños, asegurando sonrisas sanas desde temprana edad sin miedo al dentista.'
+  }
+];
 </script>
 
 <template>
@@ -54,13 +93,11 @@ import { PublicNavbar } from '@/widgets/navbar';
       </div>
       
       <div class="relative flex items-center justify-center">
-        <!-- Blob azul decorativo -->
         <div class="absolute w-[480px] h-[480px] bg-blue-100 -z-10"
           style="border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; top: -20px; right: -30px;">
         </div>
 
-          <!-- Imagen encima -->
-        <img src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&q=80" 
+          <img src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&q=80" 
           class="relative z-10 rounded-2xl shadow-2xl w-full max-w-md object-cover"
           alt="Equipo Dental">
       </div>
@@ -73,14 +110,14 @@ import { PublicNavbar } from '@/widgets/navbar';
       </div>
       
       <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div v-for="i in 6" :key="i" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-200 transition-all hover:-translate-y-2 group cursor-pointer">
-          <div class="w-12 h-12 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+        <div v-for="(servicio, index) in servicios" :key="index" class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:border-[#4382B5]/30 transition-all hover:-translate-y-2 group cursor-pointer">
+          <div class="w-12 h-12 bg-[#4382B5]/10 text-[#4382B5] rounded-xl flex items-center justify-center mb-6 group-hover:bg-[#4382B5] group-hover:text-white transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
             </svg>
           </div>
-          <h4 class="text-lg font-bold text-slate-800 mb-3">Título De Servicio</h4>
-          <p class="text-slate-500 text-sm leading-relaxed">Descripción breve del tratamiento dental que se ofrece para mejorar la salud del paciente.</p>
+          <h4 class="text-lg font-bold text-slate-800 mb-3">{{ servicio.titulo }}</h4>
+          <p class="text-slate-500 text-sm leading-relaxed">{{ servicio.descripcion }}</p>
         </div>
       </div>
     </section>

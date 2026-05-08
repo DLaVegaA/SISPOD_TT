@@ -32,7 +32,7 @@ const patientName = computed(() => {
   
   // Asumiendo que tu backend devuelve 'nombre' y 'apellido_paterno' (o 'name')
   const nombre = user.nombre || user.name || ''
-  const apellido = user.apellido_paterno || ''
+  const apellido = (user as any).apellido_paterno || ''
   
   const fullName = `${nombre} ${apellido}`.trim()
   return fullName || 'Paciente'

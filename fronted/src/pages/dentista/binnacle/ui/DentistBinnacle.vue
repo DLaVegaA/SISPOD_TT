@@ -198,7 +198,9 @@ function anularBitacora(id: string) {
   if (confirm('¿Estás seguro de que deseas anular esta bitácora? Esta acción la ocultará de la vista principal.')) {
     const bitacoraIndex = logs.value.findIndex(l => l.id === id)
     if (bitacoraIndex !== -1) {
-      logs.value[bitacoraIndex].status = 'Anulada'
+      if (logs.value[bitacoraIndex]) {
+        logs.value[bitacoraIndex].status = 'Anulada'
+      }
       // Al cambiar el status a 'Anulada', desaparecerá automáticamente gracias a la prop computada `filtered`
     }
   }

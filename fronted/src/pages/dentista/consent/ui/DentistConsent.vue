@@ -101,16 +101,18 @@ function triggerFileInput() { fileInputRef.value?.click() }
 
 function handleFileSelect(event: Event) {
   const target = event.target as HTMLInputElement
-  if (target.files && target.files.length > 0) {
-    validateAndSetFile(target.files[0])
+  const fileManual = target.files?.[0];
+  if (fileManual) {
+    validateAndSetFile(fileManual);
   }
 }
 
 function handleDrop(event: DragEvent) {
   isDragging.value = false
   const files = event.dataTransfer?.files
-  if (files && files.length > 0) {
-    validateAndSetFile(files[0])
+  const fileDrop = files?.[0];
+  if (fileDrop) {
+    validateAndSetFile(fileDrop);
   }
 }
 
