@@ -1,0 +1,1 @@
+export { default as UnifiedAppointmentsPage } from './ui/UnifiedAppointments.vue'

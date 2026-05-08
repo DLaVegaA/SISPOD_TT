@@ -182,6 +182,13 @@ function formatHoraInput(isoString: string): string {
   })
 }
 
+// Helper para filtrar los slots que no cumplen con la anticipación mínima
+function filterSlotsByAnticipation(slots: string[], hours: number): string[] {
+  const limit = new Date()
+  limit.setHours(limit.getHours() + hours)
+  return slots.filter(slot => new Date(slot) > limit)
+}
+
 const dentistAppointmentsByDate = computed<Record<string, Appointment[]>>(() => {
   const map: Record<string, Appointment[]> = {}
 
@@ -369,7 +376,8 @@ async function fetchDisponibilidad() {
       ID_DENTISTA,
     )) as DisponibilidadResponse
 
-    horariosDisponibles.value = res?.disponibles ?? []
+    // Filtramos usando la regla de 48 hrs para agendar
+    horariosDisponibles.value = filterSlotsByAnticipation(res?.disponibles ?? [], 48)
   } catch (error) {
     console.error('Error al buscar horarios:', error)
     horariosDisponibles.value = []
@@ -428,7 +436,8 @@ async function fetchDentistEditSlots(date: string, tipo: string) {
       ID_DENTISTA,
     )) as DisponibilidadResponse
 
-    dentistEditSlots.value = res?.disponibles ?? []
+    // Filtramos usando la regla de 36 hrs para editar
+    dentistEditSlots.value = filterSlotsByAnticipation(res?.disponibles ?? [], 36)
   } catch (error) {
     console.error('Error al buscar horarios para edición dentista:', error)
     dentistEditSlots.value = []
@@ -450,7 +459,8 @@ async function fetchDisponibilidadDentista() {
       ID_DENTISTA,
     )) as DisponibilidadResponse
 
-    horariosDisponiblesDentista.value = res?.disponibles ?? []
+    // Filtramos usando la regla de 48 hrs para agendar
+    horariosDisponiblesDentista.value = filterSlotsByAnticipation(res?.disponibles ?? [], 48)
   } catch (error) {
     console.error('Error al buscar horarios para dentista:', error)
     horariosDisponiblesDentista.value = []
@@ -476,7 +486,8 @@ async function activarEdicion() {
       ID_DENTISTA,
     )) as DisponibilidadResponse
 
-    horariosEdicion.value = res?.disponibles ?? []
+    // Filtramos usando la regla de 36 hrs para editar
+    horariosEdicion.value = filterSlotsByAnticipation(res?.disponibles ?? [], 36)
   } catch (error) {
     console.error('Error al buscar horarios para edición:', error)
     horariosEdicion.value = []
@@ -1208,17 +1219,6 @@ onMounted(async () => {
                     {{ patient.fullName }} · {{ patient.phone }}
                   </option>
                 </select>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label class="text-[10px] font-bold text-muted uppercase px-1">Fecha</label>
-                  <input
-                    v-model="dentistForm.date"
-                    type="date"
-                    class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:border-accent transition-colors"
-                  />
-                </div>
               </div>
 
               <div>
