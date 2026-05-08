@@ -76,6 +76,22 @@ export interface CreateAppointmentPayload {
   tipoCita: number
 }
 
+export interface TipoCitaOption {
+  value: string
+  label: string
+  duration: number
+}
+
+interface BackendTipoCita {
+  id_tipocita: number
+  nombre: string
+  duracion?: number
+}
+
+interface ListTipoCitasResponse {
+  tipoCitas?: BackendTipoCita[]
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -130,14 +146,14 @@ export async function listDentistAppointments(
 
   return citas.map((cita) => ({
     id: cita.id_cita,
-    // Aquí estaba el error que dejaba a todos "Sin citas": 
+    // Aquí estaba el error que dejaba a todos "Sin citas":
     // Buscamos el ID dentro del objeto paciente
-    patientId: cita.paciente?.id_paciente ?? 0, 
+    patientId: cita.paciente?.id_paciente ?? 0,
     patientName: composePatientName(cita.paciente?.usuario),
     startAt: cita.fecha_hora_inicio,
     endAt: cita.fecha_hora_fin,
     // Extraemos el nombre_corto del tipo
-    type: cita.tipo?.nombre_corto ?? 'General', 
+    type: cita.tipo?.nombre_corto ?? 'General',
     status: cita.estado,
   }))
 }
@@ -156,4 +172,22 @@ export async function createDentistAppointment(payload: CreateAppointmentPayload
     fecha_hora_fin: endAt.toISOString(),
     tipo_cita: payload.tipoCita,
   })
+}
+
+export async function listarTipoCitas(): Promise<TipoCitaOption[]> {
+  const response =
+    await httpClient.get<Array<{ id_tipocita: number; nombre: string }>>('/tipo-cita')
+
+  const maybeNested = isRecord(response) && isRecord(response.data) ? response.data : response
+  const tipoCitas = Array.isArray(maybeNested)
+    ? maybeNested
+    : Array.isArray((maybeNested as ListTipoCitasResponse).tipoCitas)
+      ? ((maybeNested as ListTipoCitasResponse).tipoCitas ?? [])
+      : []
+
+  return tipoCitas.map((tipo) => ({
+    value: String(tipo.id_tipocita),
+    label: tipo.nombre,
+    duration: 60, // Duración por defecto
+  }))
 }
