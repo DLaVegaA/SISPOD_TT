@@ -31,7 +31,8 @@ export interface CitaOpcion {
 export const consentimientoApi = {
   async getAll(): Promise<ConsentimientoVista[]> {
     const response = await httpClient.get('/consentimiento'); 
-    const data = response.data ? response.data : response;
+    const res = response as any;
+    const data = res.data ? res.data : res;
 
     if (!Array.isArray(data)) return []; 
   
@@ -54,7 +55,8 @@ export const consentimientoApi = {
   async getUrlDocumento(id_cita: number | string): Promise<string> {
     // Llama a tu endpoint: router.get('/cita/:id_cita', verConsentimiento)
     const response = await httpClient.get(`/consentimiento/cita/${id_cita}`);
-    const data = response.data ? response.data : response;
+    const res = response as any;
+    const data = res.data ? res.data : res;
     
     // Tu controlador devuelve { message: '...', url: '...' }
     return data.url; 
@@ -67,11 +69,12 @@ export const consentimientoApi = {
     // Corrección: Usar httpClient en lugar de http
     const response = await httpClient.get(`/consentimientos/${id}`);
     
-    const item = response.data;
+    const item = (response as any).data;
     
     // Es buena práctica mapearlo aquí también para que respete la interfaz ConsentimientoVista
     return {
       id: item.id || item._id,
+      idCita: item.id_cita || 0,
       pacienteNombre: item.paciente?.nombre || item.pacienteNombre || 'Desconocido',
       pacienteExpediente: item.paciente?.expediente || item.pacienteExpediente || 'S/E',
       fecha: item.fecha || new Date().toISOString(),
@@ -97,13 +100,13 @@ export const consentimientoApi = {
       }
     }); 
     
-    return response.data;
+    return (response as any).data;
   },
 
   async delete(id_cita: number | string) {
     // Llama a tu endpoint: router.delete('/cita/:id_cita', eliminarConsentimiento)
     const response = await httpClient.delete(`/consentimiento/cita/${id_cita}`);
-    return response.data;
+    return (response as any).data;
   },
 
   async getCitasDisponibles(): Promise<CitaOpcion[]> {
@@ -112,7 +115,8 @@ export const consentimientoApi = {
     
     // 2. Extraemos el objeto de respuesta. 
     // Si usas un interceptor que ya extrae el .data, usa 'response'. Si no, 'response.data'.
-    const data = response.data ? response.data : response;
+    const res = response as any;
+    const data = res.data ? res.data : res;
 
     // 3. ¡AQUÍ ESTÁ EL TRUCO! Accedemos a data.citas
     const listaCitas = Array.isArray(data.citas) ? data.citas : [];
