@@ -422,6 +422,13 @@ export const actualizarPaciente = async (req: CustomRequest, res: Response) => {
     });
   }
 
+  if(telefono.length !==10){
+    console.log('Error de tamaño de teñefono')
+    return res.status(400).json({
+      message: 'El télefono debe tener 10 dígitos',
+    });
+  }
+
   const t = await sequelize.transaction();
   try {
     let paciente;
