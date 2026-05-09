@@ -30,6 +30,9 @@ interface Appointment {
   title: string
   time: string
   status: string
+  typeId?: number
+  typeLabel?: string
+  typeDuration?: number
   badgeClass?: string
 }
 
@@ -51,6 +54,12 @@ interface PatientCita {
   fecha_hora_inicio: string
   tipo_cita?: number
   estado: string
+  tipo?: {
+    id_tipocita?: number
+    nombre?: string
+    nombre_corto?: string
+    duracion?: number
+  }
 }
 
 interface PatientCitasResponse {
@@ -136,40 +145,6 @@ const dentistForm = ref({
 
 const appointmentTypeOptions = ref<TipoCitaOption[]>([])
 
-function normalizeTypeText(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-}
-
-function resolveTipoCitaValue(typeLabel: string): string {
-  const numeric = Number(typeLabel)
-  if (!Number.isNaN(numeric)) {
-    return String(numeric)
-  }
-
-  const normalized = normalizeTypeText(typeLabel)
-  if (
-    normalized.includes('seguimiento') ||
-    normalized.includes('rutina') ||
-    normalized.includes('30')
-  ) {
-    return '2'
-  }
-
-  if (
-    normalized.includes('consulta') ||
-    normalized.includes('general') ||
-    normalized.includes('revision') ||
-    normalized.includes('60')
-  ) {
-    return '1'
-  }
-
-  return '1'
-}
-
 function toCalendarKey(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
 }
@@ -198,11 +173,6 @@ function appointmentBadgeClass(status: string): string {
   }
 
   return 'bg-accent text-white'
-}
-
-function dentistTypeLabel(type: string): string {
-  const match = appointmentTypeOptions.value.find((option) => option.value === type)
-  return match?.label ?? type
 }
 
 function formatHora(isoString: string): string {
@@ -252,6 +222,10 @@ const dentistAppointmentsByDate = computed<Record<string, Appointment[]>>(() => 
       title: appointment.patientName,
       time: formatHora(appointment.startAt),
       status: appointment.status,
+      typeId: appointment.typeId,
+      typeLabel: appointment.typeDuration
+        ? `${appointment.type} (${appointment.typeDuration} min)`
+        : appointment.type,
       badgeClass: appointmentBadgeClass(appointment.status),
     })
   }
@@ -326,7 +300,9 @@ const appointmentsForSelectedDate = computed<AppointmentListItem[]>(() => {
       status: appointment.status,
       timeLabel: formatHora(appointment.startAt),
       titleLabel: appointment.patientName,
-      subtitle: dentistTypeLabel(appointment.type),
+      subtitle: appointment.typeDuration
+        ? `${appointment.type} (${appointment.typeDuration} min)`
+        : appointment.type,
       kind: 'dentist',
       appointment,
     }))
@@ -388,9 +364,10 @@ const selectedDetailTime = computed(() => {
 
 const selectedDetailSubtitle = computed(() => {
   if (isDentist.value && dentistSelectedAppointment.value) {
-    return `${dentistSelectedAppointment.value.patientName} · ${dentistTypeLabel(
-      dentistSelectedAppointment.value.type,
-    )}`
+    const appointmentType = dentistSelectedAppointment.value.typeDuration
+      ? `${dentistSelectedAppointment.value.type} (${dentistSelectedAppointment.value.typeDuration} min)`
+      : dentistSelectedAppointment.value.type
+    return `${dentistSelectedAppointment.value.patientName} · ${appointmentType}`
   }
 
   if (citaSeleccionada.value) {
@@ -592,7 +569,7 @@ async function selectDentistAppointment(appointment: DentistAppointment) {
 
   selectedDate.value = dateKey
   dentistForm.value.date = dateKey
-  dentistForm.value.type = resolveTipoCitaValue(appointment.type)
+  dentistForm.value.type = String(appointment.typeId)
   dentistSelectedAppointment.value = appointment
   isEditingDentist.value = false
   showForm.value = false
@@ -605,7 +582,7 @@ async function activarEdicionDentista() {
   errorMsg.value = null
   isEditingDentist.value = true
   dentistEditTime.value = null
-  await fetchDentistEditSlots(selectedDate.value, dentistSelectedAppointment.value.type)
+  await fetchDentistEditSlots(selectedDate.value, dentistSelectedAppointment.value.typeId)
 }
 
 function setSelectedEditTime(slot: string) {
@@ -679,17 +656,16 @@ function handleSelectFromList(item: AppointmentListItem) {
   selectAppointment(item.appointment as Appointment, fromInputDateToKey(selectedDate.value))
 }
 
-async function fetchDentistEditSlots(date: string, tipo: string) {
+async function fetchDentistEditSlots(date: string, tipoId: number) {
   if (!isDentist.value) return
 
   isLoadingDentistEditSlots.value = true
   dentistEditSlots.value = []
 
   try {
-    const tipoCitaValue = resolveTipoCitaValue(tipo)
     const res = (await citasApi.obtenerDisponibilidad(
       date,
-      Number(tipoCitaValue),
+      tipoId,
       ID_DENTISTA,
     )) as DisponibilidadResponse
 
@@ -712,7 +688,7 @@ async function fetchDisponibilidadDentista() {
   try {
     const res = (await citasApi.obtenerDisponibilidad(
       dentistForm.value.date,
-      Number(dentistForm.value.type),
+      Number(dentistForm.value.type) || 1,
       ID_DENTISTA,
     )) as DisponibilidadResponse
 
@@ -736,7 +712,7 @@ async function activarEdicion() {
   horariosEdicion.value = []
 
   try {
-    const tipoCita = citaSeleccionada.value.title.includes('60m') ? 1 : 2
+    const tipoCita = citaSeleccionada.value.typeId ?? 1
     const res = (await citasApi.obtenerDisponibilidad(
       selectedDate.value,
       tipoCita,
@@ -848,9 +824,16 @@ async function cargarCitasDelCalendario() {
         if (!map[key]) map[key] = []
         map[key].push({
           id: cita.id_cita,
-          title: cita.tipo_cita === 1 ? 'Revisión (60m)' : 'Consulta (30m)',
+          title: cita.tipo?.nombre_corto
+            ? cita.tipo.duracion
+              ? `${cita.tipo.nombre_corto} (${cita.tipo.duracion} min)`
+              : cita.tipo.nombre_corto
+            : (cita.tipo?.nombre ?? 'Cita'),
           time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           status: cita.estado,
+          typeId: cita.tipo_cita ?? cita.tipo?.id_tipocita,
+          typeLabel: cita.tipo?.nombre ?? cita.tipo?.nombre_corto,
+          typeDuration: cita.tipo?.duracion,
         })
       })
     }
@@ -1033,7 +1016,7 @@ watch(
     dentistForm.value.startTime = ''
     void fetchDisponibilidadDentista()
     if (dentistSelectedAppointment.value && isEditingDentist.value) {
-      void fetchDentistEditSlots(dentistForm.value.date, dentistForm.value.type)
+      void fetchDentistEditSlots(dentistForm.value.date, Number(dentistForm.value.type))
     }
   },
 )

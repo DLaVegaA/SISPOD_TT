@@ -29,6 +29,7 @@ interface BackendCita {
   fecha_hora_inicio: string
   fecha_hora_fin: string
   estado: string
+  tipo_cita?: number
   // Anidamos id_paciente como lo manda el backend
   paciente?: {
     id_paciente: number
@@ -36,7 +37,10 @@ interface BackendCita {
   }
   // Añadimos el tipo de cita como lo manda el backend
   tipo?: {
+    id_tipocita?: number
+    nombre?: string
     nombre_corto: string
+    duracion?: number
   }
 }
 
@@ -58,7 +62,9 @@ export interface DentistAppointment {
   patientName: string
   startAt: string
   endAt: string
+  typeId: number
   type: string
+  typeDuration?: number
   status: string
 }
 
@@ -85,7 +91,7 @@ export interface TipoCitaOption {
 interface BackendTipoCita {
   id_tipocita: number
   nombre: string
-  duracion?: number
+  duracion: number
 }
 
 interface ListTipoCitasResponse {
@@ -152,8 +158,9 @@ export async function listDentistAppointments(
     patientName: composePatientName(cita.paciente?.usuario),
     startAt: cita.fecha_hora_inicio,
     endAt: cita.fecha_hora_fin,
-    // Extraemos el nombre_corto del tipo
-    type: cita.tipo?.nombre_corto ?? 'General',
+    typeId: cita.tipo_cita ?? cita.tipo?.id_tipocita ?? 0,
+    type: cita.tipo?.nombre_corto ?? cita.tipo?.nombre ?? 'General',
+    typeDuration: cita.tipo?.duracion,
     status: cita.estado,
   }))
 }
@@ -176,7 +183,9 @@ export async function createDentistAppointment(payload: CreateAppointmentPayload
 
 export async function listarTipoCitas(): Promise<TipoCitaOption[]> {
   const response =
-    await httpClient.get<Array<{ id_tipocita: number; nombre: string }>>('/tipo-cita')
+    await httpClient.get<Array<{ id_tipocita: number; nombre: string; duracion: number }>>(
+      '/tipo-cita',
+    )
 
   const maybeNested = isRecord(response) && isRecord(response.data) ? response.data : response
   const tipoCitas = Array.isArray(maybeNested)
@@ -188,6 +197,6 @@ export async function listarTipoCitas(): Promise<TipoCitaOption[]> {
   return tipoCitas.map((tipo) => ({
     value: String(tipo.id_tipocita),
     label: tipo.nombre,
-    duration: 60, // Duración por defecto
+    duration: tipo.duracion,
   }))
 }
