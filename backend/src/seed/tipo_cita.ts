@@ -78,12 +78,6 @@ const tipo_citas =[
         duracion:30
     },
     {
-        id_tipocita:13,
-        nombre:'Prostodoncia 1',
-        nombre_corto:'Prostodoncia',
-        duracion:30
-    },
-    {
         id_tipocita:14,
         nombre:'Prostodoncia 2',
         nombre_corto:'Prostodoncia',
@@ -108,12 +102,6 @@ const tipo_citas =[
         duracion:15
     },
     {
-        id_tipocita:18,
-        nombre:'Odontología infantil 2',
-        nombre_corto:'Odontología infantil',
-        duracion:30
-    },
-     {
         id_tipocita:18,
         nombre:'Odontología infantil 2',
         nombre_corto:'Odontología infantil',

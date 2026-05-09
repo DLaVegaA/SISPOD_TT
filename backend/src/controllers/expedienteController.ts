@@ -5,7 +5,8 @@ import {
     crearExpedienteService,
     agregarPadecimientoService,
     obtenerExpedienteService,
-    eliminarPadecimientoService
+    eliminarPadecimientoService,
+    listarExpedientesService
 } from '../services/expedienteService';
 import { NUMBER } from "sequelize";
 
@@ -80,7 +81,7 @@ export const obtenerExpediente = async(req:Request, res:Response, next:NextFunct
     const id_expediente = Number(req.params.id_expediente);
     try{
         if (Number.isNaN(id_expediente)) {
-            throw new AppError('id inválido', 400);
+            throw new AppError('Expediente inválido', 400);
         }
 
         const expediente = await obtenerExpedienteService(id_expediente);
@@ -125,5 +126,26 @@ export const eliminarPadecimiento =async(req:Request, res:Response, next:NextFun
         });
     } catch (error) {
         next(error);
+    }
+}
+
+export const listarExpedientes=async(req:Request, res:Response, next:NextFunction) =>{
+    const pagina = Number(req.query.pagina) || 1;
+    const limitQuery = Number(req.query.limit) || 10;
+    const limit = Math.max(1, Math.min(limitQuery, 500));
+    const offset = (pagina - 1) * limit;
+
+    try {
+        const result = await listarExpedientesService(limit,offset);
+
+        return res.json({
+            message: 'Expedientes disponibles',
+            expedientes:result.listaExpedientes,
+            total: result.total,
+            totalPaginas: result.totalPaginas,
+            limit: result.limitResponse,
+        })
+    } catch (error) {
+        next(error)
     }
 }

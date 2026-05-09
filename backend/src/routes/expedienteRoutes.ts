@@ -5,13 +5,15 @@ import {
     crearExpediente,
     agregarPadecimiento,
     obtenerExpediente,
-    eliminarPadecimiento
+    eliminarPadecimiento,
+    listarExpedientes
 } from '../controllers/expedienteController';
 
 const router = Router();
 
 router.post('/', verificarToken,crearExpediente);
 router.post('/:id_expediente/padecimiento',verificarToken, agregarPadecimiento);
+router.get('/', verificarToken, listarExpedientes);
 router.get('/:id_expediente', verificarToken, obtenerExpediente);
 router.delete('/:id_expediente/padecimientos/:id_padecimiento', eliminarPadecimiento);
 export default router;

@@ -103,3 +103,48 @@ export const eliminarPadecimientoService = async(id_expediente:number,id_padecim
 
     registro.destroy();
 }
+
+
+export const listarExpedientesService = async(limit:number, offset:number)=>{
+    const {count, rows} = await Expediente.findAndCountAll(
+        {
+            limit,
+            offset,
+            include:[
+                {
+                    model:Expediente_Padecimientos,
+                    as:'padecimientos',
+                    include:[
+                        {
+                            model:Padecimiento,
+                            as:'padecimiento'
+                        }
+                    ]
+                }
+            ]
+        }
+    ) as any;
+
+    
+
+    const listaExpedientes = rows.map((r:any)=>({
+        id_expediente:r.id_expediente,
+        observaciones_generales: r.observaciones_generales,
+        padecimientos :r.padecimientos.map((p:any) => ({
+            id: p.id_padecimiento,
+            nombre: p.nombre_padecimiento,
+            categoria: p.padecimiento.categoria_padecimiento,
+            tipo_antecedente: p.tipo_antecedente,
+            nota: p.nota
+        }))  
+    }))
+
+    
+
+    return {
+        listaExpedientes,
+        total:count,
+        totalPaginas:count === 0 ? 1 :Math.ceil(count/limit),
+        limitResponse:limit
+    };
+}
