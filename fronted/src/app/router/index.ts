@@ -17,7 +17,7 @@ const ActivateAccountPage = () => import('@/pages/activarCuenta/ui/ActivateAccou
 const UsersPage = () => import('@/pages/users')
 const RolesPage = () => import('@/pages/roles/ui/RolesPage.vue')
 const StatsPage = () => import('@/pages/stats/ui/StatsPage.vue')
-const DentistCalendar = () => import('@/pages/dentista/calendar/ui/DentistCalendar.vue')
+const UnifiedAppointments = () => import('@/pages/appointments/ui/UnifiedAppointments.vue')
 const DentistClinicalHistory = () =>
   import('@/pages/dentista/clinicalHistory/ui/DentistClinicalHistory.vue')
 const DentistClinicalHistoryDetail = () =>
@@ -34,7 +34,6 @@ const DentistNewQuestionnaires = () =>
   import('@/pages/dentista/newQuestionnaires/ui/DentistNewQuestionnaires.vue')
 const PatientDashboard = () => import('@/pages/paciente/dashboard/ui/PatientDashboard.vue')
 const PatientProfile = () => import('@/pages/paciente/profile/ui/PatientProfile.vue')
-const PatientAppointment = () => import('@/pages/paciente/appointment/ui/PatientAppointment.vue')
 const PatientFollowUp = () => import('@/pages/paciente/followUp/ui/PatientFollowUp.vue')
 const AssistantDashboard = () => import('@/pages/asistente/dashboard/ui/AssistantDashboard.vue')
 const AssistantBinnacle = () => import('@/pages/asistente/binnacle/ui/AssistantBinnacle.vue')
@@ -109,7 +108,7 @@ const router = createRouter({
     {
       path: ROUTE_PATHS.DENTIST_CALENDAR,
       name: ROUTE_NAMES.DENTIST_CALENDAR,
-      component: DentistCalendar,
+      component: UnifiedAppointments,
       meta: { title: 'Calendario del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
     },
     {
@@ -193,7 +192,7 @@ const router = createRouter({
     {
       path: ROUTE_PATHS.PATIENT_APPOINTMENT,
       name: ROUTE_NAMES.PATIENT_APPOINTMENT,
-      component: PatientAppointment,
+      component: UnifiedAppointments,
       meta: { title: 'Citas del Paciente', requiresAuth: true, allowedRoles: ['patient'] },
     },
     {
