@@ -11,8 +11,12 @@ export interface CustomRequest extends Request{
 }
 
 export const verificarToken = (req: CustomRequest, res:Response, next:NextFunction) =>{
-    const token = req.cookies.token;
+    let token = req.cookies.token;
     
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        token = req.headers.authorization.split(' ')[1];
+    }
+
     if(!token){
         return res.status(401).json({message:"No autorizado"});
     }
@@ -24,13 +28,13 @@ export const verificarToken = (req: CustomRequest, res:Response, next:NextFuncti
         ) as TokenPayload;
 
         req.userData = decoded;
-        console.log(decoded)
+        /* console.log(decoded) */
         next();
         
     } catch (error) {
         console.log('Error al verificar JWT: ', error);
         return res.status(401).json({
-            messaage:'Token inválido o expirado'
+            message:'Token inválido o expirado'
         });
     }
 }
