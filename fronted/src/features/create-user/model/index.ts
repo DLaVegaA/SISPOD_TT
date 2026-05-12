@@ -170,46 +170,71 @@ export function useCreateUserForm() {
     clearErrors()
     const isPatient = form.role === 'patient'
     const isDentist = form.role === 'dentist'
-    const requiresExtendedData = isPatient || isDentist
 
-    if (!form.name.trim()) errors.name = 'El nombre es requerido'
-    if (!form.email.trim()) errors.email = 'El correo es requerido'
-    else if (!isValidEmail(form.email)) errors.email = 'Correo inválido'
+    // Expresiones regulares
+    const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/
+    // Valida que tenga texto, un arroba, y texto después (sin exigir el .com, .mx, etc.)
+    const emailSinDominioRegex = /^[^@\s]+@[^@\s]+$/
+    const curpRegex = /^[A-Z0-9]{18}$/
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-={}[\]|;:,.<>?]).{12,}$/
+    const telefonoRegex = /^\d{10}$/
 
-    if (!isPatient) {
-      if (!form.password) errors.password = 'La contraseña es requerida'
-      else if (form.password.length < 8) errors.password = 'Mínimo 8 caracteres'
+    // 1. Validaciones base (Todos)
+    if (!form.name.trim()) {
+      errors.name = 'El nombre es requerido'
+    } else if (!soloLetrasRegex.test(form.name.trim())) {
+      errors.name = 'El nombre solo debe contener letras'
+    }
+
+    if (!form.email.trim()) {
+      errors.email = 'El correo es requerido'
+    } else if (!emailSinDominioRegex.test(form.email.trim())) {
+      errors.email = 'El correo debe tener un formato válido (ej. usuario@empresa)'
     }
 
     if (!form.role) errors.role = 'Selecciona un rol'
 
-    if (requiresExtendedData) {
-      if (!form.apellidoPaterno.trim()) errors.apellidoPaterno = 'El apellido paterno es requerido'
-      
-      // Apellido materno ya no es obligatorio, por lo que quitamos su validación de "requerido"
-
-      // El teléfono y el género NO se validan para los pacientes en el pre-registro
-      if (!isPatient) {
-        if (!form.telefono.trim()) errors.telefono = 'El teléfono es requerido'
-        else if (!/^\d{10}$/.test(form.telefono))
-          errors.telefono = 'El teléfono debe tener 10 dígitos'
-          
-        if (!form.genero.trim()) errors.genero = 'El género es requerido'
+    // 2. Validaciones para NO pacientes (Admin, Dentista, Asistente)
+    if (!isPatient) {
+      if (!form.password) {
+        errors.password = 'La contraseña es requerida'
+      } else if (!passwordRegex.test(form.password)) {
+        errors.password = 'Mín. 12 caracteres, mayúscula, minúscula, número y símbolo'
       }
 
-      if (!form.fechaNacimiento.trim())
-        errors.fechaNacimiento = 'La fecha de nacimiento es requerida'
+      if (!form.telefono.trim()) {
+        errors.telefono = 'El teléfono es requerido'
+      } else if (!telefonoRegex.test(form.telefono.trim())) {
+        errors.telefono = 'El teléfono debe tener 10 dígitos numéricos'
+      }
         
-      if (!form.curp.trim()) errors.curp = 'La CURP es requerida'
-      else if (form.curp.trim().length !== 18) errors.curp = 'La CURP debe tener 18 caracteres'
+      if (!form.genero.trim()) errors.genero = 'El género es requerido'
     }
 
+    // 3. Datos personales obligatorios para TODOS los roles
+    if (!form.apellidoPaterno.trim()) {
+      errors.apellidoPaterno = 'El apellido paterno es requerido'
+    } else if (!soloLetrasRegex.test(form.apellidoPaterno.trim())) {
+      errors.apellidoPaterno = 'El apellido paterno solo debe contener letras'
+    }
+
+    // El apellido materno es opcional, pero si se llena, debe validarse
+    if (form.apellidoMaterno?.trim() && !soloLetrasRegex.test(form.apellidoMaterno.trim())) {
+      errors.apellidoMaterno = 'El apellido materno solo debe contener letras'
+    }
+    
+    if (!form.fechaNacimiento.trim()) errors.fechaNacimiento = 'La fecha de nacimiento es requerida'
+      
+    if (!form.curp.trim()) {
+      errors.curp = 'La CURP es requerida'
+    } else if (!curpRegex.test(form.curp.trim().toUpperCase())) {
+      errors.curp = 'La CURP debe tener 18 caracteres alfanuméricos'
+    }
+
+    // 4. Validación exclusiva para Dentistas
     if (isDentist && !form.noCedula.trim()) {
       errors.noCedula = 'La cédula profesional es requerida'
     }
-
-    // ELIMINAMOS todo el bloque final que validaba la calle, municipio, etc.
-    // para que no bloquee el envío del pre-registro del paciente.
 
     return Object.keys(errors).length === 0
   }

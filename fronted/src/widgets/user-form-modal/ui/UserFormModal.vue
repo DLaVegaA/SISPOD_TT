@@ -127,12 +127,15 @@
             <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2"
               >Género</label
             >
-            <input
+            <select
               v-model="createForm.genero"
-              type="text"
-              placeholder="Ej. Masculino/Femenino"
               :class="inputCls(!!(errors as CreateUserErrors).genero)"
-            />
+            >
+              <option value="" disabled>Selecciona tu género</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Otro">Otro / Prefiero no decirlo</option>
+            </select>
             <p v-if="(errors as CreateUserErrors).genero" class="text-red-400 text-xs mt-1">
               {{ (errors as CreateUserErrors).genero }}
             </p>
@@ -167,7 +170,7 @@
           <input
             v-model="(form as CreateUserDto).password"
             :type="showPassword ? 'text' : 'password'"
-            placeholder="Mínimo 8 caracteres"
+            placeholder="Mínimo 12 caracteres"
             :class="[inputCls(!!(errors as CreateUserErrors).password), 'pr-10']"
           />
           <button
@@ -314,7 +317,7 @@ const selectedRole = computed<RoleId>(() => (createForm.value.role ?? 'patient')
 
 // Mostrar los datos principales si es paciente o dentista
 const showExtendedFields = computed(
-  () => !props.isEdit && (selectedRole.value === 'patient' || selectedRole.value === 'dentist'),
+  () => !props.isEdit
 )
 
 // Magia aquí: Ocultar teléfono y género si el rol es 'patient'

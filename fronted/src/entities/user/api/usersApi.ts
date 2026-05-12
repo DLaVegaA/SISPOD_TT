@@ -217,12 +217,13 @@ export async function createUser(dto: CreateUserDto): Promise<User> {
       contrasena: dto.password,
       id_rol: ROLE_TO_ID[dto.role],
       estado: dto.status ? FRONT_TO_BACK_STATUS[dto.status] : 'activo',
-      apellido_paterno: dto.apellidoPaterno?.trim() || 'Pendiente',
-      apellido_materno: dto.apellidoMaterno?.trim() || 'Pendiente',
-      telefono: dto.telefono?.trim() || '0000000000',
-      fecha_nacimiento: dto.fechaNacimiento || '2000-01-01',
-      curp: dto.curp?.trim().toUpperCase() || buildCurpSeed(),
-      genero: dto.genero?.trim() || 'No especificado',
+      // Mapeo real de los datos del formulario (se quitan los hardcodes)
+      apellido_paterno: dto.apellidoPaterno.trim(),
+      apellido_materno: dto.apellidoMaterno?.trim() || null,
+      telefono: dto.telefono?.trim(),
+      fecha_nacimiento: dto.fechaNacimiento,
+      curp: dto.curp.trim().toUpperCase(),
+      genero: dto.genero?.trim(),
     }
   }
 
