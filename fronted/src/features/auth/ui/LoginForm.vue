@@ -22,7 +22,18 @@ const handleSubmit = async () => {
       password: password.value,
     })
 
+    if (!sessionStore.isAuthenticated) {
+      errorMsg.value = 'No se pudo establecer la sesión. Intenta de nuevo.'
+      return
+    }
+
     const roleHomePath = buildRoleHomePath(sessionStore.role, sessionStore.user?.id)
+
+    if (!roleHomePath) {
+      errorMsg.value = 'Sesión iniciada pero no se pudo determinar tu perfil. Recarga la página.'
+      return
+    }
+
     await router.push(roleHomePath ?? ROUTE_PATHS.HOME)
   } catch (err) {
     if (axios.isAxiosError(err)) {

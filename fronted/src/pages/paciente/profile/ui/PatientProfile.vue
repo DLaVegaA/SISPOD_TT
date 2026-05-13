@@ -59,9 +59,11 @@ const cargarPerfilFresco = async () => {
 
     // 🔥 FIX DE LA FECHA: Convertimos el ISO de la BD al formato estricto YYYY-MM-DD que pide HTML
     if (data.fecha_nacimiento) {
-      formData.fecha_nacimiento = new Date(data.fecha_nacimiento).toISOString().split('T')[0]
+      const partesFecha = new Date(data.fecha_nacimiento).toISOString().split('T');
+      // Si partesFecha[0] llegara a ser undefined, el || '' garantiza que pase un string
+      formData.fecha_nacimiento = partesFecha[0] || '';
     } else {
-      formData.fecha_nacimiento = ''
+      formData.fecha_nacimiento = '';
     }
 
     // Dirección

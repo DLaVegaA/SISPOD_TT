@@ -19,8 +19,10 @@ import {
   createDentistAppointment,
   listDentistAppointments,
   listPatientsForAppointments,
+  listarTipoCitas,
   type DentistAppointment,
   type DentistPatientOption,
+  type TipoCitaOption,
 } from '@/shared/api/dentistAppointments'
 
 interface Appointment {
@@ -28,6 +30,9 @@ interface Appointment {
   title: string
   time: string
   status: string
+  typeId?: number
+  typeLabel?: string
+  typeDuration?: number
   badgeClass?: string
 }
 
@@ -42,6 +47,33 @@ interface CalendarCell {
 interface DisponibilidadResponse {
   disponibles: string[]
   message?: string
+}
+
+interface PatientCita {
+  id_cita: number
+  fecha_hora_inicio: string
+  tipo_cita?: number
+  estado: string
+  tipo?: {
+    id_tipocita?: number
+    nombre?: string
+    nombre_corto?: string
+    duracion?: number
+  }
+}
+
+interface PatientCitasResponse {
+  citas: PatientCita[]
+}
+
+interface AppointmentListItem {
+  id: number
+  status: string
+  timeLabel: string
+  titleLabel: string
+  subtitle?: string
+  kind: 'patient' | 'dentist'
+  appointment: Appointment | DentistAppointment
 }
 
 const sessionStore = useSessionStore()
@@ -78,6 +110,7 @@ const isLoadingAppointments = ref(false)
 const isLoadingSlots = ref(false)
 const isLoadingDentistSlots = ref(false)
 const isLoadingEditSlots = ref(false)
+const isLoadingAppointmentTypes = ref(false)
 const isSaving = ref(false)
 
 const errorMsg = ref<string | null>(null)
@@ -110,28 +143,10 @@ const dentistForm = ref({
   type: '1',
 })
 
-const APPOINTMENT_TYPE_OPTIONS = [
-  { value: '1', label: 'Consulta general (60 min)', duration: 60 },
-  { value: '2', label: 'Seguimiento (30 min)', duration: 30 },
-]
+const appointmentTypeOptions = ref<TipoCitaOption[]>([])
 
 function toCalendarKey(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
-}
-
-function toInputDateFromKey(key: string): string {
-  const parts = key.split('-').map(Number)
-  if (parts.length !== 3) {
-    return ''
-  }
-
-  const [year, month, day] = parts as [number, number, number]
-
-  if ([year, month, day].some((value) => Number.isNaN(value))) {
-    return ''
-  }
-
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
 function fromInputDateToKey(date: string): string {
@@ -160,11 +175,6 @@ function appointmentBadgeClass(status: string): string {
   return 'bg-accent text-white'
 }
 
-function dentistTypeLabel(type: string): string {
-  const match = APPOINTMENT_TYPE_OPTIONS.find((option) => option.value === type)
-  return match?.label ?? `Tipo ${type}`
-}
-
 function formatHora(isoString: string): string {
   return new Date(isoString).toLocaleTimeString('es-MX', {
     hour: '2-digit',
@@ -182,6 +192,21 @@ function formatHoraInput(isoString: string): string {
   })
 }
 
+function getResponseData<T>(response: unknown): T | undefined {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return (response as { data?: T }).data
+  }
+
+  return response as T
+}
+
+// Helper para filtrar los slots que no cumplen con la anticipación mínima
+function filterSlotsByAnticipation(slots: string[], hours: number): string[] {
+  const limit = new Date()
+  limit.setHours(limit.getHours() + hours)
+  return slots.filter((slot) => new Date(slot) > limit)
+}
+
 const dentistAppointmentsByDate = computed<Record<string, Appointment[]>>(() => {
   const map: Record<string, Appointment[]> = {}
 
@@ -197,6 +222,10 @@ const dentistAppointmentsByDate = computed<Record<string, Appointment[]>>(() => 
       title: appointment.patientName,
       time: formatHora(appointment.startAt),
       status: appointment.status,
+      typeId: appointment.typeId,
+      typeLabel: appointment.typeDuration
+        ? `${appointment.type} (${appointment.typeDuration} min)`
+        : appointment.type,
       badgeClass: appointmentBadgeClass(appointment.status),
     })
   }
@@ -262,9 +291,44 @@ const dentistAppointmentsForSelectedDate = computed(() => {
     .sort((a, b) => a.startAt.localeCompare(b.startAt))
 })
 
+const appointmentsForSelectedDate = computed<AppointmentListItem[]>(() => {
+  if (!selectedDate.value) return []
+
+  if (isDentist.value) {
+    return dentistAppointmentsForSelectedDate.value.map((appointment) => ({
+      id: appointment.id,
+      status: appointment.status,
+      timeLabel: formatHora(appointment.startAt),
+      titleLabel: appointment.patientName,
+      subtitle: appointment.typeDuration
+        ? `${appointment.type} (${appointment.typeDuration} min)`
+        : appointment.type,
+      kind: 'dentist',
+      appointment,
+    }))
+  }
+
+  const key = fromInputDateToKey(selectedDate.value)
+  return (appointmentsByDate.value[key] ?? [])
+    .slice()
+    .sort((a, b) => a.time.localeCompare(b.time))
+    .map((appointment) => ({
+      id: appointment.id,
+      status: appointment.status,
+      timeLabel: appointment.time,
+      titleLabel: appointment.title,
+      kind: 'patient',
+      appointment,
+    }))
+})
+
 const panelTitle = computed(() => {
   if (isPatient.value && citaSeleccionada.value) {
     return isEditing.value ? 'Modificar Horario' : 'Detalles de la Cita'
+  }
+
+  if (isDentist.value && dentistSelectedAppointment.value) {
+    return isEditingDentist.value ? 'Editar Cita' : 'Detalles de la Cita'
   }
 
   if (isDentist.value && isEditingDentist.value) {
@@ -280,6 +344,103 @@ const panelTitle = computed(() => {
   }
 
   return 'Selecciona una fecha'
+})
+
+const selectedDetail = computed(() =>
+  isDentist.value ? dentistSelectedAppointment.value : citaSeleccionada.value,
+)
+
+const selectedDetailTime = computed(() => {
+  if (isDentist.value && dentistSelectedAppointment.value) {
+    return formatHora(dentistSelectedAppointment.value.startAt)
+  }
+
+  if (citaSeleccionada.value) {
+    return citaSeleccionada.value.time
+  }
+
+  return ''
+})
+
+const selectedDetailSubtitle = computed(() => {
+  if (isDentist.value && dentistSelectedAppointment.value) {
+    const appointmentType = dentistSelectedAppointment.value.typeDuration
+      ? `${dentistSelectedAppointment.value.type} (${dentistSelectedAppointment.value.typeDuration} min)`
+      : dentistSelectedAppointment.value.type
+    return `${dentistSelectedAppointment.value.patientName} · ${appointmentType}`
+  }
+
+  if (citaSeleccionada.value) {
+    return citaSeleccionada.value.title
+  }
+
+  return ''
+})
+
+const selectedDetailStatus = computed(() => {
+  if (isDentist.value && dentistSelectedAppointment.value) {
+    return dentistSelectedAppointment.value.status
+  }
+
+  if (citaSeleccionada.value) {
+    return citaSeleccionada.value.status
+  }
+
+  return ''
+})
+
+const selectedDetailDateTime = computed(() => {
+  if (!selectedDate.value) return ''
+  if (!selectedDetailTime.value) return selectedDate.value
+  return `${selectedDate.value} · ${selectedDetailTime.value}`
+})
+
+const selectedIsEditing = computed(() =>
+  isDentist.value ? isEditingDentist.value : isEditing.value,
+)
+const selectedEditSlots = computed(() =>
+  isDentist.value ? dentistEditSlots.value : horariosEdicion.value,
+)
+const selectedEditTime = computed(() =>
+  isDentist.value ? dentistEditTime.value : horaEditada.value,
+)
+const isLoadingSelectedEditSlots = computed(() =>
+  isDentist.value ? isLoadingDentistEditSlots.value : isLoadingEditSlots.value,
+)
+
+const appointmentTypeModel = computed({
+  get() {
+    return isDentist.value ? dentistForm.value.type : String(formCita.value.tipo_cita)
+  },
+  set(value: string) {
+    if (isDentist.value) {
+      dentistForm.value.type = value
+    } else {
+      formCita.value.tipo_cita = Number(value)
+    }
+  },
+})
+
+const availableSlots = computed(() =>
+  isDentist.value ? horariosDisponiblesDentista.value : horariosDisponibles.value,
+)
+const selectedSlot = computed(() =>
+  isDentist.value ? horaSeleccionadaDentista.value : horaSeleccionada.value,
+)
+const isLoadingAvailableSlots = computed(() =>
+  isDentist.value ? isLoadingDentistSlots.value : isLoadingSlots.value,
+)
+const isCreateDisabled = computed(() => {
+  if (isDentist.value) {
+    return (
+      isSaving.value ||
+      !dentistForm.value.patientId ||
+      !dentistForm.value.date ||
+      !horaSeleccionadaDentista.value
+    )
+  }
+
+  return isSaving.value || !horaSeleccionada.value
 })
 
 function prevMonth() {
@@ -331,11 +492,6 @@ function selectAppointment(appt: Appointment, cellKey: string) {
   successMsg.value = null
 }
 
-function onAppointmentClick(appt: Appointment, cellKey: string) {
-  if (!isPatient.value) return
-  selectAppointment(appt, cellKey)
-}
-
 async function selectDay(cell: CalendarCell) {
   if (!cell.current) return
   if (isPatient.value && !cell.isValid) return
@@ -345,14 +501,10 @@ async function selectDay(cell: CalendarCell) {
   selectedDate.value = formattedDate
 
   resetPanelState()
-  showForm.value = isPatient.value
+  showForm.value = false
 
   if (isDentist.value) {
     dentistForm.value.date = formattedDate
-  }
-
-  if (isPatient.value) {
-    await fetchDisponibilidad()
   }
 }
 
@@ -369,7 +521,8 @@ async function fetchDisponibilidad() {
       ID_DENTISTA,
     )) as DisponibilidadResponse
 
-    horariosDisponibles.value = res?.disponibles ?? []
+    // Filtramos usando la regla de 48 hrs para agendar
+    horariosDisponibles.value = filterSlotsByAnticipation(res?.disponibles ?? [], 48)
   } catch (error) {
     console.error('Error al buscar horarios:', error)
     horariosDisponibles.value = []
@@ -378,22 +531,32 @@ async function fetchDisponibilidad() {
   }
 }
 
-function onTipoCitaChange() {
-  if (!isPatient.value) return
-  horaSeleccionada.value = null
-  fetchDisponibilidad()
+function setSelectedSlot(slot: string) {
+  if (isDentist.value) {
+    horaSeleccionadaDentista.value = slot
+    dentistForm.value.startTime = formatHoraInput(slot)
+  } else {
+    horaSeleccionada.value = slot
+  }
 }
 
-function openDentistCreateForm() {
-  if (!isDentist.value) return
+function openCreateForm() {
   errorMsg.value = null
   dentistSelectedAppointment.value = null
+  citaSeleccionada.value = null
   isEditingDentist.value = false
+  isEditing.value = false
   showForm.value = true
-  if (selectedDate.value) {
-    dentistForm.value.date = selectedDate.value
+
+  if (isDentist.value) {
+    if (selectedDate.value) {
+      dentistForm.value.date = selectedDate.value
+    }
+    // fetchDisponibilidadDentista() se dispara automáticamente por el watcher de dentistForm.value.date
+    return
   }
-  void fetchDisponibilidadDentista()
+
+  void fetchDisponibilidad()
 }
 
 async function selectDentistAppointment(appointment: DentistAppointment) {
@@ -406,16 +569,94 @@ async function selectDentistAppointment(appointment: DentistAppointment) {
 
   selectedDate.value = dateKey
   dentistForm.value.date = dateKey
-  dentistForm.value.type = appointment.type
+  dentistForm.value.type = String(appointment.typeId)
   dentistSelectedAppointment.value = appointment
-  isEditingDentist.value = true
+  isEditingDentist.value = false
   showForm.value = false
   errorMsg.value = null
   dentistEditTime.value = null
-  await fetchDentistEditSlots(dateKey, appointment.type)
 }
 
-async function fetchDentistEditSlots(date: string, tipo: string) {
+async function activarEdicionDentista() {
+  if (!isDentist.value || !dentistSelectedAppointment.value || !selectedDate.value) return
+  errorMsg.value = null
+  isEditingDentist.value = true
+  dentistEditTime.value = null
+  await fetchDentistEditSlots(selectedDate.value, dentistSelectedAppointment.value.typeId)
+}
+
+function setSelectedEditTime(slot: string) {
+  if (isDentist.value) {
+    dentistEditTime.value = slot
+  } else {
+    horaEditada.value = slot
+  }
+}
+
+function handleStartEdit() {
+  if (isDentist.value) {
+    void activarEdicionDentista()
+  } else {
+    void activarEdicion()
+  }
+}
+
+function handleCancelEditMode() {
+  if (isDentist.value) {
+    cancelarEdicionDentista()
+  } else {
+    cancelarEdicion()
+  }
+}
+
+function handleSaveEdit() {
+  if (isDentist.value) {
+    void handleGuardarEdicionDentista()
+  } else {
+    void handleConfirmarEdicion()
+  }
+}
+
+function handleCancelAppointment() {
+  if (isDentist.value && dentistSelectedAppointment.value) {
+    void handleCancelarCitaDentista(dentistSelectedAppointment.value.id)
+    return
+  }
+
+  if (citaSeleccionada.value) {
+    void handleCancelarCita(citaSeleccionada.value.id)
+  }
+}
+
+function handleCloseDetails() {
+  if (isDentist.value) {
+    dentistSelectedAppointment.value = null
+  } else {
+    citaSeleccionada.value = null
+  }
+  errorMsg.value = null
+}
+
+function handleCreateAppointment() {
+  if (isDentist.value) {
+    void handleCrearCitaDentista()
+  } else {
+    void handleConfirmarCitaPaciente()
+  }
+}
+
+function handleSelectFromList(item: AppointmentListItem) {
+  if (!selectedDate.value) return
+
+  if (item.kind === 'dentist') {
+    void selectDentistAppointment(item.appointment as DentistAppointment)
+    return
+  }
+
+  selectAppointment(item.appointment as Appointment, fromInputDateToKey(selectedDate.value))
+}
+
+async function fetchDentistEditSlots(date: string, tipoId: number) {
   if (!isDentist.value) return
 
   isLoadingDentistEditSlots.value = true
@@ -424,11 +665,12 @@ async function fetchDentistEditSlots(date: string, tipo: string) {
   try {
     const res = (await citasApi.obtenerDisponibilidad(
       date,
-      Number(tipo),
+      tipoId,
       ID_DENTISTA,
     )) as DisponibilidadResponse
 
-    dentistEditSlots.value = res?.disponibles ?? []
+    // Filtramos usando la regla de 36 hrs para editar
+    dentistEditSlots.value = filterSlotsByAnticipation(res?.disponibles ?? [], 36)
   } catch (error) {
     console.error('Error al buscar horarios para edición dentista:', error)
     dentistEditSlots.value = []
@@ -446,11 +688,12 @@ async function fetchDisponibilidadDentista() {
   try {
     const res = (await citasApi.obtenerDisponibilidad(
       dentistForm.value.date,
-      Number(dentistForm.value.type),
+      Number(dentistForm.value.type) || 1,
       ID_DENTISTA,
     )) as DisponibilidadResponse
 
-    horariosDisponiblesDentista.value = res?.disponibles ?? []
+    // Filtramos usando la regla de 48 hrs para agendar
+    horariosDisponiblesDentista.value = filterSlotsByAnticipation(res?.disponibles ?? [], 48)
   } catch (error) {
     console.error('Error al buscar horarios para dentista:', error)
     horariosDisponiblesDentista.value = []
@@ -469,14 +712,15 @@ async function activarEdicion() {
   horariosEdicion.value = []
 
   try {
-    const tipoCita = citaSeleccionada.value.title.includes('60m') ? 1 : 2
+    const tipoCita = citaSeleccionada.value.typeId ?? 1
     const res = (await citasApi.obtenerDisponibilidad(
       selectedDate.value,
       tipoCita,
       ID_DENTISTA,
     )) as DisponibilidadResponse
 
-    horariosEdicion.value = res?.disponibles ?? []
+    // Filtramos usando la regla de 36 hrs para editar
+    horariosEdicion.value = filterSlotsByAnticipation(res?.disponibles ?? [], 36)
   } catch (error) {
     console.error('Error al buscar horarios para edición:', error)
     horariosEdicion.value = []
@@ -567,12 +811,12 @@ async function cargarCitasDelCalendario() {
 
   try {
     const response = await citasApi.listarMisCitas()
-    const res = (response as any).data || response
+    const res = getResponseData<PatientCitasResponse>(response)
 
     const map: Record<string, Appointment[]> = {}
 
     if (res?.citas) {
-      res.citas.forEach((cita: any) => {
+      res.citas.forEach((cita) => {
         if (cita.estado === 'Cancelada') return
 
         const d = new Date(cita.fecha_hora_inicio)
@@ -580,9 +824,16 @@ async function cargarCitasDelCalendario() {
         if (!map[key]) map[key] = []
         map[key].push({
           id: cita.id_cita,
-          title: cita.tipo_cita === 1 ? 'Revisión (60m)' : 'Consulta (30m)',
+          title: cita.tipo?.nombre_corto
+            ? cita.tipo.duracion
+              ? `${cita.tipo.nombre_corto} (${cita.tipo.duracion} min)`
+              : cita.tipo.nombre_corto
+            : (cita.tipo?.nombre ?? 'Cita'),
           time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           status: cita.estado,
+          typeId: cita.tipo_cita ?? cita.tipo?.id_tipocita,
+          typeLabel: cita.tipo?.nombre ?? cita.tipo?.nombre_corto,
+          typeDuration: cita.tipo?.duracion,
         })
       })
     }
@@ -631,7 +882,7 @@ async function loadDentistAppointmentsByMonth() {
 }
 
 function selectedDuration(): number {
-  const selectedType = APPOINTMENT_TYPE_OPTIONS.find(
+  const selectedType = appointmentTypeOptions.value.find(
     (option) => option.value === dentistForm.value.type,
   )
   return selectedType?.duration ?? 60
@@ -696,9 +947,24 @@ async function handleGuardarEdicionDentista() {
   }
 }
 
+async function handleCancelarCitaDentista(idCita: number) {
+  if (!isDentist.value) return
+  if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return
+
+  try {
+    await citasApi.cancelarCita(idCita)
+    successMsg.value = '¡Cita cancelada correctamente!'
+    dentistSelectedAppointment.value = null
+    isEditingDentist.value = false
+    await loadDentistAppointmentsByMonth()
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } } }
+    errorMsg.value = err.response?.data?.message ?? 'No se pudo cancelar la cita.'
+  }
+}
+
 function cancelarEdicionDentista() {
   isEditingDentist.value = false
-  dentistSelectedAppointment.value = null
   dentistEditTime.value = null
   errorMsg.value = null
 }
@@ -749,9 +1015,18 @@ watch(
     horaSeleccionadaDentista.value = null
     dentistForm.value.startTime = ''
     void fetchDisponibilidadDentista()
-    if (dentistSelectedAppointment.value) {
-      void fetchDentistEditSlots(dentistForm.value.date, dentistForm.value.type)
+    if (dentistSelectedAppointment.value && isEditingDentist.value) {
+      void fetchDentistEditSlots(dentistForm.value.date, Number(dentistForm.value.type))
     }
+  },
+)
+
+watch(
+  () => formCita.value.tipo_cita,
+  () => {
+    if (!isPatient.value) return
+    horaSeleccionada.value = null
+    void fetchDisponibilidad()
   },
 )
 
@@ -779,6 +1054,18 @@ watch(
 onMounted(async () => {
   if (sessionStore.status === 'unknown') {
     await sessionStore.bootstrap()
+  }
+
+  // Cargar tipos de citas desde la API
+  isLoadingAppointmentTypes.value = true
+  try {
+    appointmentTypeOptions.value = await listarTipoCitas()
+  } catch (error) {
+    console.error('Error al cargar tipos de citas:', error)
+    // Usar valores por defecto en caso de error
+    appointmentTypeOptions.value = [{ value: '1', label: 'Cita por defecto', duration: 60 }]
+  } finally {
+    isLoadingAppointmentTypes.value = false
   }
 })
 </script>
@@ -876,9 +1163,7 @@ onMounted(async () => {
                 :class="[
                   'px-2 py-1 text-[10px] font-bold rounded-lg truncate shadow-sm',
                   appt.badgeClass ?? 'bg-accent text-white',
-                  isPatient ? 'cursor-pointer hover:ring-2 ring-offset-1 ring-accent' : '',
                 ]"
-                @click.stop="onAppointmentClick(appt, cell.key)"
               >
                 {{ appt.time }} - {{ appt.title }}
               </div>
@@ -906,98 +1191,96 @@ onMounted(async () => {
             {{ panelTitle }}
           </h2>
 
-          <div v-if="isPatient && citaSeleccionada" class="space-y-4">
+          <div v-if="selectedDetail" class="space-y-4">
             <div class="p-4 bg-surface rounded-2xl border border-border">
               <p class="text-xs text-muted font-bold uppercase mb-1">Cita Programada</p>
               <p class="text-sm font-bold text-black">
-                {{ selectedDate }} · {{ citaSeleccionada.time }}
+                {{ selectedDetailDateTime }}
               </p>
-              <p class="text-sm text-muted mt-0.5">{{ citaSeleccionada.title }}</p>
+              <p class="text-sm text-muted mt-0.5">{{ selectedDetailSubtitle }}</p>
 
               <div class="mt-3 flex items-center gap-2">
-                <Clock
-                  v-if="citaSeleccionada.status === 'Pendiente'"
-                  class="w-4 h-4 text-amber-500"
-                />
-                <CheckCircle2
-                  v-else-if="citaSeleccionada.status === 'Confirmada'"
-                  class="w-4 h-4 text-emerald-500"
-                />
-                <AlertCircle v-else class="w-4 h-4 text-red-500" />
-                <span class="text-xs font-bold text-black">{{ citaSeleccionada.status }}</span>
-              </div>
-            </div>
-
-            <div v-if="isEditing" class="space-y-3">
-              <label class="text-[10px] font-bold text-muted uppercase px-1">
-                Selecciona un nuevo horario
-              </label>
-
-              <div
-                v-if="isLoadingEditSlots"
-                class="text-center py-4 text-xs text-muted animate-pulse"
-              >
-                Buscando horarios disponibles...
-              </div>
-
-              <div
-                v-else-if="horariosEdicion.length === 0"
-                class="text-center py-4 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
-              >
-                No hay otros horarios disponibles este día.
-              </div>
-
-              <div v-else class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
-                <button
-                  v-for="slot in horariosEdicion"
-                  :key="slot"
+                <span
                   :class="[
-                    'py-2 text-xs font-bold rounded-xl transition-all border',
-                    horaEditada === slot
-                      ? 'bg-accent text-white border-accent shadow-sm'
-                      : 'bg-white border-border text-black hover:border-accent/50 hover:bg-accent/5',
+                    'text-xs font-bold px-2 py-1 rounded-full',
+                    appointmentBadgeClass(selectedDetailStatus),
                   ]"
-                  @click="horaEditada = slot"
                 >
-                  {{ formatHora(slot) }}
-                </button>
+                  {{ selectedDetailStatus }}
+                </span>
               </div>
             </div>
 
-            <div
-              v-if="errorMsg"
-              class="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-400/30 text-red-600 rounded-xl text-xs font-medium"
-            >
-              <AlertCircle class="w-3.5 h-3.5 shrink-0" />
-              {{ errorMsg }}
-            </div>
+            <div v-if="selectedIsEditing" class="space-y-4">
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold text-muted uppercase px-1">
+                  Selecciona un nuevo horario
+                </label>
 
-            <template v-if="isEditing">
+                <div
+                  v-if="isLoadingSelectedEditSlots"
+                  class="text-center py-4 text-xs text-muted animate-pulse"
+                >
+                  Buscando horarios disponibles...
+                </div>
+
+                <div
+                  v-else-if="selectedEditSlots.length === 0"
+                  class="text-center py-4 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
+                >
+                  No hay otros horarios disponibles este día.
+                </div>
+
+                <div v-else class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                  <button
+                    v-for="slot in selectedEditSlots"
+                    :key="slot"
+                    :class="[
+                      'py-2 text-xs font-bold rounded-xl transition-all border',
+                      selectedEditTime === slot
+                        ? 'bg-accent text-white border-accent shadow-sm'
+                        : 'bg-white border-border text-black hover:border-accent/50 hover:bg-accent/5',
+                    ]"
+                    @click="setSelectedEditTime(slot)"
+                  >
+                    {{ formatHora(slot) }}
+                  </button>
+                </div>
+              </div>
+
+              <div
+                v-if="errorMsg"
+                class="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-400/30 text-red-600 rounded-xl text-xs font-medium"
+              >
+                <AlertCircle class="w-3.5 h-3.5 shrink-0" />
+                {{ errorMsg }}
+              </div>
+
               <button
-                :disabled="!horaEditada || isSaving"
+                :disabled="!selectedEditTime || isSaving"
                 :class="[
                   'w-full py-3 rounded-2xl text-sm font-bold transition-all',
-                  horaEditada && !isSaving
+                  selectedEditTime && !isSaving
                     ? 'bg-accent text-white shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95'
                     : 'bg-surface text-muted cursor-not-allowed border border-border',
                 ]"
-                @click="handleConfirmarEdicion"
+                @click="handleSaveEdit"
               >
                 {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
               </button>
 
               <button
                 class="w-full py-2 text-xs font-bold text-muted hover:text-black transition-colors"
-                @click="cancelarEdicion"
+                @click="handleCancelEditMode"
               >
                 Cancelar Edición
               </button>
-            </template>
+            </div>
 
             <template v-else>
               <button
                 class="w-full py-3 flex items-center justify-center gap-2 bg-surface border border-border rounded-2xl text-sm font-bold text-black hover:border-accent/50 hover:bg-accent/5 transition-all"
-                @click="activarEdicion"
+                @click="handleStartEdit"
               >
                 <Pencil class="w-4 h-4 text-accent" />
                 Modificar Horario
@@ -1005,109 +1288,18 @@ onMounted(async () => {
 
               <button
                 class="w-full py-3 bg-red-50 text-red-600 border border-red-200 rounded-2xl text-sm font-bold hover:bg-red-500 hover:text-white transition-all"
-                @click="handleCancelarCita(citaSeleccionada.id)"
+                @click="handleCancelAppointment"
               >
                 Cancelar Cita
               </button>
 
               <button
                 class="w-full py-2 text-xs font-bold text-muted hover:text-black transition-colors"
-                @click="((citaSeleccionada = null), (errorMsg = null))"
+                @click="handleCloseDetails"
               >
                 Cerrar Detalles
               </button>
             </template>
-          </div>
-
-          <div
-            v-else-if="isDentist && isEditingDentist && dentistSelectedAppointment"
-            class="space-y-4"
-          >
-            <div class="p-4 bg-surface rounded-2xl border border-border">
-              <p class="text-xs text-muted font-bold uppercase mb-1">Cita Programada</p>
-              <p class="text-sm font-bold text-black">
-                {{ selectedDate }} · {{ formatHora(dentistSelectedAppointment.startAt) }}
-              </p>
-              <p class="text-sm text-muted mt-0.5">
-                {{ dentistSelectedAppointment.patientName }} ·
-                {{ dentistTypeLabel(dentistSelectedAppointment.type) }}
-              </p>
-
-              <div class="mt-3 flex items-center gap-2">
-                <span
-                  :class="[
-                    'text-xs font-bold px-2 py-1 rounded-full',
-                    appointmentBadgeClass(dentistSelectedAppointment.status),
-                  ]"
-                >
-                  {{ dentistSelectedAppointment.status }}
-                </span>
-              </div>
-            </div>
-
-            <div class="space-y-2">
-              <label class="text-[10px] font-bold text-muted uppercase px-1">
-                Selecciona un nuevo horario
-              </label>
-
-              <div
-                v-if="isLoadingDentistEditSlots"
-                class="text-center py-4 text-xs text-muted animate-pulse"
-              >
-                Buscando horarios disponibles...
-              </div>
-
-              <div
-                v-else-if="dentistEditSlots.length === 0"
-                class="text-center py-4 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
-              >
-                No hay otros horarios disponibles este día.
-              </div>
-
-              <div v-else class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
-                <button
-                  v-for="slot in dentistEditSlots"
-                  :key="slot"
-                  :class="[
-                    'py-2 text-xs font-bold rounded-xl transition-all border',
-                    dentistEditTime === slot
-                      ? 'bg-accent text-white border-accent shadow-sm'
-                      : 'bg-white border-border text-black hover:border-accent/50 hover:bg-accent/5',
-                  ]"
-                  @click="dentistEditTime = slot"
-                >
-                  {{ formatHora(slot) }}
-                </button>
-              </div>
-            </div>
-
-            <div
-              v-if="errorMsg"
-              class="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-400/30 text-red-600 rounded-xl text-xs font-medium"
-            >
-              <AlertCircle class="w-3.5 h-3.5 shrink-0" />
-              {{ errorMsg }}
-            </div>
-
-            <button
-              :disabled="!dentistEditTime || isSaving"
-              :class="[
-                'w-full py-3 rounded-2xl text-sm font-bold transition-all',
-                dentistEditTime && !isSaving
-                  ? 'bg-accent text-white shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95'
-                  : 'bg-surface text-muted cursor-not-allowed border border-border',
-              ]"
-              @click="handleGuardarEdicionDentista"
-            >
-              {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
-            </button>
-
-            <button
-              class="w-full py-2 text-xs font-bold text-muted hover:text-black transition-colors"
-              @click="cancelarEdicionDentista"
-            >
-              Cancelar Edición
-            </button>
           </div>
 
           <div v-else-if="showForm" class="space-y-4">
@@ -1118,190 +1310,96 @@ onMounted(async () => {
               </p>
             </div>
 
-            <template v-if="isPatient">
-              <div class="space-y-2">
-                <label class="text-[10px] font-bold text-muted uppercase px-1"
-                  >Motivo de consulta</label
+            <div v-if="isDentist">
+              <label class="text-[10px] font-bold text-muted uppercase px-1">Paciente</label>
+              <select
+                v-model="dentistForm.patientId"
+                class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:border-accent transition-colors"
+                :disabled="isLoadingPatients"
+              >
+                <option value="">Selecciona un paciente</option>
+                <option
+                  v-for="patient in dentistPatients"
+                  :key="patient.id"
+                  :value="String(patient.id)"
                 >
-                <select
-                  v-model="formCita.tipo_cita"
-                  class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-accent/20 outline-none transition-all"
-                  @change="onTipoCitaChange"
-                >
-                  <option :value="1">Revisión o Tratamiento Mayor (60 min)</option>
-                  <option :value="2">Revisión de Rutina (30 min)</option>
-                </select>
-              </div>
+                  {{ patient.fullName }} · {{ patient.phone }}
+                </option>
+              </select>
+            </div>
 
-              <div class="space-y-2">
-                <label class="text-[10px] font-bold text-muted uppercase px-1"
-                  >Horarios Disponibles</label
+            <div>
+              <label class="text-[10px] font-bold text-muted uppercase px-1">Tipo de cita</label>
+              <select
+                v-model="appointmentTypeModel"
+                class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:border-accent transition-colors"
+              >
+                <option
+                  v-for="option in appointmentTypeOptions"
+                  :key="option.value"
+                  :value="option.value"
                 >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
 
-                <div
-                  v-if="isLoadingSlots"
-                  class="text-center py-4 text-xs text-muted animate-pulse"
-                >
-                  Buscando espacios...
-                </div>
+            <div class="space-y-2">
+              <label class="text-[10px] font-bold text-muted uppercase px-1">
+                Horarios Disponibles
+              </label>
 
-                <div
-                  v-else-if="horariosDisponibles.length === 0"
-                  class="text-center py-4 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
-                >
-                  No hay espacios disponibles este día.
-                </div>
-
-                <div v-else class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                  <button
-                    v-for="slot in horariosDisponibles"
-                    :key="slot"
-                    :class="[
-                      'py-2 text-xs font-bold rounded-xl transition-all border',
-                      horaSeleccionada === slot
-                        ? 'bg-accent text-white border-accent shadow-sm'
-                        : 'bg-white border-border text-black hover:border-accent/50 hover:bg-accent/5',
-                    ]"
-                    @click="horaSeleccionada = slot"
-                  >
-                    {{ formatHora(slot) }}
-                  </button>
-                </div>
+              <div
+                v-if="isLoadingAvailableSlots"
+                class="text-center py-4 text-xs text-muted animate-pulse"
+              >
+                Buscando espacios...
               </div>
 
               <div
-                v-if="errorMsg"
-                class="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-400/30 text-red-600 rounded-xl text-xs font-medium"
+                v-else-if="availableSlots.length === 0"
+                class="text-center py-4 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
               >
-                <AlertCircle class="w-3.5 h-3.5 shrink-0" />
-                {{ errorMsg }}
+                No hay espacios disponibles este día.
               </div>
 
-              <button
-                :disabled="!horaSeleccionada || isSaving"
-                :class="[
-                  'w-full py-3 rounded-2xl text-sm font-bold transition-all',
-                  horaSeleccionada && !isSaving
-                    ? 'bg-accent text-white shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95'
-                    : 'bg-surface text-muted cursor-not-allowed border border-border',
-                ]"
-                @click="handleConfirmarCitaPaciente"
-              >
-                {{ isSaving ? 'Guardando...' : 'Confirmar Cita' }}
-              </button>
-            </template>
-
-            <template v-else-if="isDentist">
-              <div>
-                <label class="text-[10px] font-bold text-muted uppercase px-1">Paciente</label>
-                <select
-                  v-model="dentistForm.patientId"
-                  class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:border-accent transition-colors"
-                  :disabled="isLoadingPatients"
+              <div v-else class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                <button
+                  v-for="slot in availableSlots"
+                  :key="slot"
+                  :class="[
+                    'py-2 text-xs font-bold rounded-xl transition-all border',
+                    selectedSlot === slot
+                      ? 'bg-accent text-white border-accent shadow-sm'
+                      : 'bg-white border-border text-black hover:border-accent/50 hover:bg-accent/5',
+                  ]"
+                  @click="setSelectedSlot(slot)"
                 >
-                  <option value="">Selecciona un paciente</option>
-                  <option
-                    v-for="patient in dentistPatients"
-                    :key="patient.id"
-                    :value="String(patient.id)"
-                  >
-                    {{ patient.fullName }} · {{ patient.phone }}
-                  </option>
-                </select>
+                  {{ formatHora(slot) }}
+                </button>
               </div>
+            </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label class="text-[10px] font-bold text-muted uppercase px-1">Fecha</label>
-                  <input
-                    v-model="dentistForm.date"
-                    type="date"
-                    class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:border-accent transition-colors"
-                  />
-                </div>
-              </div>
+            <div
+              v-if="errorMsg"
+              class="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-400/30 text-red-600 rounded-xl text-xs font-medium"
+            >
+              <AlertCircle class="w-3.5 h-3.5 shrink-0" />
+              {{ errorMsg }}
+            </div>
 
-              <div>
-                <label class="text-[10px] font-bold text-muted uppercase px-1">Tipo de cita</label>
-                <select
-                  v-model="dentistForm.type"
-                  class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:border-accent transition-colors"
-                >
-                  <option
-                    v-for="option in APPOINTMENT_TYPE_OPTIONS"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="space-y-2">
-                <label class="text-[10px] font-bold text-muted uppercase px-1">
-                  Horarios Disponibles
-                </label>
-
-                <div
-                  v-if="isLoadingDentistSlots"
-                  class="text-center py-4 text-xs text-muted animate-pulse"
-                >
-                  Buscando espacios...
-                </div>
-
-                <div
-                  v-else-if="horariosDisponiblesDentista.length === 0"
-                  class="text-center py-4 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
-                >
-                  No hay espacios disponibles este día.
-                </div>
-
-                <div v-else class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                  <button
-                    v-for="slot in horariosDisponiblesDentista"
-                    :key="slot"
-                    :class="[
-                      'py-2 text-xs font-bold rounded-xl transition-all border',
-                      horaSeleccionadaDentista === slot
-                        ? 'bg-accent text-white border-accent shadow-sm'
-                        : 'bg-white border-border text-black hover:border-accent/50 hover:bg-accent/5',
-                    ]"
-                    @click="
-                      ((horaSeleccionadaDentista = slot),
-                      (dentistForm.startTime = formatHoraInput(slot)))
-                    "
-                  >
-                    {{ formatHora(slot) }}
-                  </button>
-                </div>
-              </div>
-
-              <div
-                v-if="errorMsg"
-                class="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-400/30 text-red-600 rounded-xl text-xs font-medium"
-              >
-                <AlertCircle class="w-3.5 h-3.5 shrink-0" />
-                {{ errorMsg }}
-              </div>
-
-              <button
-                :disabled="
-                  isSaving ||
-                  !dentistForm.patientId ||
-                  !dentistForm.date ||
-                  !horaSeleccionadaDentista
-                "
-                :class="[
-                  'w-full py-3 rounded-2xl text-sm font-bold transition-all',
-                  !isSaving && dentistForm.patientId && dentistForm.date && horaSeleccionadaDentista
-                    ? 'bg-accent text-white shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95'
-                    : 'bg-surface text-muted cursor-not-allowed border border-border',
-                ]"
-                @click="handleCrearCitaDentista"
-              >
-                {{ isSaving ? 'Guardando...' : 'Crear cita' }}
-              </button>
-            </template>
+            <button
+              :disabled="isCreateDisabled"
+              :class="[
+                'w-full py-3 rounded-2xl text-sm font-bold transition-all',
+                !isCreateDisabled
+                  ? 'bg-accent text-white shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95'
+                  : 'bg-surface text-muted cursor-not-allowed border border-border',
+              ]"
+              @click="handleCreateAppointment"
+            >
+              {{ isSaving ? 'Guardando...' : isDentist ? 'Crear cita' : 'Confirmar Cita' }}
+            </button>
 
             <button
               class="w-full py-2 text-xs font-bold text-muted hover:text-black transition-colors"
@@ -1311,27 +1409,21 @@ onMounted(async () => {
             </button>
           </div>
 
-          <div v-else-if="isDentist" class="space-y-4">
+          <div v-else-if="selectedDate" class="space-y-4">
             <div class="flex items-center justify-between">
-              <p class="text-xs text-muted font-bold uppercase">
-                {{ selectedDate ? 'Citas del día' : 'Selecciona una fecha' }}
-              </p>
+              <p class="text-xs text-muted font-bold uppercase">Citas del día</p>
               <button
-                v-if="selectedDate"
+                v-if="!showForm"
                 class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold bg-accent text-white shadow-sm hover:scale-[1.02] active:scale-95 transition-all"
-                @click="openDentistCreateForm"
+                @click="openCreateForm"
               >
                 <Plus class="w-3.5 h-3.5" />
                 Crear cita
               </button>
             </div>
 
-            <div v-if="!selectedDate" class="text-center py-6 text-xs text-muted">
-              Selecciona una fecha para crear o ver las citas.
-            </div>
-
             <div
-              v-else-if="dentistAppointmentsForSelectedDate.length === 0"
+              v-if="appointmentsForSelectedDate.length === 0"
               class="text-center py-6 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
             >
               No hay citas registradas para este día.
@@ -1339,14 +1431,14 @@ onMounted(async () => {
 
             <div v-else class="space-y-2">
               <button
-                v-for="appt in dentistAppointmentsForSelectedDate"
+                v-for="appt in appointmentsForSelectedDate"
                 :key="appt.id"
                 class="w-full text-left p-3 rounded-2xl border border-border bg-surface hover:border-accent/50 hover:bg-accent/5 transition-all"
-                @click="selectDentistAppointment(appt)"
+                @click="handleSelectFromList(appt)"
               >
                 <div class="flex items-center justify-between">
                   <span class="text-sm font-bold text-black">
-                    {{ formatHora(appt.startAt) }} · {{ appt.patientName }}
+                    {{ appt.timeLabel }} · {{ appt.titleLabel }}
                   </span>
                   <span
                     :class="[
@@ -1357,8 +1449,8 @@ onMounted(async () => {
                     {{ appt.status }}
                   </span>
                 </div>
-                <p class="text-xs text-muted mt-1">
-                  {{ dentistTypeLabel(appt.type) }}
+                <p v-if="appt.subtitle" class="text-xs text-muted mt-1">
+                  {{ appt.subtitle }}
                 </p>
               </button>
             </div>
@@ -1377,7 +1469,8 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div v-if="isPatient" class="bg-card border border-border rounded-3xl p-6 shadow-sm">
+        <!-- Leyenda -->
+        <div class="bg-card border border-border rounded-3xl p-6 shadow-sm">
           <h3 class="text-xs font-bold text-black mb-4 uppercase tracking-wider">
             Estado de tus citas
           </h3>

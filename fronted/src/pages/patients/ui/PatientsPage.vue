@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, reactive } from 'vue'
 import {
   PatientCards,
   PatientTable,
@@ -15,6 +15,12 @@ import {
 } from '@/shared/api/dentistAppointments'
 import { useSessionStore } from '@/entities/session'
 import { normalizeRole } from '@/shared/routes'
+import { UserPlus } from 'lucide-vue-next'
+
+// Importación corregida (Componente por defecto y Type con nombre correcto)
+import PatientFormModal from '@/widgets/patient-form-modal/ui/PatientFormModal.vue'
+import type { PatientFormDto } from '@/widgets/patient-form-modal/ui/PatientFormModal.vue'
+import { httpClient } from '@/shared/api/http'
 
 const sessionStore = useSessionStore()
 const role = computed(() => normalizeRole(sessionStore.role))
@@ -27,6 +33,85 @@ const patients = ref<DentistPatientOption[]>([])
 const appointments = ref<DentistAppointment[]>([])
 const isLoading = ref(false)
 const error = ref<string | null>(null)
+
+const isModalOpen = ref(false)
+const isSubmitting = ref(false)
+
+// Estado inicial del formulario (RN3)
+const initialFormState: PatientFormDto = {
+  nombre: '',
+  apellido_paterno: '',
+  apellido_materno: '',
+  correo: '',
+  fecha_nacimiento: '',
+  curp: '',
+  id_rol: 3 // Fijo: 3 es el rol de paciente en tu DB
+}
+
+const patientForm = reactive<PatientFormDto>({ ...initialFormState })
+const formErrors = reactive<Record<string, string>>({})
+
+// Función unificada como 'openAddPatientModal'
+function openAddPatientModal() {
+  Object.assign(patientForm, initialFormState)
+  Object.keys(formErrors).forEach(key => delete formErrors[key])
+  isModalOpen.value = true
+}
+
+// RN4: Validaciones front-end antes de enviar
+function validateForm(): boolean {
+  Object.keys(formErrors).forEach(key => delete formErrors[key])
+  let isValid = true
+
+  const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/
+  const curpRegex = /^[A-Z0-9]{18}$/
+
+  if (!patientForm.nombre) { formErrors.nombre = 'Obligatorio'; isValid = false }
+  else if (!soloLetrasRegex.test(patientForm.nombre)) { formErrors.nombre = 'Solo letras'; isValid = false }
+
+  if (!patientForm.apellido_paterno) { formErrors.apellido_paterno = 'Obligatorio'; isValid = false }
+  else if (!soloLetrasRegex.test(patientForm.apellido_paterno)) { formErrors.apellido_paterno = 'Solo letras'; isValid = false }
+
+  if (patientForm.apellido_materno && !soloLetrasRegex.test(patientForm.apellido_materno)) {
+    formErrors.apellido_materno = 'Solo letras'
+    isValid = false
+  }
+
+  if (!patientForm.correo) { formErrors.correo = 'Obligatorio'; isValid = false }
+  else if (!/^\S+@\S+\.\S+$/.test(patientForm.correo)) { formErrors.correo = 'Correo inválido'; isValid = false }
+
+  if (!patientForm.fecha_nacimiento) { formErrors.fecha_nacimiento = 'Obligatorio'; isValid = false }
+
+  if (!patientForm.curp) { formErrors.curp = 'Obligatorio'; isValid = false }
+  else if (!curpRegex.test(patientForm.curp.toUpperCase())) { formErrors.curp = 'Debe tener 18 caracteres alfanuméricos'; isValid = false }
+
+  return isValid
+}
+
+async function submitPatient() {
+  patientForm.curp = patientForm.curp.toUpperCase()
+
+  if (!validateForm()) return
+
+  isSubmitting.value = true
+  try {
+    // Endpoint configurado en tu backend (pacienteRoutes.ts)
+    await httpClient.post('/pacientes', patientForm)
+    
+    alert('Paciente creado con éxito. Se envió correo de activación.') 
+    
+    isModalOpen.value = false
+    await loadData() // Recarga la lista para ver al nuevo paciente
+  } catch (err: any) {
+    if (err.response?.data?.message) {
+      alert(err.response.data.message)
+    } else {
+      alert('Ocurrió un error al crear el paciente')
+    }
+  } finally {
+    isSubmitting.value = false
+  }
+}
 
 const now = new Date()
 
@@ -140,9 +225,7 @@ const patientSummaries = computed<PatientSummary[]>(() =>
       age: calculateAge(patient.birthDate),
       gender: formatGender(patient.gender),
       lastAppointment: formatDate(lastAppointment?.startAt),
-      lastTreatment: lastAppointment
-        ? (appointmentTypeLabel[lastAppointment.type] ?? `Tipo ${lastAppointment.type}`)
-        : '—',
+      lastTreatment: lastAppointment ? lastAppointment.type : '—',
       nextAppointment: formatDate(nextAppointment?.startAt),
       status: resolveStatus(lastAppointment),
       phone: patient.phone,
@@ -254,9 +337,18 @@ onMounted(async () => {
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
       <div>
         <h1 class="font-display text-4xl font-semibold text-blackk">Pacientes</h1>
-        <p class="text-sm text-muted">Consulta rapida de pacientes registrados en el sistema.</p>
+        <p class="text-sm text-muted">Consulta rápida de pacientes registrados en el sistema.</p>
       </div>
+      
+      <button 
+        @click="openAddPatientModal"
+        class="flex items-center gap-2 bg-ink/65 text-text-secondary hover:bg-ink/80 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all hover:scale-105 active:scale-95"
+      >
+        <UserPlus class="h-4 w-4" />
+        Nuevo Paciente
+      </button>
     </div>
+
     <div
       v-if="selectedDateCard"
       class="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3 w-fit mb-3"
@@ -277,6 +369,7 @@ onMounted(async () => {
         </p>
       </div>
     </div>
+
     <PatientFilters
       :search="search"
       :range-type="rangeType"
@@ -296,5 +389,13 @@ onMounted(async () => {
         No se encontraron pacientes con los filtros actuales.
       </div>
     </div>
+
+    <PatientFormModal 
+      v-model="isModalOpen"
+      :form="patientForm"
+      :errors="formErrors"
+      :is-loading="isSubmitting"
+      @submit="submitPatient"
+    />
   </div>
 </template>

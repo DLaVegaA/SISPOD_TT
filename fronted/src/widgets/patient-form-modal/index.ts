@@ -1,0 +1,1 @@
+export { default as PatientFormModal } from './ui/PatientFormModal.vue'

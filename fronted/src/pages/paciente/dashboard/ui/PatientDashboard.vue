@@ -25,6 +25,19 @@ const currentUserId = computed(() =>
   String(sessionStore.user?.id ?? sessionStore.user?.id_usuario ?? 0),
 )
 
+// Computed para obtener el nombre dinámico del paciente
+const patientName = computed(() => {
+  const user = sessionStore.user
+  if (!user) return 'Paciente'
+  
+  // Asumiendo que tu backend devuelve 'nombre' y 'apellido_paterno' (o 'name')
+  const nombre = user.nombre || user.name || ''
+  const apellido = (user as any).apellido_paterno || ''
+  
+  const fullName = `${nombre} ${apellido}`.trim()
+  return fullName || 'Paciente'
+})
+
 // ── Types ──────────────────────────────────────────────────────────────────
 // Refleja exactamente la respuesta del backend (modelo Cita de Sequelize)
 interface CitaAPI {
@@ -290,7 +303,7 @@ async function handleCancelar(id: number) {
           <span class="text-muted/60">&gt;</span>
           <span class="bg-card border border-border px-2 py-0.5 rounded-lg">Inicio</span>
         </div>
-        <h1 class="font-display text-4xl font-semibold text-black">Hola, Anuar</h1>
+        <h1 class="font-display text-4xl font-semibold text-black">Hola, {{ patientName }}</h1>
         <p class="text-sm text-muted mt-1">Este es el resumen de tu actividad.</p>
       </div>
 
@@ -303,7 +316,6 @@ async function handleCancelar(id: number) {
       </button>
     </div>
 
-    <!-- Métricas -->
     <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <div
         v-for="item in metricas"
@@ -330,7 +342,6 @@ async function handleCancelar(id: number) {
     </section>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Próximas Citas -->
       <section class="lg:col-span-2">
         <div
           class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col h-full"
@@ -349,13 +360,11 @@ async function handleCancelar(id: number) {
           </div>
 
           <div class="p-6 flex-1">
-            <!-- Loading -->
             <div v-if="isLoading" class="flex items-center justify-center py-10 gap-2 text-muted">
               <Loader2 class="w-5 h-5 animate-spin" />
               <span class="text-sm font-medium">Cargando citas...</span>
             </div>
 
-            <!-- Error -->
             <div v-else-if="error" class="flex flex-col items-center justify-center py-10 gap-3">
               <AlertCircle class="w-6 h-6 text-red-400" />
               <p class="text-sm text-muted font-medium text-center">{{ error }}</p>
@@ -364,7 +373,6 @@ async function handleCancelar(id: number) {
               </button>
             </div>
 
-            <!-- Lista de citas -->
             <div v-else class="space-y-4">
               <div
                 v-for="cita in proximasCitas"
@@ -420,7 +428,6 @@ async function handleCancelar(id: number) {
                 </div>
               </div>
 
-              <!-- Estado vacío -->
               <div v-if="proximasCitas.length === 0" class="text-center py-10">
                 <p class="text-sm text-muted font-medium mb-3">No tienes citas programadas.</p>
                 <button
@@ -435,7 +442,6 @@ async function handleCancelar(id: number) {
         </div>
       </section>
 
-      <!-- Sidebar -->
       <section class="space-y-4">
         <div class="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <div class="flex items-center gap-2 mb-3">
@@ -479,7 +485,6 @@ async function handleCancelar(id: number) {
     </div>
   </div>
 
-  <!-- ── Modal de Modificación ─────────────────────────────────────────────── -->
   <Teleport to="body">
     <Transition name="modal">
       <div
@@ -487,14 +492,11 @@ async function handleCancelar(id: number) {
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
         @click.self="cerrarModal"
       >
-        <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="cerrarModal" />
 
-        <!-- Panel -->
         <div
           class="relative bg-card border border-border rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5"
         >
-          <!-- Cabecera -->
           <div class="flex items-start justify-between">
             <div>
               <h3 class="font-display font-bold text-black text-base">Modificar Cita</h3>
@@ -516,7 +518,6 @@ async function handleCancelar(id: number) {
             </button>
           </div>
 
-          <!-- Info cita actual -->
           <div class="flex items-center gap-3 p-3 bg-surface rounded-2xl border border-border">
             <CalendarClock class="w-4 h-4 text-muted shrink-0" />
             <div>
@@ -527,13 +528,11 @@ async function handleCancelar(id: number) {
             </div>
           </div>
 
-          <!-- Slots de horario -->
           <div class="space-y-3">
             <p class="text-[10px] font-bold text-muted uppercase px-1">
               Selecciona un nuevo horario
             </p>
 
-            <!-- Loading -->
             <div
               v-if="modalSlotsLoading"
               class="flex items-center justify-center py-6 gap-2 text-muted"
@@ -542,7 +541,6 @@ async function handleCancelar(id: number) {
               <span class="text-xs font-medium">Buscando horarios...</span>
             </div>
 
-            <!-- Sin horarios -->
             <div
               v-else-if="!modalSlotsLoading && modalSlots.length === 0 && !modalError"
               class="text-center py-5 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
@@ -550,7 +548,6 @@ async function handleCancelar(id: number) {
               No hay horarios disponibles para ese día.
             </div>
 
-            <!-- Grid de slots -->
             <div
               v-else-if="modalSlots.length > 0"
               class="grid grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1"
@@ -571,7 +568,6 @@ async function handleCancelar(id: number) {
             </div>
           </div>
 
-          <!-- Error -->
           <div
             v-if="modalError"
             class="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-400/30 text-red-600 rounded-xl text-xs font-medium"
@@ -580,7 +576,6 @@ async function handleCancelar(id: number) {
             {{ modalError }}
           </div>
 
-          <!-- Botones -->
           <div class="flex flex-col gap-2">
             <button
               :disabled="!modalHoraSeleccionada || modalSaving"
