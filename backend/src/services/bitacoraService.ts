@@ -193,6 +193,6 @@ export const revisarBitacoraService = async (id_bitacora: number) => {
         throw new Error('Solo se pueden revisar bitácoras en estado Pendiente');
     }
 
-    await bitacora.update({ estado_bitacora: 'Revisada' });
+    await bitacora.update({ estado_bitacora: 'Revisado' });
     return bitacora;
 };
