@@ -27,6 +27,6 @@ export async function anularBitacoraRequest(id: string): Promise<void> {
 
 export async function createBitacoraRequest(payload: { id_cita: number; descripcion: string }) {
   // Ojo: usa /bitacora o /bitacoras dependiendo de lo que te funcionó hace un momento
-  const { data } = await httpClient.post('/bitacora', payload)
+  const data: any = await httpClient.post('/bitacora', payload)
   return data
 } 
