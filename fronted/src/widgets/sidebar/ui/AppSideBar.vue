@@ -26,7 +26,7 @@
         </div>
         <div>
           <p class="font-display font-bold text-sm tracking-wide text-black">
-            Consultorio Gonzalez
+            Consultorio González
           </p>
           <p class="text-xs text-muted">Panel de Control</p>
         </div>
