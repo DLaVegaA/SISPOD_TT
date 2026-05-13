@@ -6,7 +6,8 @@ import {
     editarBitacora,
     eliminarBitacora,
     listarBitacora,
-    obtenerBitacora
+    obtenerBitacora,
+    revisarBitacora
 } from '../controllers/bitacoraController'
 
 
@@ -17,4 +18,6 @@ router.put('/:id', verificarToken, editarBitacora);
 router.delete('/:id/eliminar', verificarToken,eliminarBitacora);
 router.get('/', verificarToken, listarBitacora);
 router.get('/:id', verificarToken, obtenerBitacora);
+router.patch('/:id/revisar', verificarToken, permitirRoles(2), revisarBitacora);
+
 export default router;

@@ -1,0 +1,1 @@
+export { default as BitacoraFormModal } from './ui/BitacoraFormModal.vue'

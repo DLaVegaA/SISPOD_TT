@@ -5,7 +5,8 @@ import{
     editarBitacoraService,
     eliminarBitacoraService,
     listarBitacoraService,
-    obtenerBitacoraService
+    obtenerBitacoraService,
+    revisarBitacoraService
 } from '../services/bitacoraService'
 import { AppError } from '../helpers/AppError';
 import { NUMBER } from 'sequelize';
@@ -153,3 +154,12 @@ export const obtenerBitacora = async(req:Request, res:Response, next:NextFunctio
     }
 }
 
+export const revisarBitacora = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const id = Number(req.params.id);
+        await revisarBitacoraService(id);
+        return res.json({ message: 'Bitácora marcada como revisada' });
+    } catch (error) {
+        next(error);
+    }
+};
