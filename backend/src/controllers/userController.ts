@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Asistente, Role, Usuario } from '../models/index';
 import { sequelize } from '../config/database';
 import { CustomRequest } from '../middleware/authMiddleware';
+import { AppError } from '../helpers/AppError';
 
 const VALID_ROLE_IDS = [1, 2, 3, 4];
 
@@ -12,12 +13,18 @@ function normalizeStatus(rawStatus: unknown): 'activo' | 'eliminado' {
 }
 
 function sanitizePhone(rawPhone: unknown): string {
-  if (typeof rawPhone === 'string') {
-    const numbers = rawPhone.replace(/\D/g, '').slice(0, 10);
-    if (numbers.length === 10) return numbers;
+  if (typeof rawPhone !== 'string') {
+    throw new AppError('El teléfono debe ser texto', 400);
   }
 
-  return Date.now().toString().slice(-10).padStart(10, '0');
+  const numbers = rawPhone.replace(/\D/g, '');
+
+  if (numbers.length !== 10) {
+    console.log('Error de digitos en telefono')
+    throw new AppError('El teléfono debe tener 10 dígitos', 400);
+  }
+
+  return numbers;
 }
 
 function buildDefaultCurp(rawCurp: unknown): string {
@@ -59,6 +66,21 @@ export const registrarUsuario = async (req: Request, res: Response) => {
 
   const nombreSanitizado = String(nombre).trim();
   const correoSanitizado = String(correo).trim().toLowerCase();
+  let telefonoSanitizado;
+  try {
+    telefonoSanitizado = sanitizePhone(telefono)
+    
+  } catch (error) {
+    if (error instanceof AppError) {
+      return res.status(error.status).json({
+        message: error.message
+      });
+    }
+
+    return res.status(500).json({
+      message: 'Error interno del servidor'
+    });
+  }
   const curpSanitizada = buildDefaultCurp(curp);
   const fechaNacimientoSanitizada =
     typeof fecha_nacimiento === 'string' && fecha_nacimiento.trim()
@@ -78,7 +100,7 @@ export const registrarUsuario = async (req: Request, res: Response) => {
         : 'Pendiente',
     correo: correoSanitizado,
     contrasena: String(contrasena),
-    telefono: sanitizePhone(telefono),
+    telefono: telefonoSanitizado,
     fecha_nacimiento: fechaNacimientoSanitizada,
     curp: curpSanitizada,
     genero: typeof genero === 'string' && genero.trim() ? genero.trim() : 'No especificado',
@@ -236,6 +258,7 @@ export const obtenerUsuario = async (req: Request, res: Response) => {
 };
 
 export const actualizarUsuario = async (req: Request, res: Response) => {
+  console.log('BODY COMPLETO:', req.body);
   const id_usuario = Number(req.params.id);
   if (isNaN(id_usuario)) {
     return res.status(400).json({ message: 'ID inválido' });
@@ -251,7 +274,26 @@ export const actualizarUsuario = async (req: Request, res: Response) => {
   if (typeof apellido_materno === 'string' && apellido_materno.trim()) {
     payload.apellido_materno = apellido_materno.trim();
   }
-  if (typeof telefono === 'string' && telefono.trim()) payload.telefono = sanitizePhone(telefono);
+  console.log('telefono:', telefono);
+  console.log('tipo:', typeof telefono);
+  console.log('trim:', telefono?.trim?.());
+  try{
+    if (typeof telefono === 'string' && telefono.trim()){
+      console.log('if de teledono');  
+      payload.telefono = sanitizePhone(telefono);
+    }
+
+  }catch(error){
+    if (error instanceof AppError) {
+      return res.status(error.status).json({
+        message: error.message
+      });
+    }
+
+    return res.status(500).json({
+      message: 'Error interno del servidor'
+    });
+  }
   if (typeof correo === 'string' && correo.trim()) payload.correo = correo.trim().toLowerCase();
 
   if (typeof id_rol !== 'undefined') {

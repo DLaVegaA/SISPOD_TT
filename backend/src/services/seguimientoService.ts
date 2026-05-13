@@ -7,6 +7,14 @@ export const crearSeguimientoService = async(id_cita:number, id_procedimiento:nu
     if(!cita){
         throw new AppError('No se encontró la cita',404);
     }
+    const existe = await Seguimiento.findOne({
+        where:{
+            id_cita
+        }
+    });
+    if(existe){
+        throw new AppError('La cita ya tiene un seguimiento', 400);
+    }
     const procedimiento = await obtenerProcedimientoService(id_procedimiento);
     const fecha_inicio = new Date()
     const fecha_fin = new Date()
@@ -77,7 +85,58 @@ export const listarSeguimientosService = async(limit:number, offset:number, esta
         totalPaginas:count === 0 ? 1 :Math.ceil(count/limit),
         limitResponse:limit
     }
-
-
 }
 
+export const obtenerSeguimientoService =async(id_seguimiento:number)=>{
+
+    const seguimiento= await Seguimiento.findByPk(id_seguimiento,{
+        include:[
+            {
+                model:Cita,
+                as:'cita',
+                include:[
+                    {
+                        model:Paciente,
+                        as:'paciente',
+                        attributes:['id_paciente'],
+                        include:[
+                            {
+                                model:Usuario,
+                                as:'usuario',
+                                attributes:['id_usuario','nombre', 'apellido_paterno', 'apellido_materno']
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                model:Catalogo_Procedimientos,
+                as:'tipo_procedimiento',
+                attributes:['nombre_procedimiento']
+            }
+        ]
+    })
+
+    if(!seguimiento){
+        throw new AppError('No se encontró el seguimiento', 404)
+    }
+
+    return seguimiento;
+}
+
+export const editarSeguimientoService = async(id_seguimiento:number,data:any) =>{
+    const seguimiento = await Seguimiento.findByPk(id_seguimiento)
+
+    if(!seguimiento){
+        throw new AppError('No se encontró el seguimiento',404);
+    }
+
+    if(seguimiento.estado_seguimiento !== 'en curso'){
+        throw new AppError('Solo se pueden editar seguimientos en curso',400);
+    }
+
+    await seguimiento.update(data)
+
+    return seguimiento
+
+}

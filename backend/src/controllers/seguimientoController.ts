@@ -2,9 +2,10 @@ import {Request, Response, NextFunction } from 'express';
 import { AppError } from '../helpers/AppError';
 import {
     crearSeguimientoService,
-    listarSeguimientosService
+    listarSeguimientosService,
+    obtenerSeguimientoService, 
+    editarSeguimientoService
 } from '../services/seguimientoService'
-import { Seguimiento } from '../models';
 const ESTADOS_VALIDOS = ['en curso', 'alerta', 'finalizado']
 
 export const crearSeguimiento = async(req:Request, res:Response, next:NextFunction) =>{
@@ -73,4 +74,68 @@ export const listarSeguimientos = async(req:Request, res:Response, next:NextFunc
         next(error)
     }
 
+}
+
+export const obtenerSeguimiento = async(req:Request, res:Response, next: NextFunction) =>{
+    const id_seguimiento = Number(req.params.id_seguimiento);
+
+    try {
+        if(!id_seguimiento){
+            throw new AppError('Datos obligatorios',400);
+        }
+
+        if(Number.isNaN(id_seguimiento)){
+            throw new AppError('Seguimiento inválido',400);
+        }
+
+        const seguimiento = await obtenerSeguimientoService(id_seguimiento);
+
+        return res.json({
+            message:'Seguimiento encontrado',
+            seguimiento
+        })
+    } catch (error) {
+        next(error)
+    }
+}
+
+
+export const editarSeguimiento=async(req:Request, res:Response, next:NextFunction) =>{
+    const {indicaciones_medicas,plan_cuidados} = req.body
+    const id_seguimiento = Number(req.params.id_seguimiento);
+
+    try{
+        if(!id_seguimiento){
+            throw new AppError('Datos obligatorios',400);
+        }
+        
+
+        if(Number.isNaN(id_seguimiento)){
+            throw new AppError('Seguimiento inválido',400);
+        }
+
+        if (plan_cuidados === undefined && indicaciones_medicas === undefined) {
+            throw new AppError('Debe enviar al menos un campo a actualizar',400);
+        }
+        if(indicaciones_medicas && typeof indicaciones_medicas !== 'string'){
+            throw new AppError('Las indicaciones médicas deben ser texto',400);
+        }
+        if(plan_cuidados && typeof plan_cuidados !== 'string'){
+            throw new AppError('El plan de cuidados debe ser texto',400);
+        }
+
+        const data = {
+            plan_cuidados, 
+            indicaciones_medicas
+        }
+
+        const seguimiento = await editarSeguimientoService(id_seguimiento,data);
+
+        return res.json({
+            message: 'El seguimiento actualizado correctamente',
+            seguimiento
+        })
+    }catch(error){
+        next(error)
+    }
 }
