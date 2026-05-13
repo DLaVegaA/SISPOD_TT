@@ -12,7 +12,7 @@ const isOpen = ref(false)
       <!-- Logo -->
       <div class="flex items-center gap-2">
         <img :src="logoUrl" alt="SISPOD Logo" class="h-10 w-auto" />
-        <span class="text-xl font-bold text-white">Consultorio<br>Gonzalez</span>
+        <span class="text-xl font-bold text-white">Consultorio<br>González</span>
       </div>
 
       <!-- Links desktop -->
