@@ -1,0 +1,1 @@
+export { default as UnifiedBinnacles } from './ui/UnifiedBinnacles.vue'

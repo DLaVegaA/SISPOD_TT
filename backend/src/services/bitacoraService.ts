@@ -116,6 +116,12 @@ export const listarBitacoraService = async(limit:number, offset:number, estado?:
                     attributes:['nombre', 'apellido_paterno', 'apellido_materno']
                 }]
             }]
+        },
+        {
+            model:Usuario,
+            as:'autor',
+            attributes:['nombre', 'apellido_paterno', 'id_rol'],
+            required: false
         }]
     
     });   
@@ -123,8 +129,16 @@ export const listarBitacoraService = async(limit:number, offset:number, estado?:
         id_bitacora: b.id_bitacora,
         estado_bitacora: b.estado_bitacora,
         accion_realizada: b.accion_realizada,
-        fecha_cita : b.cita.fecha_hora_inicio,
-        nombre_paciente : b.cita.paciente.usuario.nombre
+        fecha_cita : b.cita?.fecha_hora_inicio,
+
+        descripcion: b.descripcion,
+        id_paciente: b.cita?.id_paciente, 
+        // Armamos el nombre del paciente
+        nombre_paciente : `${b.cita?.paciente?.usuario?.nombre || ''} ${b.cita?.paciente?.usuario?.apellido_paterno || ''}`.trim(),
+        
+        // Usamos b.autor en lugar de b.usuario para sacar los datos de quien escribió
+        nombre_autor: b.autor ? `${b.autor.nombre} ${b.autor.apellido_paterno}` : 'Autor desconocido',
+        rol_autor: b.autor?.id_rol === 4 ? 'Asistente' : 'Dentista'
     }));
 
     return {
@@ -169,3 +183,16 @@ export const obtenerBitacoraService =async(id_bitacora:number) =>{
         nombre_paciente : bitacora.cita.paciente.usuario.nombre
     }
 }
+
+export const revisarBitacoraService = async (id_bitacora: number) => {
+    const bitacora = await Bitacora.findByPk(id_bitacora);
+    if (!bitacora) throw new Error('La bitácora no existe');
+    
+    // Solo se revisan las que están pendientes
+    if (bitacora.estado_bitacora !== 'Pendiente') {
+        throw new Error('Solo se pueden revisar bitácoras en estado Pendiente');
+    }
+
+    await bitacora.update({ estado_bitacora: 'Revisada' });
+    return bitacora;
+};
