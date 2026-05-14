@@ -270,3 +270,20 @@ export async function updateUser(id: number, dto: UpdateUserDto): Promise<User> 
 export async function deleteUser(id: number): Promise<void> {
   await httpClient.delete(`/usuarios/${id}`)
 }
+
+// --- FUNCIONES PARA EL PERFIL DEL ASISTENTE/ADMIN ---
+
+export async function obtenerMiPerfil() {
+  return await httpClient.get('/usuarios/me')
+}
+
+export async function actualizarPerfil(id: number, data: any) {
+  const payload = {
+    nombre: data.nombre,
+    apellido_paterno: data.apellido_paterno,
+    apellido_materno: data.apellido_materno,
+    telefono: data.telefono,
+    correo: data.correo
+  }
+  return await httpClient.put(`/usuarios/${id}`, payload)
+}
