@@ -34,11 +34,11 @@ type ResponseExpedientes = {
 const records = ref<ExpedienteCard[]>([])
 const isLoading = ref(false)
 
-const mapExpediente = (item: any): ExpedienteCard => {
-  const id = Number(item.id ?? item.id_paciente ?? item.id_expediente ?? 0)
+const mapExpediente = (item: ExpedienteCard): ExpedienteCard => {
+  const id = Number(item.id ?? 0)
   return {
     id,
-    expediente: String(item.expediente ?? item.id_expediente ?? id),
+    expediente: String(item.expediente ?? id),
     avatar: '', // No se usa, se reemplaza con UserAvatar component
     nombre: item.nombre || 'Paciente',
     sexo: item.sexo || 'No especificado',
