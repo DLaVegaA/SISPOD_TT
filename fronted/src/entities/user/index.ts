@@ -3,3 +3,5 @@ export type { User, CreateUserDto, UpdateUserDto, UserStatus } from './model/typ
 export { default as UserAvatar } from './ui/UserAvatar.vue'
 export { default as UserRoleBadge } from './ui/UserRoleBadge.vue'
 export { default as UserRolBadge } from './ui/UserRolBadge.vue'
+
+export { obtenerMiPerfil, actualizarPerfil } from './api/usersApi'
