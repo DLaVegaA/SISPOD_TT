@@ -1,110 +1,72 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search, FileText, Download, Pencil, X, Plus, Filter } from 'lucide-vue-next'
 import { ROUTE_NAMES } from '@/shared/routes'
+import { httpClient } from '@/shared/api/http'
+import { UserAvatar } from '@/entities/user'
 
 const searchQuery = ref('')
 const selectedStatus = ref('todos')
 
-const records = ref([
-  {
-    id: 1,
-    expediente: '2025GOMR001',
-    avatar: 'https://i.pravatar.cc/150?img=11',
-    nombre: 'Carlos Alberto Méndez Torres',
-    sexo: 'Masculino',
-    edad: 34,
-    localidad: 'Guadalajara, Jalisco',
-    ultimaAtencion: '10 / nov / 2025',
-    servicio: 'Dolor en molar inferior derecho',
-    diagnostico: 'Caries dental profunda en la pieza 46',
-    tratamiento: 'Endodoncia',
-    odontologo: 'Dr. González',
-    fechaCreacion: '10 / feb / 2025',
-    estado: 'En tratamiento',
-  },
-  {
-    id: 2,
-    expediente: '2025GOMR002',
-    avatar: 'https://i.pravatar.cc/150?img=12',
-    nombre: 'María Fernanda López Ruiz',
-    sexo: 'Femenino',
-    edad: 28,
-    localidad: 'Zapopan, Jalisco',
-    ultimaAtencion: '05 / nov / 2025',
-    servicio: 'Limpieza dental',
-    diagnostico: 'Gingivitis leve',
-    tratamiento: 'Profilaxis',
-    odontologo: 'Dra. Martínez',
-    fechaCreacion: '15 / ene / 2025',
-    estado: 'Finalizado',
-  },
-  {
-    id: 3,
-    expediente: '2025GOMR003',
-    avatar: 'https://i.pravatar.cc/150?img=13',
-    nombre: 'Jorge Antonio Ramírez García',
-    sexo: 'Masculino',
-    edad: 45,
-    localidad: 'Tlaquepaque, Jalisco',
-    ultimaAtencion: '12 / nov / 2025',
-    servicio: 'Dolor en muela del juicio',
-    diagnostico: 'Pericoronaritis',
-    tratamiento: 'Extracción',
-    odontologo: 'Dr. Hernández',
-    fechaCreacion: '22 / feb / 2025',
-    estado: 'Pendiente',
-  },
-  {
-    id: 4,
-    expediente: '2025GOMR004',
-    avatar: 'https://i.pravatar.cc/150?img=14',
-    nombre: 'Ana Lucía Torres Villalobos',
-    sexo: 'Femenino',
-    edad: 31,
-    localidad: 'Guadalajara, Jalisco',
-    ultimaAtencion: '08 / nov / 2025',
-    servicio: 'Blanqueamiento dental',
-    diagnostico: 'Dientes con pigmentación',
-    tratamiento: 'Blanqueamiento ambulatorio',
-    odontologo: 'Dra. López',
-    fechaCreacion: '05 / mar / 2025',
-    estado: 'En tratamiento',
-  },
-  {
-    id: 5,
-    expediente: '2025GOMR005',
-    avatar: 'https://i.pravatar.cc/150?img=15',
-    nombre: 'Roberto Carlos Sánchez Medina',
-    sexo: 'Masculino',
-    edad: 52,
-    localidad: 'Zapopan, Jalisco',
-    ultimaAtencion: '15 / nov / 2025',
-    servicio: 'Prótesis dental',
-    diagnostico: 'Edentulismo parcial',
-    tratamiento: 'Colocación de puente fijo',
-    odontologo: 'Dr. González',
-    fechaCreacion: '12 / abr / 2025',
-    estado: 'Finalizado',
-  },
-  {
-    id: 6,
-    expediente: '2025GOMR006',
-    avatar: 'https://i.pravatar.cc/150?img=16',
-    nombre: 'Patricia Isabel Flores Cuevas',
-    sexo: 'Femenino',
-    edad: 27,
-    localidad: 'Tlaquepaque, Jalisco',
-    ultimaAtencion: '02 / nov / 2025',
-    servicio: 'Ortodoncia',
-    diagnostico: 'Maloclusión clase II',
-    tratamiento: 'Brackets metálicos',
-    odontologo: 'Dra. Martínez',
-    fechaCreacion: '20 / may / 2025',
-    estado: 'En tratamiento',
-  },
-])
+type ExpedienteCard = {
+  id: number
+  expediente: string
+  avatar: string
+  nombre: string
+  sexo: string
+  edad: number | string
+  localidad: string
+  ultimaAtencion: string
+  servicio: string
+  diagnostico: string
+  tratamiento: string
+  odontologo: string
+  fechaCreacion: string
+  estado: string
+}
+
+type ResponseExpedientes = {
+  message: string
+  expedientes: ExpedienteCard[]
+}
+
+const records = ref<ExpedienteCard[]>([])
+const isLoading = ref(false)
+
+const mapExpediente = (item: any): ExpedienteCard => {
+  const id = Number(item.id ?? item.id_paciente ?? item.id_expediente ?? 0)
+  return {
+    id,
+    expediente: String(item.expediente ?? item.id_expediente ?? id),
+    avatar: '', // No se usa, se reemplaza con UserAvatar component
+    nombre: item.nombre || 'Paciente',
+    sexo: item.sexo || 'No especificado',
+    edad: item.edad ?? '-',
+    localidad: item.localidad || '',
+    ultimaAtencion: item.ultimaAtencion || 'Sin cita previa',
+    servicio: item.servicio || 'Ninguno',
+    diagnostico: item.diagnostico || 'Sin diagnostico',
+    tratamiento: item.tratamiento || 'Sin tratamiento',
+    odontologo: item.odontologo || 'Dentista',
+    fechaCreacion: item.fechaCreacion || '',
+    estado: item.estado || 'Pendiente',
+  }
+}
+
+const loadRecords = async () => {
+  isLoading.value = true
+  try {
+    const data: ResponseExpedientes = await httpClient.get('/expediente', { params: { limit: 50 } })
+    const lista = Array.isArray(data?.expedientes) ? data.expedientes : []
+    records.value = lista.map(mapExpediente)
+  } catch (error) {
+    console.error('Error al cargar expedientes', error)
+    records.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const filtered = computed(() => {
   let result = records.value
@@ -120,14 +82,54 @@ const filtered = computed(() => {
   return result
 })
 
-const getEstadoColor = (estado: string) => {
-  const colors = {
-    'En tratamiento': 'bg-accent-dim text-accent border-accent/20',
-    Finalizado: 'bg-[#d1fae5] text-[#065f46] border-[#a7f3d0]',
-    Pendiente: 'bg-[#fed7aa] text-[#92400e] border-[#fed7aa]',
-  }
-  return colors[estado as keyof typeof colors] || 'bg-surface text-muted border-border'
+// ── Estado config ─────────────────────────────────────────────────────────────
+// Cada estado tiene: badge (pill), dot color, left border del card, label
+type EstadoConfig = {
+  badge: string // clases Tailwind para el pill
+  dot: string // color del punto indicador
+  label: string // texto normalizado
 }
+
+const ESTADO_CONFIG: Record<string, EstadoConfig> = {
+  // 🟢 Activo, en proceso — verde
+  'En Tratamiento': {
+    badge: 'bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold',
+    dot: 'bg-emerald-500',
+    label: 'En Tratamiento',
+  },
+  // 🟣 Completado — violeta
+  Finalizado: {
+    badge: 'bg-red-100 text-red-800 border border-red-300 font-semibold',
+    dot: 'bg-red-500',
+    label: 'Finalizado',
+  },
+  // 🔴 Sin actividad — rojo
+  'Sin Seguimiento': {
+    badge: 'bg-amber-100 text-amber-800 border border-amber-300 font-semibold',
+    dot: 'bg-amber-500',
+    label: 'Sin Seguimiento',
+  },
+}
+
+// Fallback para estados desconocidos
+const DEFAULT_ESTADO: EstadoConfig = {
+  badge: 'bg-gray-100 text-gray-600 border border-gray-300 font-semibold',
+  dot: 'bg-gray-400',
+  label: '',
+}
+
+function getEstadoConfig(estado: string): EstadoConfig {
+  // Normalizar typo del backend ('En tratamientp' → 'En Tratamiento')
+  const normalized = estado.replace(/tratamientp/i, 'Tratamiento').trim()
+  return ESTADO_CONFIG[normalized] ?? { ...DEFAULT_ESTADO, label: estado }
+}
+
+const filterStatuses = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'En Tratamiento', label: 'En tratamiento' },
+  { value: 'Finalizado', label: 'Finalizado' },
+  { value: 'Sin Seguimiento', label: 'Sin seguimiento' },
+]
 
 const clearSearch = () => {
   searchQuery.value = ''
@@ -136,6 +138,8 @@ const clearSearch = () => {
 const router = useRouter()
 const route = useRoute()
 const dentistId = computed(() => String(route.params.id ?? '0'))
+
+onMounted(loadRecords)
 
 function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
   router.push({
@@ -148,7 +152,7 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
 
 <template>
   <div class="fade-in max-w-7xl">
-    <!-- ── Header ───────────────────────────────────────── -->
+    <!-- ── Header ───────────────────────────────────────────────────── -->
     <div class="mb-8">
       <div class="flex items-center gap-2 text-sm text-muted/60 mb-3">
         <span>🏠</span>
@@ -171,7 +175,7 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
       </div>
     </div>
 
-    <!-- ── Búsqueda y filtros ───────────────────────────── -->
+    <!-- ── Búsqueda y filtros ────────────────────────────────────────── -->
     <div class="mb-8 space-y-4">
       <div class="relative max-w-md">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40" />
@@ -183,60 +187,38 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
         />
         <button
           v-if="searchQuery"
-          @click="clearSearch"
           class="absolute right-3 top-1/2 -translate-y-1/2 text-muted/40 hover:text-muted/70"
+          @click="clearSearch"
         >
           <X class="w-4 h-4" />
         </button>
       </div>
 
+      <!-- Filtros de estado -->
       <div class="flex flex-wrap items-center gap-2">
         <Filter class="w-4 h-4 text-muted/40" />
         <span class="text-xs font-medium text-muted/60 mr-1">Filtrar por:</span>
         <div class="flex flex-wrap gap-2">
           <button
-            @click="selectedStatus = 'todos'"
+            v-for="fs in filterStatuses"
+            :key="fs.value"
             :class="[
               'px-3 py-1.5 text-xs font-medium rounded-full transition-all',
-              selectedStatus === 'todos'
+              selectedStatus === fs.value
                 ? 'bg-accent text-white shadow-sm'
                 : 'bg-card text-muted hover:bg-surface border border-border',
             ]"
+            @click="selectedStatus = fs.value"
           >
-            Todos
-          </button>
-          <button
-            @click="selectedStatus = 'En tratamiento'"
-            :class="[
-              'px-3 py-1.5 text-xs font-medium rounded-full transition-all',
-              selectedStatus === 'En tratamiento'
-                ? 'bg-accent text-white shadow-sm'
-                : 'bg-card text-muted hover:bg-surface border border-border',
-            ]"
-          >
-            En tratamiento
-          </button>
-          <button
-            @click="selectedStatus = 'Finalizado'"
-            :class="[
-              'px-3 py-1.5 text-xs font-medium rounded-full transition-all',
-              selectedStatus === 'Finalizado'
-                ? 'bg-accent text-white shadow-sm'
-                : 'bg-card text-muted hover:bg-surface border border-border',
-            ]"
-          >
-            Finalizado
-          </button>
-          <button
-            @click="selectedStatus = 'Pendiente'"
-            :class="[
-              'px-3 py-1.5 text-xs font-medium rounded-full transition-all',
-              selectedStatus === 'Pendiente'
-                ? 'bg-accent text-white shadow-sm'
-                : 'bg-card text-muted hover:bg-surface border border-border',
-            ]"
-          >
-            Pendiente
+            <!-- Dot de color para estados específicos -->
+            <span
+              v-if="fs.value !== 'todos'"
+              :class="[
+                'inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle',
+                getEstadoConfig(fs.value).dot,
+              ]"
+            />
+            {{ fs.label }}
           </button>
         </div>
       </div>
@@ -247,10 +229,17 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
       </div>
     </div>
 
-    <!-- ── Grid de tarjetas ───────────────────────────────── -->
+    <!-- ── Grid de tarjetas ──────────────────────────────────────────── -->
     <div class="bg-card border border-border rounded-2xl shadow-sm p-5">
+      <!-- Loading -->
+      <div v-if="isLoading" class="py-20 text-center text-muted/50 flex flex-col items-center">
+        <Search class="w-12 h-12 mb-3 opacity-40" />
+        <p class="text-sm font-medium">Cargando expedientes...</p>
+      </div>
+
+      <!-- Empty -->
       <div
-        v-if="filtered.length === 0"
+        v-else-if="filtered.length === 0"
         class="py-20 text-center text-muted/50 flex flex-col items-center"
       >
         <Search class="w-12 h-12 mb-3 opacity-40" />
@@ -258,20 +247,20 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
         <p class="text-xs mt-1">Intenta con otros criterios de búsqueda</p>
       </div>
 
+      <!-- Cards -->
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
           v-for="record in filtered"
           :key="record.id"
-          class="group bg-surface rounded-2xl border border-border overflow-hidden hover:shadow-md transition-all duration-300"
+          :class="[
+            'group bg-surface rounded-2xl border border-border overflow-hidden',
+            'hover:shadow-md transition-all duration-300',
+          ]"
         >
           <!-- Cabecera -->
           <div class="relative p-4 pb-3 border-b border-border bg-card/30">
             <div class="flex items-center gap-3">
-              <img
-                :src="record.avatar"
-                :alt="record.nombre"
-                class="w-14 h-14 rounded-full object-cover ring-2 ring-white shadow-sm"
-              />
+              <UserAvatar :name="record.nombre" role="patient" size="lg" />
               <div class="flex-1 min-w-0">
                 <h3
                   class="font-display font-semibold text-muted text-base truncate"
@@ -279,15 +268,24 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
                 >
                   {{ record.nombre.split(' ').slice(0, 2).join(' ') }}
                 </h3>
-                <p class="text-xs text-muted/50 font-mono mt-0.5">No. {{ record.expediente }}</p>
+                <p class="text-xs text-muted/50 font-mono mt-0.5">No.{{ record.expediente }}</p>
               </div>
+
+              <!-- Badge de estado con dot animado -->
               <span
                 :class="[
-                  'px-2.5 py-1 text-[10px] font-bold rounded-full border',
-                  getEstadoColor(record.estado),
+                  'inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] rounded-full whitespace-nowrap',
+                  getEstadoConfig(record.estado).badge,
                 ]"
               >
-                {{ record.estado }}
+                <span
+                  :class="[
+                    'w-1.5 h-1.5 rounded-full shrink-0',
+                    getEstadoConfig(record.estado).dot,
+                    record.estado === 'En Tratamiento' ? 'animate-pulse' : '',
+                  ]"
+                />
+                {{ getEstadoConfig(record.estado).label || record.estado }}
               </span>
             </div>
           </div>
@@ -318,7 +316,7 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
               <p class="text-xs text-muted/80">
                 <span class="font-medium">Diagnóstico:</span>
                 <span
-                  class="truncate inline-block max-w-[180px] align-bottom"
+                  class="truncate inline-block max-w-45 align-bottom"
                   :title="record.diagnostico"
                 >
                   {{ record.diagnostico }}
@@ -330,9 +328,11 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
             </div>
 
             <div class="flex items-center justify-between text-[11px] text-muted/60 pt-1">
-              <div class="flex items-center gap-1">
+              <div class="flex gap-1">
                 <span class="font-medium">Odontólogo:</span>
-                <span>{{ record.odontologo }}</span>
+                <span class="truncate max-w-24" :title="record.odontologo">{{
+                  record.odontologo
+                }}</span>
               </div>
               <div>
                 <span class="font-medium">Creación:</span>
