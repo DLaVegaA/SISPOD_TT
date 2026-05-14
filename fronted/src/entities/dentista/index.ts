@@ -1,1 +1,1 @@
-//export { default as DentistApi } from "./api/dentistaApi.ts"
+export { dentistaApi } from './api/dentistaApi'
