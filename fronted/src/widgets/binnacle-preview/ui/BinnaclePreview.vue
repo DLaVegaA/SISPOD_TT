@@ -1,58 +1,104 @@
 <script setup lang="ts">
-const items = [
-  {
-    id: 1,
-    title: 'Control mensual',
-    date: '03 / may / 2026',
-    description: 'Ajuste de ortodoncia y recomendaciones de higiene.',
-    status: 'Finalizado',
-  },
-  {
-    id: 2,
-    title: 'Endodoncia',
-    date: '28 / abr / 2026',
-    description: 'Dolor en molar inferior derecho, se realiza limpieza.',
-    status: 'En tratamiento',
-  },
-  {
-    id: 3,
-    title: 'Seguimiento',
-    date: '22 / abr / 2026',
-    description: 'Reevaluacion posterior a extraccion de pieza 18.',
-    status: 'Pendiente',
-  },
-  {
-    id: 4,
-    title: 'Profilaxis',
-    date: '15 / abr / 2026',
-    description: 'Limpieza general y control de placa.',
-    status: 'Finalizado',
-  },
-  {
-    id: 5,
-    title: 'Consulta general',
-    date: '05 / abr / 2026',
-    description: 'Revisar caries incipientes y plan de tratamiento.',
-    status: 'En tratamiento',
-  },
-  {
-    id: 6,
-    title: 'Revision',
-    date: '29 / mar / 2026',
-    description: 'Evaluacion de dolor y sensibilidad localizada.',
-    status: 'Pendiente',
-  },
-]
+import { ref, onMounted, watch } from 'vue'
+import { httpClient } from '@/shared/api/http'
+
+type BitacoraItem = {
+  id: number
+  title: string
+  date: string
+  description: string
+  status: string
+}
+
+type ResponseBitacoras = {
+  message?: string
+  bitacoras: Array<{
+    id_bitacora: number
+    estado_bitacora: string
+    accion_realizada: string
+    fecha_cita: string
+    descripcion: string
+    id_paciente: number
+  }>
+  total?: number
+  totalPaginas?: number
+  limit?: number
+}
+
+const props = defineProps<{ patientId?: string | number }>()
+
+const items = ref<BitacoraItem[]>([])
+const isLoading = ref(false)
+
+const mapStatus = (estado?: string) => {
+  const normalized = (estado || '').toLowerCase()
+  if (normalized === 'revisado' || normalized === 'revisada') return 'Finalizado'
+  if (normalized === 'pendiente') return 'Pendiente'
+  return 'En tratamiento'
+}
+
+const formatDate = (fecha?: string) => {
+  if (!fecha) return 'Sin fecha'
+  const parsed = new Date(fecha)
+  if (Number.isNaN(parsed.getTime())) return 'Sin fecha'
+  return new Intl.DateTimeFormat('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(parsed)
+}
+
+const loadBitacoras = async (patientId?: string | number) => {
+  if (!patientId) {
+    items.value = []
+    return
+  }
+
+  isLoading.value = true
+  try {
+    const data: ResponseBitacoras = await httpClient.get(`/bitacora/paciente/${patientId}`, {
+      params: { limit: 6, pagina: 1 },
+    })
+    const lista = Array.isArray(data?.bitacoras) ? data.bitacoras : []
+    items.value = lista.map((bitacora) => ({
+      id: bitacora.id_bitacora,
+      title: bitacora.accion_realizada || 'Procedimiento',
+      date: formatDate(bitacora.fecha_cita),
+      description: bitacora.descripcion || 'Sin descripcion',
+      status: mapStatus(bitacora.estado_bitacora),
+    }))
+  } catch (error) {
+    console.error('Error al cargar bitacoras del paciente', error)
+    items.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const statusStyles: Record<string, string> = {
   'En tratamiento': 'bg-accent/10 text-accent border-accent/20',
   Finalizado: 'bg-emerald-500/10 text-emerald-600 border-emerald-400/30',
   Pendiente: 'bg-amber-500/10 text-amber-600 border-amber-400/30',
 }
+
+onMounted(() => {
+  loadBitacoras(props.patientId)
+})
+
+watch(
+  () => props.patientId,
+  (value) => {
+    loadBitacoras(value)
+  },
+)
 </script>
 
 <template>
   <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div v-if="isLoading" class="col-span-full text-sm text-muted">Cargando bitacoras...</div>
+    <div v-else-if="items.length === 0" class="col-span-full text-sm text-muted">
+      No hay bitacoras registradas.
+    </div>
     <div
       v-for="item in items"
       :key="item.id"

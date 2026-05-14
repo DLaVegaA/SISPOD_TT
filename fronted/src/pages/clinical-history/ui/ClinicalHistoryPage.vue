@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSessionStore } from '@/entities/session'
 import type { SessionUser } from '@/entities/session/model/types'
@@ -8,6 +8,7 @@ import UiInput from '@/shared/ui/UiInput/UiInput.vue'
 import UiSelect from '@/shared/ui/UiSelect/UiSelect.vue'
 import { OdontogramPreview } from '@/entities/odontogram'
 import { BinnaclePreview } from '@/widgets/binnacle-preview'
+import { httpClient } from '@/shared/api/http'
 
 const sessionStore = useSessionStore()
 const route = useRoute()
@@ -22,10 +23,35 @@ const routeParams = computed(() => ({ id: userId.value }))
 const isReadOnly = computed(() => route.query.mode === 'view')
 const modeLabel = computed(() => (isReadOnly.value ? 'Modo vista' : 'Modo edicion'))
 
+type PacientePerfil = {
+  id_paciente: number
+  nombre: string
+  apellido_paterno?: string
+  apellido_materno?: string
+  correo?: string
+  telefono?: string
+  fecha_nacimiento?: string
+  curp?: string
+  genero?: string
+  direccion?: {
+    calle?: string
+    num_ext?: string
+    num_int?: string
+    colonia?: string
+    municipio?: string
+    estado?: string
+    codigo_postal?: string
+  } | null
+}
+
+const getTodayDate = () => {
+  return new Date().toISOString().slice(0, 10)
+}
+
 const generalInfo = ref({
   consultorio: 'Consultorio Gonzalez',
   odontologo: 'Dra. Laura Gonzalez',
-  fechaElaboracion: '2026-05-04',
+  fechaElaboracion: getTodayDate(),
   estadoExpediente: 'En tratamiento',
 })
 
@@ -46,6 +72,78 @@ const patientInfo = ref({
   responsableLegal: '-',
   telefonoResponsable: '-',
   parentesco: '-',
+})
+
+const buildNombreCompleto = (perfil: PacientePerfil) => {
+  return [perfil.nombre, perfil.apellido_paterno, perfil.apellido_materno]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+}
+
+const buildDomicilio = (direccion?: PacientePerfil['direccion']) => {
+  if (!direccion) return ''
+  const partes = [
+    direccion.calle,
+    direccion.num_ext ? `#${direccion.num_ext}` : null,
+    direccion.num_int ? `Int ${direccion.num_int}` : null,
+    direccion.colonia,
+    direccion.municipio,
+    direccion.estado,
+    direccion.codigo_postal,
+  ].filter(Boolean)
+  return partes.join(', ')
+}
+
+const calcularEdad = (fechaNacimiento?: string) => {
+  if (!fechaNacimiento) return ''
+  const nacimiento = new Date(fechaNacimiento)
+  if (Number.isNaN(nacimiento.getTime())) return ''
+  const hoy = new Date()
+  let edad = hoy.getFullYear() - nacimiento.getFullYear()
+  const mes = hoy.getMonth() - nacimiento.getMonth()
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad -= 1
+  }
+  return String(edad)
+}
+
+const applyPerfil = (perfil: PacientePerfil) => {
+  const nombreCompleto = buildNombreCompleto(perfil)
+  const domicilio = buildDomicilio(perfil.direccion)
+  const edad = calcularEdad(perfil.fecha_nacimiento)
+
+  patientInfo.value = {
+    ...patientInfo.value,
+    nombre: nombreCompleto || patientInfo.value.nombre,
+    correo: perfil.correo || patientInfo.value.correo,
+    telefono: perfil.telefono || patientInfo.value.telefono,
+    fechaNacimiento: perfil.fecha_nacimiento || patientInfo.value.fechaNacimiento,
+    curp: perfil.curp || patientInfo.value.curp,
+    sexo: perfil.genero || patientInfo.value.sexo,
+    edad: edad || patientInfo.value.edad,
+    domicilio: domicilio || patientInfo.value.domicilio,
+  }
+}
+
+const loadPerfilPaciente = async (id?: string) => {
+  if (!id) return
+  try {
+    const perfil: PacientePerfil = await httpClient.get(`/pacientes/${id}/perfil-completo`)
+    if (perfil) {
+      applyPerfil(perfil)
+    }
+  } catch (error) {
+    console.error('Error al cargar perfil del paciente', error)
+  }
+}
+
+onMounted(() => {
+  loadPerfilPaciente(patientId.value)
+})
+
+watch(patientId, (value) => {
+  loadPerfilPaciente(value)
 })
 
 const familyFields = [
@@ -157,7 +255,7 @@ const antecedentesNoPatologicos = ref<Record<string, string>>({
               label="Fecha de elaboracion"
               variant="primary"
               type="date"
-              :disabled="isReadOnly"
+              :disabled="true"
             />
             <div>
               <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">
@@ -308,7 +406,7 @@ const antecedentesNoPatologicos = ref<Record<string, string>>({
               Ver bitacoras
             </RouterLink>
           </div>
-          <BinnaclePreview />
+          <BinnaclePreview :patient-id="patientId" />
         </section>
       </div>
 
