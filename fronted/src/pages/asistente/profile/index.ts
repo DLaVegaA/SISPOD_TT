@@ -1,0 +1,1 @@
+export { default as AssistantProfile } from './ui/AssistantProfile.vue';

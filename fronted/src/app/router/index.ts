@@ -32,11 +32,13 @@ const DentistQuestionnaires = () =>
   import('@/pages/dentista/questionnaires/ui/DentistQuestionnaires.vue')
 const DentistNewQuestionnaires = () =>
   import('@/pages/dentista/newQuestionnaires/ui/DentistNewQuestionnaires.vue')
+const DentistProfile = () => import('@/pages/dentista/profile/ui/DentistProfile.vue')
 const PatientDashboard = () => import('@/pages/paciente/dashboard/ui/PatientDashboard.vue')
 const PatientProfile = () => import('@/pages/paciente/profile/ui/PatientProfile.vue')
 const PatientFollowUp = () => import('@/pages/paciente/followUp/ui/PatientFollowUp.vue')
 const AssistantDashboard = () => import('@/pages/asistente/dashboard/ui/AssistantDashboard.vue')
 const AssistantBinnacle = () => import('@/pages/asistente/binnacle/ui/AssistantBinnacle.vue')
+const AssistantProfile = () => import('@/pages/asistente/profile/ui/AssistantProfile.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -104,6 +106,12 @@ const router = createRouter({
       name: ROUTE_NAMES.DENTIST_HOME,
       component: DentistDashboard,
       meta: { title: 'Dashboard del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
+    },
+    {
+      path: ROUTE_PATHS.DENTIST_PROFILE,
+      name: ROUTE_NAMES.DENTIST_PROFILE,
+      component: DentistProfile,
+      meta: { title: 'Perfil del Dentista', requiresAuth: true, allowedRoles: ['dentist'] },
     },
     {
       path: ROUTE_PATHS.DENTIST_CALENDAR,
@@ -206,6 +214,12 @@ const router = createRouter({
       name: ROUTE_NAMES.ASSISTANT_HOME,
       component: AssistantDashboard,
       meta: { title: 'Dashboard del Asistente', requiresAuth: true, allowedRoles: ['assistant'] },
+    },
+    {
+      path: ROUTE_PATHS.ASSISTANT_PROFILE,
+      name: ROUTE_NAMES.ASSISTANT_PROFILE,
+      component: AssistantProfile,
+      meta: { title: 'Perfil del Asistente', requiresAuth: true, allowedRoles: ['assistant'] },
     },
     {
       path: ROUTE_PATHS.ASSISTANT_BINNACLE,

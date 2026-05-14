@@ -9,6 +9,7 @@ export const ROUTE_NAMES = {
   ADMIN_ROLES: 'admin-roles',
   ADMIN_STATS: 'admin-stats',
   DENTIST_HOME: 'dentist-home',
+  DENTIST_PROFILE: 'dentist-profile',
   DENTIST_CALENDAR: 'dentist-calendar',
   DENTIST_CLINICAL_HISTORY: 'dentist-clinical-history',
   DENTIST_CLINICAL_HISTORY_DETAIL: 'dentist-clinical-history-detail',
@@ -24,6 +25,7 @@ export const ROUTE_NAMES = {
   PATIENT_APPOINTMENT: 'patient-appointment',
   PATIENT_FOLLOW_UP: 'patient-follow-up',
   ASSISTANT_HOME: 'assistant-home',
+  ASSISTANT_PROFILE: 'assistant-profile',
   ASSISTANT_BINNACLE: 'assistant-binnacle',
 } as const
 
@@ -51,6 +53,7 @@ export const ROUTE_PATHS = {
   ADMIN_STATS: '/admin/:id/stats',
 
   DENTIST_HOME: '/dentista/:id/home',
+  DENTIST_PROFILE: '/dentista/:id/perfil',
   DENTIST_CALENDAR: '/dentista/:id/calendario',
   DENTIST_CLINICAL_HISTORY: '/dentista/:id/historial-clinico',
   DENTIST_CLINICAL_HISTORY_DETAIL: '/dentista/:id/historial-clinico/:patientId',
@@ -68,6 +71,7 @@ export const ROUTE_PATHS = {
   PATIENT_FOLLOW_UP: '/paciente/:id/seguimiento',
 
   ASSISTANT_HOME: '/asistente/:id/home',
+  ASSISTANT_PROFILE: '/asistente/:id/perfil',
   ASSISTANT_BINNACLE: '/asistente/:id/bitacora',
 } as const
 
