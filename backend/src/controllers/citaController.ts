@@ -18,6 +18,7 @@ export type FiltrosCita = {
   hasta?: Date;
   user?: any;
   nombre?: string;
+  sinBitacora?: boolean;   // ← nuevo: excluye citas con bitácora activa
 };
 
 export const listarDisponibilidad = async (req: CustomRequest, res: Response) => {
@@ -148,6 +149,8 @@ export const listarCitas = async (req: CustomRequest, res: Response) => {
     
     if (nombre) filtros.nombre = nombre as string;
     filtros.user = req.userData;
+
+    if (req.query.sin_bitacora === 'true') filtros.sinBitacora = true;
 
     const result = await ListarCitasService(filtros, limit, offset);
 
