@@ -4,7 +4,7 @@ import {permitirRoles} from  '../middleware/rolesMiddleware';
 import {crearCuestionario} from '../controllers/cuestionarioController';
 
 
-const router  =Router()
+const router = Router()
 
 router.post('/', verificarToken, crearCuestionario)
 

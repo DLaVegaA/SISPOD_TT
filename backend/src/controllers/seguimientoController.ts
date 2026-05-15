@@ -5,7 +5,8 @@ import {
     listarSeguimientosService,
     obtenerSeguimientoService, 
     editarSeguimientoService,
-    cancelarSeguimientoService
+    cancelarSeguimientoService,
+    obtenerCuestionarioSeguimientoService
 } from '../services/seguimientoService'
 import { Seguimiento } from '../models';
 import { message } from 'telegraf/filters';
@@ -160,6 +161,32 @@ export const cancelarSeguimiento = async(req:Request, res:Response, next:NextFun
         return res.json({
             message:'Seguimiento cancelado'
         });
+    } catch (error) {
+        next(error)
+    }
+}
+
+export const obtenerCuestionarioSeguimiento = async(req:Request, res:Response, next:NextFunction) =>{
+    const id_seguimiento = Number(req.params.id_seguimiento)
+
+    const {tipo_cuestionario} = req.params
+
+
+    try {
+        if(Number.isNaN(id_seguimiento)){
+            throw new AppError('Seguimiento inválido',400);
+        }
+
+        if(tipo_cuestionario !== '72h' && tipo_cuestionario !== '24h'){
+            throw new AppError('Tipo inválido',400);
+        }
+
+        const cuestionario = obtenerCuestionarioSeguimientoService(id_seguimiento, tipo_cuestionario)
+
+        return res.json({
+            message:'Cuestionario',
+            cuestionario
+        })
     } catch (error) {
         next(error)
     }

@@ -1,4 +1,4 @@
-import { Cuestionario } from "../models/index"
+import { Cuestionario, Pregunta } from "../models/index"
 import { AppError } from '../helpers/AppError'
 import {obtenerProcedimientoService} from '../services/catalogoProcedimientosService'
 
@@ -27,3 +27,24 @@ export const crearCuestionarioService = async(id_procedimiento:number,data:any) 
     return cuestionario
 }
 
+export const obtenerCuestionario = async(id_procedimiento:number, tipo_cuestionario:string) =>{
+    const cuestionario = await Cuestionario.findOne({
+        where:{
+            id_procedimiento,
+            tipo_cuestionario
+        },
+        include:[
+            {
+                model:Pregunta,
+                as:'preguntas'
+            }
+        ]
+    });
+
+    if(!cuestionario){
+        throw new AppError('Este procedimiento no tiene cuestionario',404);
+    }
+
+    return cuestionario
+
+}
