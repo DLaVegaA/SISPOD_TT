@@ -9,7 +9,7 @@
         <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">
           Cita asociada
         </label>
-        
+ 
         <div class="relative">
           <select
             v-model="form.id_cita"
@@ -19,18 +19,27 @@
             <option value="" disabled>
               {{ isLoadingCitas ? 'Cargando citas...' : 'Selecciona una cita...' }}
             </option>
-            <option 
-              v-for="cita in citasList" 
-              :key="cita.id_cita" 
+            <option
+              v-for="cita in citasList"
+              :key="cita.id_cita"
               :value="cita.id_cita"
             >
               {{ cita.display_text || formatCita(cita) }}
             </option>
           </select>
         </div>
+ 
+        <!-- Sin citas disponibles -->
+        <p
+          v-if="!isLoadingCitas && !isEditMode && citasList.length === 0"
+          class="text-xs text-muted mt-2"
+        >
+          No hay citas pendientes sin bitácora registrada.
+        </p>
+ 
         <p v-if="errors.id_cita" class="text-red-400 text-xs mt-1">{{ errors.id_cita }}</p>
       </div>
-
+ 
       <div>
         <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">
           Descripción del procedimiento
@@ -44,7 +53,7 @@
         <p v-if="errors.descripcion" class="text-red-400 text-xs mt-1">{{ errors.descripcion }}</p>
       </div>
     </div>
-    
+ 
     <div class="px-6 py-4 border-t border-border flex gap-3 justify-end">
       <button
         type="button"
@@ -64,83 +73,90 @@
     </div>
   </UiModal>
 </template>
-
+ 
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
-import { UiModal } from '@/shared/ui/UiModal' 
+import { UiModal } from '@/shared/ui/UiModal'
 import { httpClient } from '@/shared/api/http'
-
-// Nuevas propiedades para aceptar el modo edición
-const props = defineProps<{ 
-  modelValue: boolean,
-  isEditMode?: boolean,
-  initialData?: { id_cita: string | number, descripcion: string, citaDisplay?: string }
+ 
+const props = defineProps<{
+  modelValue: boolean
+  isEditMode?: boolean
+  initialData?: { id_cita: string | number; descripcion: string; citaDisplay?: string }
 }>()
-
+ 
 const emit = defineEmits(['update:modelValue', 'submit'])
-
+ 
 const form = reactive({
   id_cita: '' as string | number,
-  descripcion: ''
+  descripcion: '',
 })
-
+ 
 const errors = reactive({
   id_cita: '',
-  descripcion: ''
+  descripcion: '',
 })
-
+ 
 const citasList = ref<any[]>([])
 const isLoadingCitas = ref(false)
-
+ 
 watch(() => props.modelValue, async (isOpen) => {
-  if (isOpen) {
-    errors.id_cita = ''
-    errors.descripcion = ''
-    
-    if (props.isEditMode && props.initialData) {
-      // 🟢 MODO EDICIÓN: Llenamos los datos y metemos una "cita falsa" al select para que se muestre bloqueado con el texto correcto
-      form.id_cita = props.initialData.id_cita
-      form.descripcion = props.initialData.descripcion
-      citasList.value = [{
-        id_cita: props.initialData.id_cita,
-        display_text: props.initialData.citaDisplay
-      }]
+  if (!isOpen) return
+ 
+  errors.id_cita = ''
+  errors.descripcion = ''
+ 
+  if (props.isEditMode && props.initialData) {
+    // Modo edición: solo mostramos la cita bloqueada con el texto correcto
+    form.id_cita = props.initialData.id_cita
+    form.descripcion = props.initialData.descripcion
+    citasList.value = [{
+      id_cita: props.initialData.id_cita,
+      display_text: props.initialData.citaDisplay,
+    }]
+    isLoadingCitas.value = false
+  } else {
+    // Modo creación: consultamos solo las citas SIN bitácora activa
+    form.id_cita = ''
+    form.descripcion = ''
+    try {
+      isLoadingCitas.value = true
+      const data: any = await httpClient.get('/citas', {
+        params: {
+          limit: 100,
+          estado: 'Pendiente',
+          sin_bitacora: true,   // ← excluye las que ya tienen bitácora
+        },
+      })
+      citasList.value = data.citas || []
+    } catch (error) {
+      console.error('Error al cargar las citas:', error)
+      citasList.value = []
+    } finally {
       isLoadingCitas.value = false
-    } else {
-      // 🔵 MODO CREACIÓN: Limpiamos y consultamos la BD como lo hacíamos antes
-      form.id_cita = ''
-      form.descripcion = ''
-      try {
-        isLoadingCitas.value = true
-        const data: any = await httpClient.get('/citas', {
-          params: { limit: 100, estado: 'Pendiente' }
-        })
-        citasList.value = data.citas || []
-      } catch (error) {
-        console.error('Error al cargar las citas:', error)
-      } finally {
-        isLoadingCitas.value = false
-      }
     }
   }
 })
-
+ 
 function formatCita(cita: any): string {
   const fecha = new Intl.DateTimeFormat('es-MX', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(new Date(cita.fecha_hora_inicio))
-  
-  const pacienteNombre = cita.paciente?.usuario?.nombre || ''
-  const pacienteApellido = cita.paciente?.usuario?.apellido_paterno || ''
-  
-  return `Cita #${cita.id_cita} - ${fecha} (${pacienteNombre} ${pacienteApellido})`.trim()
+ 
+  const nombre   = cita.paciente?.usuario?.nombre ?? ''
+  const apellido = cita.paciente?.usuario?.apellido_paterno ?? ''
+ 
+  return `Cita #${cita.id_cita} - ${fecha} (${nombre} ${apellido})`.trim()
 }
-
+ 
 function handleSubmit() {
   errors.id_cita = ''
   errors.descripcion = ''
   let isValid = true
-
+ 
   if (!form.id_cita) {
     errors.id_cita = 'Debes seleccionar una cita.'
     isValid = false
@@ -149,11 +165,11 @@ function handleSubmit() {
     errors.descripcion = 'La descripción es obligatoria.'
     isValid = false
   }
-
+ 
   if (isValid) {
-    emit('submit', { 
-      id_cita: Number(form.id_cita), 
-      descripcion: form.descripcion.trim() 
+    emit('submit', {
+      id_cita:     Number(form.id_cita),
+      descripcion: form.descripcion.trim(),
     })
   }
 }
