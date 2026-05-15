@@ -1,0 +1,1 @@
+export { asistenteApi } from './api/asistenteApi.ts'
