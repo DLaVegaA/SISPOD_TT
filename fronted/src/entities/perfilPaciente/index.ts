@@ -1,0 +1,1 @@
+export { pacienteApi } from './api/perfilPacienteApi'

@@ -37,10 +37,11 @@ const expandedId = ref<string | null>(null)
 
 const showCreateModal = ref(false)
 const isEditMode = ref(false);
+const currentEditData = ref({ id_cita: '', descripcion: '', citaDisplay: '' })
 const editingId = ref<string | null>(null);
 
 // Actualizamos las opciones agregando los estados reales de tu BD
-const statusOptions = ['todos', 'Completado', 'Pendiente', 'Requiere atención', 'Revisada']
+const statusOptions = ['todos', 'Pendiente', 'Revisado']
 
 // Ahora lee dinámicamente de bitacoraStore.logs
 const authors = computed(() => {
@@ -94,7 +95,7 @@ function formatTime(iso: string): string {
 }
 
 function statusConfig(status: string) {
-  if (status === 'Completado' || status === 'Revisada')
+  if (status === 'Revisado')
     return { bg: 'bg-emerald-500/10 border-emerald-400/30', text: 'text-emerald-600', icon: CheckCircle2 }
   if (status === 'Pendiente')
     return { bg: 'bg-amber-400/10 border-amber-400/30', text: 'text-amber-600', icon: Clock }
@@ -124,6 +125,12 @@ function editarBitacora(id: string) {
   console.log(`Editando bitácora: ${id}`)
 }
 
+function abrirModalNuevo() {
+  isEditMode.value = false
+  editingId.value = null
+  showCreateModal.value = true
+}
+
 // CU27 Eliminar Bitácoras (RN8: Cambio a estado "Anulada")
 async function anularBitacora(id: string) {
   if (!isDentist.value) return
@@ -150,23 +157,16 @@ async function handleCreateBitacora(payload: { id_cita: number, descripcion: str
 async function handleSaveBitacora(payload: { id_cita: number, descripcion: string }) {
   try {
     if (isEditMode.value && editingId.value) {
-      await bitacoraStore.updateBitacora(editingId.value, payload.descripcion);
-      alert('Cambios guardados');
+      await bitacoraStore.updateBitacora(editingId.value, payload.descripcion)
+      alert('Cambios guardados exitosamente')
     } else {
-      await bitacoraStore.createBitacora(payload);
-      alert('Bitácora creada');
+      await bitacoraStore.createBitacora(payload)
+      alert('Bitácora creada exitosamente')
     }
-    showCreateModal.value = false;
+    showCreateModal.value = false
   } catch (error) {
-    alert('Error al procesar la solicitud');
+    alert('Error al procesar la solicitud')
   }
-}
-
-function iniciarEdicion(log: any) {
-  isEditMode.value = true;
-  editingId.value = log.id;
-  // Aquí podrías pasarle los datos al modal si lo extiendes para recibir props de "initialData"
-  showCreateModal.value = true;
 }
 
 async function marcarComoRevisada(id: string) {
@@ -178,10 +178,26 @@ async function marcarComoRevisada(id: string) {
   }
 }
 
+function iniciarEdicion(log: any) {
+  isEditMode.value = true
+  editingId.value = log.id
+
+  const fecha = formatDate(log.date)
+  const hora = formatTime(log.date)
+
+  currentEditData.value = {
+    id_cita: 'bloqueado', 
+    descripcion: log.description,
+    citaDisplay: `Cita registrada el ${fecha} a las ${hora} (${log.patientName})`
+  }
+
+  showCreateModal.value = true
+}
+
 // ── Stats ─────────────────────────────────────────────────────────────────
 const stats = computed(() => ({
   total: bitacoraStore.logs.filter(l => l.status !== 'Anulada').length,
-  completados: bitacoraStore.logs.filter((l) => l.status === 'Completado' || l.status === 'Revisada').length,
+  completados: bitacoraStore.logs.filter(l => ['Completado', 'Revisada', 'Revisado'].includes(l.status)).length,
   pendientes: bitacoraStore.logs.filter((l) => l.status === 'Pendiente').length,
   atencion: bitacoraStore.logs.filter((l) => l.status === 'Requiere atención').length,
 }))
@@ -208,7 +224,7 @@ onMounted(async () => {
       </div>
 
       <button
-        @click="showCreateModal = true"
+        @click="abrirModalNuevo"
         class="flex items-center gap-2 bg-ink/65 text-text-secondary hover:bg-ink/80 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all hover:scale-105 active:scale-95 self-start md:self-auto"
       >
         <FileText class="w-4 h-4" />
@@ -401,6 +417,7 @@ onMounted(async () => {
                   </button>
                   
                   <button
+                    v-if="log.status == 'Pendiente'"
                     class="px-4 py-2 rounded-xl text-xs font-semibold text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 transition-colors flex items-center gap-2"
                     @click.stop="iniciarEdicion(log)"
                   >
@@ -425,7 +442,9 @@ onMounted(async () => {
     
     <BitacoraFormModal
       v-model="showCreateModal"
-      @submit="handleCreateBitacora"
+      :is-edit-mode="isEditMode"
+      :initial-data="currentEditData"
+      @submit="handleSaveBitacora"
     />
   </div>
 </template>

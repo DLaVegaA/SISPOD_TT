@@ -26,7 +26,7 @@
         </div>
         <div>
           <p class="font-display font-bold text-sm tracking-wide text-black">
-            Consultorio Gonzalez
+            Consultorio González
           </p>
           <p class="text-xs text-muted">Panel de Control</p>
         </div>
@@ -139,6 +139,12 @@ const navItems = computed(() => {
           label: 'Inicio',
         },
         {
+          key: 'dentist-profile',
+          to: { name: ROUTE_NAMES.DENTIST_PROFILE, params },
+          icon: UserRound,
+          label: 'Perfil',
+        },
+        {
           key: 'dentist-calendar',
           to: { name: ROUTE_NAMES.DENTIST_CALENDAR, params },
           icon: CalendarDays,
@@ -215,6 +221,12 @@ const navItems = computed(() => {
           to: { name: ROUTE_NAMES.ASSISTANT_HOME, params },
           icon: UserRound,
           label: 'Inicio',
+        },
+        {
+          key: 'assistant-profile',
+          to: { name: ROUTE_NAMES.ASSISTANT_PROFILE, params },
+          icon: UserRound,
+          label: 'Perfil',
         },
         {
           key: 'assistant-binnacle',

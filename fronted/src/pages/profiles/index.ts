@@ -1,0 +1,1 @@
+export { default as UnifiedProfiles } from './ui/UnifiedProfile.vue';

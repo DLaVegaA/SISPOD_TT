@@ -22,7 +22,7 @@ import logoUrl from '@/shared/assets/logo_diente.png'
       <div class="flex flex-col items-center mb-6 gap-1">
         <div class="flex items-center gap-2">
           <img :src="logoUrl" alt="Logo" class="h-7 w-auto brightness-0 invert" />
-          <span class="text-white font-semibold text-sm">Consultorio Gonzalez</span>
+          <span class="text-white font-semibold text-sm">Consultorio González</span>
         </div>
       </div>
 

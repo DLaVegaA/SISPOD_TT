@@ -1,7 +1,7 @@
 <template>
   <UiModal
     :model-value="modelValue"
-    title="Nueva Bitácora"
+    :title="isEditMode ? 'Editar Descripción' : 'Nueva Bitácora'"
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <div class="px-6 py-5 space-y-5">
@@ -13,8 +13,8 @@
         <div class="relative">
           <select
             v-model="form.id_cita"
-            :disabled="isLoadingCitas"
-            class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
+            :disabled="isLoadingCitas || isEditMode"
+            class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:border-accent transition-colors disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-surface-dim"
           >
             <option value="" disabled>
               {{ isLoadingCitas ? 'Cargando citas...' : 'Selecciona una cita...' }}
@@ -24,14 +24,11 @@
               :key="cita.id_cita" 
               :value="cita.id_cita"
             >
-              {{ formatCita(cita) }}
+              {{ cita.display_text || formatCita(cita) }}
             </option>
           </select>
         </div>
         <p v-if="errors.id_cita" class="text-red-400 text-xs mt-1">{{ errors.id_cita }}</p>
-        <p v-if="citasList.length === 0 && !isLoadingCitas" class="text-amber-500 text-xs mt-1">
-          No hay citas disponibles para registrar.
-        </p>
       </div>
 
       <div>
@@ -58,11 +55,11 @@
       </button>
       <button
         type="button"
-        :disabled="isLoadingCitas || citasList.length === 0"
+        :disabled="isLoadingCitas || (citasList.length === 0 && !isEditMode)"
         class="flex items-center gap-2 bg-ink/65 text-text-secondary hover:bg-ink/80 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
         @click="handleSubmit"
       >
-        Guardar Bitácora
+        {{ isEditMode ? 'Guardar Cambios' : 'Guardar Bitácora' }}
       </button>
     </div>
   </UiModal>
@@ -70,14 +67,20 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
-import { UiModal } from '@/shared/ui/UiModal' // Ajusta si la ruta es diferente
+import { UiModal } from '@/shared/ui/UiModal' 
 import { httpClient } from '@/shared/api/http'
 
-const props = defineProps<{ modelValue: boolean }>()
+// Nuevas propiedades para aceptar el modo edición
+const props = defineProps<{ 
+  modelValue: boolean,
+  isEditMode?: boolean,
+  initialData?: { id_cita: string | number, descripcion: string, citaDisplay?: string }
+}>()
+
 const emit = defineEmits(['update:modelValue', 'submit'])
 
 const form = reactive({
-  id_cita: '',
+  id_cita: '' as string | number,
   descripcion: ''
 })
 
@@ -89,42 +92,42 @@ const errors = reactive({
 const citasList = ref<any[]>([])
 const isLoadingCitas = ref(false)
 
-// Magia aquí: Cada vez que se abre el modal, vamos por las citas frescas
 watch(() => props.modelValue, async (isOpen) => {
   if (isOpen) {
-    // 1. Limpiamos el form
-    form.id_cita = ''
-    form.descripcion = ''
     errors.id_cita = ''
     errors.descripcion = ''
     
-    // 2. Traemos las citas
-    try {
-      isLoadingCitas.value = true
-      // Llamamos a tu endpoint listarCitas. 
-      // NOTA: Asegúrate de que el prefijo sea '/citas' según tu app.ts
-      const data: any  = await httpClient.get('/citas', {
-        params: { 
-          limit: 100,
-          estado: 'Pendiente' // Puedes quitar este filtro si quieres que salgan todas
-        }
-      })
-      citasList.value = data.citas || []
-    } catch (error) {
-      console.error('Error al cargar las citas:', error)
-    } finally {
+    if (props.isEditMode && props.initialData) {
+      // 🟢 MODO EDICIÓN: Llenamos los datos y metemos una "cita falsa" al select para que se muestre bloqueado con el texto correcto
+      form.id_cita = props.initialData.id_cita
+      form.descripcion = props.initialData.descripcion
+      citasList.value = [{
+        id_cita: props.initialData.id_cita,
+        display_text: props.initialData.citaDisplay
+      }]
       isLoadingCitas.value = false
+    } else {
+      // 🔵 MODO CREACIÓN: Limpiamos y consultamos la BD como lo hacíamos antes
+      form.id_cita = ''
+      form.descripcion = ''
+      try {
+        isLoadingCitas.value = true
+        const data: any = await httpClient.get('/citas', {
+          params: { limit: 100, estado: 'Pendiente' }
+        })
+        citasList.value = data.citas || []
+      } catch (error) {
+        console.error('Error al cargar las citas:', error)
+      } finally {
+        isLoadingCitas.value = false
+      }
     }
   }
 })
 
-// Función para darle un formato bonito al texto de las opciones del Select
 function formatCita(cita: any): string {
   const fecha = new Intl.DateTimeFormat('es-MX', {
-    day: '2-digit', 
-    month: 'short', 
-    hour: '2-digit', 
-    minute: '2-digit'
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
   }).format(new Date(cita.fecha_hora_inicio))
   
   const pacienteNombre = cita.paciente?.usuario?.nombre || ''

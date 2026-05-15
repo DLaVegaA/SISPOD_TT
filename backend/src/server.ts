@@ -22,6 +22,7 @@ import preguntaRoutes from './routes/preguntaRoutes'
 import {errorHandler} from './middleware/errorMiddleware'
 import bot from './config/telegram';
 import { configurarBot } from './services/telegramService';
+import asistenteRoutes from './routes/asistenteRoutes';
 
 dotenv.config();
 const app = express();
@@ -113,6 +114,7 @@ app.use('/padecimiento',errorHandler);
 app.use('/expediente', errorHandler)
 app.use('/bitacora', errorHandler); // Provisional en lo que cambio la demas logica
 app.use('/consentimiento', errorHandler); // Provisional en lo que cambio la demas logica
+app.use('/asistentes', asistenteRoutes);
 configurarBot();
 startServer();
 process.once('SIGINT', () => bot.stop('SIGINT'));

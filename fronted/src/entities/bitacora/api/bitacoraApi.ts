@@ -27,6 +27,15 @@ export async function anularBitacoraRequest(id: string): Promise<void> {
 
 export async function createBitacoraRequest(payload: { id_cita: number; descripcion: string }) {
   // Ojo: usa /bitacora o /bitacoras dependiendo de lo que te funcionó hace un momento
-  const { data } = await httpClient.post('/bitacora', payload)
+  const data: any = await httpClient.post('/bitacora', payload)
   return data
 } 
+
+export async function revisarBitacoraRequest(id: string): Promise<void> {
+  // Usamos /bitacora en singular para que coincida con tu backend
+  await httpClient.put(`/bitacora/${id}/revisar`)
+}
+
+export async function editarBitacoraRequest(id: string, descripcion: string): Promise<void> {
+  await httpClient.put(`/bitacora/${id}`, { descripcion })
+}

@@ -1,7 +1,12 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { LogEntry } from './types'
-import { getBitacoras, anularBitacoraRequest, createBitacoraRequest } from '../api/bitacoraApi'
+import { getBitacoras, 
+  anularBitacoraRequest, 
+  createBitacoraRequest, 
+  revisarBitacoraRequest,
+  editarBitacoraRequest
+ } from '../api/bitacoraApi'
 import { httpClient } from '@/shared/api/http'
 
 export const useBitacoraStore = defineStore('bitacora', () => {
@@ -40,16 +45,16 @@ export const useBitacoraStore = defineStore('bitacora', () => {
   }
 
   async function revisarBitacora(id: string): Promise<void> {
-    await httpClient.patch(`/bitacoras/${id}/revisar`);
+    await revisarBitacoraRequest(id)
     const index = logs.value.findIndex(l => l.id === id);
     if (index !== -1 && logs.value[index]) {
-      logs.value[index].status = 'Revisada';
+      logs.value[index].status = 'Revisado';
     }
   }
 
 
   async function updateBitacora(id: string, descripcion: string): Promise<void> {
-    await httpClient.put(`/bitacoras/${id}`, { descripcion });
+    await editarBitacoraRequest(id, descripcion)
     const index = logs.value.findIndex(l => l.id === id);
     if (index !== -1 && logs.value[index]) {
       logs.value[index].description = descripcion;
