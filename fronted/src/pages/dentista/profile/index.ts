@@ -1,0 +1,1 @@
+export { default as DentistProfile } from './ui/DentistProfile.vue';

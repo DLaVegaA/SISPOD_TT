@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts">// vesión que funciona
 import axios from 'axios'
 import { computed, onMounted, ref, watch } from 'vue'
 import {
@@ -112,6 +112,7 @@ const isLoadingDentistSlots = ref(false)
 const isLoadingEditSlots = ref(false)
 const isLoadingAppointmentTypes = ref(false)
 const isSaving = ref(false)
+const pacienteTieneCitaActiva = ref(false)
 
 const errorMsg = ref<string | null>(null)
 const successMsg = ref<string | null>(null)
@@ -135,6 +136,16 @@ const isLoadingDentistEditSlots = ref(false)
 
 const ID_DENTISTA = 1
 const formCita = ref({ tipo_cita: 1 })
+
+const fechaEdicion = ref<string>('')   // fecha elegida para reprogramar
+const fechaEdicionDentista = ref<string>('')
+ 
+// Fecha mínima seleccionable: ahora + 36h (regla de anticipación para editar)
+const editDateMin = computed(() => {
+  const d = new Date()
+  d.setHours(d.getHours() + 36)
+  return d.toISOString().split('T')[0] ?? ''
+})
 
 const dentistForm = ref({
   patientId: '',
@@ -254,17 +265,24 @@ const calendarDays = computed<CalendarCell[]>(() => {
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const finDelDia = new Date(y, m, d, 23, 59, 59)
-    const isValid = isPatient.value ? finDelDia > limite48h : true
+  const diaSemana = new Date(y, m, d).getDay()
+  const esDomingo = diaSemana === 0
 
-    cells.push({
-      day: d,
-      current: true,
-      key: `${y}-${m + 1}-${d}`,
-      isToday: d === today.getDate() && m === today.getMonth() && y === today.getFullYear(),
-      isValid,
-    })
-  }
+  const primerSlot = new Date(y, m, d, 9, 0, 0)
+  const isValid = esDomingo
+    ? false
+    : isPatient.value
+      ? primerSlot > limite48h
+      : true
+
+  cells.push({
+    day: d,
+    current: true,
+    key: `${y}-${m + 1}-${d}`,
+    isToday: d === today.getDate() && m === today.getMonth() && y === today.getFullYear(),
+    isValid,
+  })
+}
 
   const remaining = 42 - cells.length
   for (let d = 1; d <= remaining; d++) {
@@ -494,15 +512,34 @@ function selectAppointment(appt: Appointment, cellKey: string) {
 
 async function selectDay(cell: CalendarCell) {
   if (!cell.current) return
-  if (isPatient.value && !cell.isValid) return
-
+ 
+  if (isPatient.value && !cell.isValid) {
+    resetPanelState()
+    showForm.value = false
+    return
+  }
+ 
   const [y, m, d] = cell.key.split('-')
   const formattedDate = `${y}-${(m ?? '').padStart(2, '0')}-${(d ?? '').padStart(2, '0')}`
+ 
+  // Modo reprogramación paciente
+  if (isPatient.value && isEditing.value) {
+    fechaEdicion.value = formattedDate
+    await fetchSlotsEdicion(formattedDate)
+    return
+  }
+ 
+  // Modo reprogramación dentista
+  if (isDentist.value && isEditingDentist.value) {
+    fechaEdicionDentista.value = formattedDate
+    await fetchDentistEditSlots(formattedDate, dentistSelectedAppointment.value?.typeId ?? 1)
+    return
+  }
+ 
   selectedDate.value = formattedDate
-
   resetPanelState()
   showForm.value = false
-
+ 
   if (isDentist.value) {
     dentistForm.value.date = formattedDate
   }
@@ -541,21 +578,27 @@ function setSelectedSlot(slot: string) {
 }
 
 function openCreateForm() {
+  // RN17 — paciente con cita activa no puede agendar otra
+  if (isPatient.value && pacienteTieneCitaActiva.value) {
+    errorMsg.value =
+      'Ya tienes una cita activa. Cancela o completa tu cita actual antes de agendar una nueva.'
+    return
+  }
+ 
   errorMsg.value = null
   dentistSelectedAppointment.value = null
   citaSeleccionada.value = null
   isEditingDentist.value = false
   isEditing.value = false
   showForm.value = true
-
+ 
   if (isDentist.value) {
     if (selectedDate.value) {
       dentistForm.value.date = selectedDate.value
     }
-    // fetchDisponibilidadDentista() se dispara automáticamente por el watcher de dentistForm.value.date
     return
   }
-
+ 
   void fetchDisponibilidad()
 }
 
@@ -582,6 +625,7 @@ async function activarEdicionDentista() {
   errorMsg.value = null
   isEditingDentist.value = true
   dentistEditTime.value = null
+  fechaEdicionDentista.value = selectedDate.value  // parte desde el día actual de la cita
   await fetchDentistEditSlots(selectedDate.value, dentistSelectedAppointment.value.typeId)
 }
 
@@ -702,24 +746,18 @@ async function fetchDisponibilidadDentista() {
   }
 }
 
-async function activarEdicion() {
-  if (!selectedDate.value || !citaSeleccionada.value || !isPatient.value) return
-
-  isEditing.value = true
-  horaEditada.value = null
-  errorMsg.value = null
+async function fetchSlotsEdicion(fecha: string) {
+  if (!citaSeleccionada.value) return
   isLoadingEditSlots.value = true
   horariosEdicion.value = []
-
+  horaEditada.value = null
   try {
     const tipoCita = citaSeleccionada.value.typeId ?? 1
     const res = (await citasApi.obtenerDisponibilidad(
-      selectedDate.value,
+      fecha,
       tipoCita,
       ID_DENTISTA,
     )) as DisponibilidadResponse
-
-    // Filtramos usando la regla de 36 hrs para editar
     horariosEdicion.value = filterSlotsByAnticipation(res?.disponibles ?? [], 36)
   } catch (error) {
     console.error('Error al buscar horarios para edición:', error)
@@ -729,9 +767,19 @@ async function activarEdicion() {
   }
 }
 
+async function activarEdicion() {
+  if (!selectedDate.value || !citaSeleccionada.value || !isPatient.value) return
+  isEditing.value = true
+  horaEditada.value = null
+  errorMsg.value = null
+  fechaEdicion.value = selectedDate.value   // parte desde el día actual de la cita
+  await fetchSlotsEdicion(selectedDate.value)
+}
+
 function cancelarEdicion() {
   isEditing.value = false
   horaEditada.value = null
+  fechaEdicion.value = ''
   errorMsg.value = null
 }
 
@@ -837,7 +885,16 @@ async function cargarCitasDelCalendario() {
         })
       })
     }
+
     patientAppointments.value = map
+ 
+    // RN17 — detectar si el paciente ya tiene alguna cita activa futura
+    const ahora = new Date()
+    pacienteTieneCitaActiva.value = (res?.citas ?? []).some(
+      (c) =>
+        (c.estado === 'Pendiente' || c.estado === 'Confirmada') &&
+        new Date(c.fecha_hora_inicio) > ahora,
+    )
   } catch (error) {
     console.error('Error al recargar citas:', error)
   }
@@ -966,8 +1023,14 @@ async function handleCancelarCitaDentista(idCita: number) {
 function cancelarEdicionDentista() {
   isEditingDentist.value = false
   dentistEditTime.value = null
+  fechaEdicionDentista.value = ''
   errorMsg.value = null
 }
+
+/* watch(fechaEdicion, (nuevaFecha) => {
+  if (!isEditing.value || !nuevaFecha || !isPatient.value) return
+  void fetchSlotsEdicion(nuevaFecha)
+}) */
 
 watch([currentYear, currentMonth], () => {
   if (isDentist.value) {
@@ -1114,6 +1177,48 @@ onMounted(async () => {
       </div>
     </Transition>
 
+    <!-- RN17 — Aviso cita activa -->
+    <div
+      v-if="isPatient && pacienteTieneCitaActiva"
+      class="mb-4 flex items-start gap-3 px-4 py-3.5 bg-amber-500/10 border border-amber-400/30 text-amber-800 rounded-2xl text-sm"
+    >
+      <Info class="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+      <div>
+        <p class="font-bold text-sm">Ya tienes una cita activa</p>
+        <p class="text-xs text-amber-700 mt-0.5">
+          Solo puedes tener una cita pendiente o confirmada a la vez.
+          Si necesitas cambiar el horario, usa la opción <strong>Modificar Horario</strong>
+          en tu cita existente.
+        </p>
+      </div>
+    </div>
+
+    <!-- CU8: banner modo reprogramación -->
+    <Transition name="toast">
+      <div
+        v-if="isPatient && isEditing"
+        class="mb-4 flex items-center gap-3 px-4 py-3 bg-accent/10 border border-accent/30 text-accent rounded-2xl text-sm font-medium"
+      >
+        <CalendarIcon class="w-4 h-4 shrink-0" />
+        <span>
+          Selecciona el <strong>nuevo día</strong> en el calendario para reprogramar tu cita.
+        </span>
+      </div>
+    </Transition>
+
+    <!-- CU8: banner modo reprogramación dentista -->
+    <Transition name="toast">
+      <div
+        v-if="isDentist && isEditingDentist"
+        class="mb-4 flex items-center gap-3 px-4 py-3 bg-accent/10 border border-accent/30 text-accent rounded-2xl text-sm font-medium"
+      >
+        <CalendarIcon class="w-4 h-4 shrink-0" />
+        <span>
+          Selecciona el <strong>nuevo día</strong> en el calendario para reprogramar la cita.
+        </span>
+      </div>
+    </Transition>
+
     <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
       <div class="xl:col-span-3 bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
         <div class="grid grid-cols-7 text-center bg-surface/50 border-b border-border">
@@ -1135,7 +1240,12 @@ onMounted(async () => {
               cell.current && (!isPatient || cell.isValid)
                 ? 'hover:bg-accent/5 cursor-pointer'
                 : 'bg-surface/20 opacity-40 cursor-not-allowed',
-              selectedCellKey === cell.key ? 'bg-accent/10 ring-2 ring-inset ring-accent/30' : '',
+              (isEditing && isPatient && fromInputDateToKey(fechaEdicion) === cell.key) ||
+              (isEditingDentist && isDentist && fromInputDateToKey(fechaEdicionDentista) === cell.key)
+                ? 'bg-emerald-500/10 ring-2 ring-inset ring-emerald-400/40'
+                : selectedCellKey === cell.key
+                  ? 'bg-accent/10 ring-2 ring-inset ring-accent/30'
+                  : '',
             ]"
             @click="selectDay(cell)"
           >
@@ -1211,71 +1321,97 @@ onMounted(async () => {
               </div>
             </div>
 
-            <div v-if="selectedIsEditing" class="space-y-4">
-              <div class="space-y-2">
-                <label class="text-[10px] font-bold text-muted uppercase px-1">
-                  Selecciona un nuevo horario
-                </label>
-
-                <div
-                  v-if="isLoadingSelectedEditSlots"
-                  class="text-center py-4 text-xs text-muted animate-pulse"
-                >
-                  Buscando horarios disponibles...
-                </div>
-
-                <div
-                  v-else-if="selectedEditSlots.length === 0"
-                  class="text-center py-4 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
-                >
-                  No hay otros horarios disponibles este día.
-                </div>
-
-                <div v-else class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
-                  <button
-                    v-for="slot in selectedEditSlots"
-                    :key="slot"
-                    :class="[
-                      'py-2 text-xs font-bold rounded-xl transition-all border',
-                      selectedEditTime === slot
-                        ? 'bg-accent text-white border-accent shadow-sm'
-                        : 'bg-white border-border text-black hover:border-accent/50 hover:bg-accent/5',
-                    ]"
-                    @click="setSelectedEditTime(slot)"
-                  >
-                    {{ formatHora(slot) }}
-                  </button>
-                </div>
+          <div v-if="selectedIsEditing" class="space-y-4">
+ 
+            <!-- Fecha elegida para reprogramar (solo paciente) -->
+            <div
+              v-if="isPatient && fechaEdicion"
+              class="p-3 bg-surface rounded-xl border border-border flex items-center gap-2"
+            >
+              <CalendarIcon class="w-4 h-4 text-accent shrink-0" />
+              <div>
+                <p class="text-[10px] text-muted font-bold uppercase">Nueva fecha</p>
+                <p class="text-sm font-bold text-black">{{ fechaEdicion }}</p>
               </div>
-
-              <div
-                v-if="errorMsg"
-                class="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-400/30 text-red-600 rounded-xl text-xs font-medium"
-              >
-                <AlertCircle class="w-3.5 h-3.5 shrink-0" />
-                {{ errorMsg }}
-              </div>
-
-              <button
-                :disabled="!selectedEditTime || isSaving"
-                :class="[
-                  'w-full py-3 rounded-2xl text-sm font-bold transition-all',
-                  selectedEditTime && !isSaving
-                    ? 'bg-accent text-white shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95'
-                    : 'bg-surface text-muted cursor-not-allowed border border-border',
-                ]"
-                @click="handleSaveEdit"
-              >
-                {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
-              </button>
-
-              <button
-                class="w-full py-2 text-xs font-bold text-muted hover:text-black transition-colors"
-                @click="handleCancelEditMode"
-              >
-                Cancelar Edición
-              </button>
             </div>
+
+            <!-- Fecha elegida para reprogramar (dentista) -->
+            <div
+              v-if="isDentist && fechaEdicionDentista"
+              class="p-3 bg-surface rounded-xl border border-border flex items-center gap-2"
+            >
+              <CalendarIcon class="w-4 h-4 text-accent shrink-0" />
+              <div>
+                <p class="text-[10px] text-muted font-bold uppercase">Nueva fecha</p>
+                <p class="text-sm font-bold text-black">{{ fechaEdicionDentista }}</p>
+              </div>
+            </div>
+ 
+            <!-- Slots del nuevo día -->
+            <div class="space-y-2">
+              <label class="text-[10px] font-bold text-muted uppercase px-1">
+                Nuevo horario
+              </label>
+ 
+              <div
+                v-if="isLoadingSelectedEditSlots"
+                class="text-center py-4 text-xs text-muted animate-pulse"
+              >
+                Buscando horarios disponibles...
+              </div>
+ 
+              <div
+                v-else-if="selectedEditSlots.length === 0"
+                class="text-center py-4 text-xs text-red-500 font-bold bg-red-50 rounded-xl border border-red-200"
+              >
+                No hay horarios disponibles para este día.
+              </div>
+ 
+              <div v-else class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                <button
+                  v-for="slot in selectedEditSlots"
+                  :key="slot"
+                  :class="[
+                    'py-2 text-xs font-bold rounded-xl transition-all border',
+                    selectedEditTime === slot
+                      ? 'bg-accent text-white border-accent shadow-sm'
+                      : 'bg-white border-border text-black hover:border-accent/50 hover:bg-accent/5',
+                  ]"
+                  @click="setSelectedEditTime(slot)"
+                >
+                  {{ formatHora(slot) }}
+                </button>
+              </div>
+            </div>
+ 
+            <div
+              v-if="errorMsg"
+              class="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-400/30 text-red-600 rounded-xl text-xs font-medium"
+            >
+              <AlertCircle class="w-3.5 h-3.5 shrink-0" />
+              {{ errorMsg }}
+            </div>
+ 
+            <button
+              :disabled="!selectedEditTime || isSaving"
+              :class="[
+                'w-full py-3 rounded-2xl text-sm font-bold transition-all',
+                selectedEditTime && !isSaving
+                  ? 'bg-accent text-white shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95'
+                  : 'bg-surface text-muted cursor-not-allowed border border-border',
+              ]"
+              @click="handleSaveEdit"
+            >
+              {{ isSaving ? 'Guardando...' : 'Confirmar Reprogramación' }}
+            </button>
+ 
+            <button
+              class="w-full py-2 text-xs font-bold text-muted hover:text-black transition-colors"
+              @click="handleCancelEditMode"
+            >
+              Cancelar
+            </button>
+          </div>
 
             <template v-else>
               <button

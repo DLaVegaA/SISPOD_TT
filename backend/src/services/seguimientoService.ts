@@ -2,6 +2,7 @@ import {Seguimiento, Catalogo_Procedimientos, Cita, Paciente, Usuario} from '../
 import { AppError } from '../helpers/AppError';
 import { obtenerCitaId } from './citaService';
 import {obtenerProcedimientoService} from './catalogoProcedimientosService'
+import {obtenerCuestionario} from './cuestionarioService'
 export const crearSeguimientoService = async(id_cita:number, id_procedimiento:number, data:any) =>{
     const cita = await obtenerCitaId(id_cita);
     if(!cita){
@@ -139,4 +140,36 @@ export const editarSeguimientoService = async(id_seguimiento:number,data:any) =>
 
     return seguimiento
 
+}
+
+export const cancelarSeguimientoService = async(id_seguimiento:number) =>{
+    const seguimiento = await Seguimiento.findByPk(id_seguimiento);
+
+     if(!seguimiento){
+        throw new AppError('No se encontró el seguimiento',404);
+    }
+
+    if(seguimiento.estado_seguimiento !== 'en curso'){
+        throw new AppError('Solo se pueden cancelar seguimientos en curso',400);
+    }
+
+    await seguimiento.update({
+        estado_seguimiento: 'cancelado'
+    });
+
+    return seguimiento;
+}
+
+
+export const obtenerCuestionarioSeguimientoService = async(id_seguimiento:number, tipo_cuestionario:string) =>{
+
+    const seguimiento = await Seguimiento.findByPk(id_seguimiento)
+
+    if(!seguimiento){
+        throw new AppError('No se encontró el seguimiento',404);
+    }
+
+    const cuestionario = await obtenerCuestionario(seguimiento.id_procedimiento,tipo_cuestionario )
+
+    return cuestionario;
 }

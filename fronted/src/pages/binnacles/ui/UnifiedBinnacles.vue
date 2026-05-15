@@ -41,7 +41,7 @@ const currentEditData = ref({ id_cita: '', descripcion: '', citaDisplay: '' })
 const editingId = ref<string | null>(null);
 
 // Actualizamos las opciones agregando los estados reales de tu BD
-const statusOptions = ['todos', 'Completado', 'Pendiente', 'Requiere atención', 'Revisada']
+const statusOptions = ['todos', 'Pendiente', 'Revisado']
 
 // Ahora lee dinámicamente de bitacoraStore.logs
 const authors = computed(() => {
@@ -95,7 +95,7 @@ function formatTime(iso: string): string {
 }
 
 function statusConfig(status: string) {
-  if (status === 'Completado' || status === 'Revisada' || status === 'Revisado')
+  if (status === 'Revisado')
     return { bg: 'bg-emerald-500/10 border-emerald-400/30', text: 'text-emerald-600', icon: CheckCircle2 }
   if (status === 'Pendiente')
     return { bg: 'bg-amber-400/10 border-amber-400/30', text: 'text-amber-600', icon: Clock }
@@ -417,6 +417,7 @@ onMounted(async () => {
                   </button>
                   
                   <button
+                    v-if="log.status == 'Pendiente'"
                     class="px-4 py-2 rounded-xl text-xs font-semibold text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 transition-colors flex items-center gap-2"
                     @click.stop="iniciarEdicion(log)"
                   >

@@ -241,13 +241,13 @@ Pregunta.belongsTo(Cuestionario,{
   as:'cuestionario'
 });
 
-Catalogo_Procedimientos.hasMany(Pregunta,{
-  foreignKey:'id_procedimiento_asociado',
-  as:'preguntas'
+Catalogo_Procedimientos.hasMany(Cuestionario,{
+  foreignKey:'id_procedimiento',
+  as:'cuestionarios'
 });
 
-Pregunta.belongsTo(Catalogo_Procedimientos,{
-  foreignKey:'id_procedimiento_asociado',
+Cuestionario.belongsTo(Catalogo_Procedimientos,{
+  foreignKey:'id_procedimiento',
   as:'procedimiento_asociado'
 });
 

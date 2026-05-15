@@ -1,0 +1,1 @@
+export { dentistaApi } from './api/dentistaApi'

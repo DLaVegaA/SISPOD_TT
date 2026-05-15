@@ -217,31 +217,61 @@ export const actualizarDentista = async(req:Request, res:Response)=>{
     }
 }
 
-export const obtenerPerfilDentista = async(req:CustomRequest, res:Response)=>{
-    try {
-        const id_usuario= req.userData?.id;
-        if (!id_usuario) {
-            return res.status(401).json({ message: "Sesión no válida" });
-        }
-        const perfil = await Dentista.findOne({
-            where:{id_usuario},
-            include:[
-                {
-                    model: Usuario,
-                    as:'usuario',
-                    attributes: {exclude:['contrasena']}
-                }
-            ]
-        });
-        if(!perfil){
-            return res.status(404).json({
-                message:'Perfil no encontrado'
-            });
-        }
+export const obtenerPerfilDentista = async (req: CustomRequest, res: Response) => {
+  try {
+    const id_usuario = req.userData?.id;
+    if (!id_usuario) return res.status(401).json({ message: 'Sesión no válida' });
+ 
+    const perfil = await Dentista.findOne({
+      where: { id_usuario },
+      include: [{ model: Usuario, as: 'usuario', attributes: { exclude: ['contrasena'] } }],
+    });
+    if (!perfil) return res.status(404).json({ message: 'Perfil no encontrado' });
+ 
+    const usuarioData = (perfil.get('usuario') as any).toJSON();
+ 
+    // Respuesta aplanada — igual que paciente, el frontend espera este formato
+    return res.status(200).json({
+      ...usuarioData,
+      id_dentista: perfil.id_dentista,
+      no_cedula: perfil.no_cedula,
+    });
+  } catch (error) {
+    console.error('Error al obtener perfil del dentista:', error);
+    return res.status(500).json({ message: 'Error del servidor' });
+  }
+};
 
-        return res.json(perfil);
-    } catch (error) {
-        console.log('Error al obtener perfil del dentista: ', error);
-        return res.status(500).json({message:'Error del servidor'})
-    }
-}
+export const actualizarPerfilDentista = async (req: CustomRequest, res: Response) => {
+  const { nombre, apellido_paterno, apellido_materno, telefono, correo, no_cedula } = req.body;
+ 
+  // apellido_materno es OPCIONAL
+  if (!nombre || !apellido_paterno || !telefono || !correo || !no_cedula)
+    return res.status(400).json({ message: 'Faltan campos obligatorios' });
+  if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(nombre))
+    return res.status(400).json({ message: 'El nombre solo puede contener letras' });
+  if (apellido_materno && !/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(apellido_materno))
+    return res.status(400).json({ message: 'El apellido materno solo puede contener letras' });
+  if (!/^\d{10}$/.test(String(telefono)))
+    return res.status(400).json({ message: 'El teléfono debe tener 10 dígitos' });
+ 
+  const t = await sequelize.transaction();
+  try {
+    const dentista = await Dentista.findOne({ where: { id_usuario: req.userData?.id }, transaction: t });
+    if (!dentista) { await t.rollback(); return res.status(404).json({ message: 'Dentista no encontrado' }); }
+ 
+    await Usuario.update(
+      { nombre, apellido_paterno, apellido_materno: apellido_materno || null, telefono, correo },
+      { where: { id_usuario: dentista.id_usuario }, transaction: t },
+    );
+    await dentista.update({ no_cedula }, { transaction: t });
+ 
+    await t.commit();
+    return res.status(200).json({ message: 'Perfil del dentista actualizado correctamente' });
+  } catch (error: any) {
+    await t.rollback();
+    if (error.name === 'SequelizeUniqueConstraintError')
+      return res.status(400).json({ message: 'El correo o cédula ya están registrados' });
+    return res.status(500).json({ message: 'Error del servidor' });
+  }
+};
