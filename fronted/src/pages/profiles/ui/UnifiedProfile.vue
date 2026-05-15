@@ -26,7 +26,7 @@ const roleMeta: Record<string, { label: string; color: string; bg: string }> = {
   assistant: { label: 'Asistente',     color: 'text-violet-800',  bg: 'bg-violet-100 border-violet-200' },
   admin:     { label: 'Administrador', color: 'text-amber-800',   bg: 'bg-amber-100 border-amber-200' },
 }
-const currentMeta = computed(() => roleMeta[role.value ?? ''] ?? roleMeta['admin'])
+const currentMeta = computed(() => roleMeta[role.value ?? ''] ?? { label: 'Usuario', color: 'text-gray-800', bg: 'bg-gray-100 border-gray-200' })
 
 const formData = reactive({
   nombre: '', apellido_paterno: '', apellido_materno: '',
@@ -60,13 +60,13 @@ const cargarPerfil = async () => {
   try {
     let data: any
     if (role.value === 'patient') {
-      const res = await pacienteApi.obtenerMiPerfil()
+      const res = await pacienteApi.obtenerMiPerfil() as any
       data = res.data ?? res; idEntidad.value = data.id_paciente ?? null
     } else if (role.value === 'dentist') {
-      const res = await dentistaApi.obtenerMiPerfil()
+      const res = await dentistaApi.obtenerMiPerfil() as any
       data = res.data ?? res; idEntidad.value = data.id_dentista ?? null
     } else if (role.value === 'assistant') {
-      const res = await asistenteApi.obtenerMiPerfil()
+      const res = await asistenteApi.obtenerMiPerfil() as any
       data = res.data ?? res; idEntidad.value = data.id_asistente ?? null
     } else { return }
 
@@ -104,13 +104,13 @@ const handleUpdate = async () => {
     } else if (role.value === 'dentist') {
       await dentistaApi.actualizarPerfil(idEntidad.value!, {
         nombre: formData.nombre, apellido_paterno: formData.apellido_paterno,
-        apellido_materno: formData.apellido_materno || null,
+        apellido_materno: formData.apellido_materno || '',
         telefono: formData.telefono, correo: formData.correo, cedula: formData.cedula,
       })
     } else if (role.value === 'assistant') {
       await asistenteApi.actualizarPerfil({
         nombre: formData.nombre, apellido_paterno: formData.apellido_paterno,
-        apellido_materno: formData.apellido_materno || null,
+        apellido_materno: formData.apellido_materno || '',
         telefono: formData.telefono, correo: formData.correo,
       })
     }
@@ -162,9 +162,9 @@ onMounted(async () => {
             {{ fullName || '—' }}
           </h2>
           <span
-            :class="['text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border', currentMeta.bg, currentMeta.color]"
+            :class="['text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border', currentMeta?.bg, currentMeta?.color]"
           >
-            {{ currentMeta.label }}
+            {{ currentMeta?.label }}
           </span>
         </div>
 
