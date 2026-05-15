@@ -27,6 +27,15 @@ Cuestionario.init(
         descripcion: {
             type: DataTypes.TEXT,
             allowNull: true
+        },
+        id_procedimiento: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            references: {
+                model: 'catalogo_procedimientos',
+                key: 'id_procedimiento'
+            },
+            onDelete: 'CASCADE'
         }
     },
     {

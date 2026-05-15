@@ -140,3 +140,21 @@ export const editarSeguimientoService = async(id_seguimiento:number,data:any) =>
     return seguimiento
 
 }
+
+export const cancelarSeguimientoService = async(id_seguimiento:number) =>{
+    const seguimiento = await Seguimiento.findByPk(id_seguimiento);
+
+     if(!seguimiento){
+        throw new AppError('No se encontró el seguimiento',404);
+    }
+
+    if(seguimiento.estado_seguimiento !== 'en curso'){
+        throw new AppError('Solo se pueden cancelar seguimientos en curso',400);
+    }
+
+    await seguimiento.update({
+        estado_seguimiento: 'cancelado'
+    });
+
+    return seguimiento;
+}
