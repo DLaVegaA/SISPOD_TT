@@ -254,17 +254,24 @@ const calendarDays = computed<CalendarCell[]>(() => {
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const finDelDia = new Date(y, m, d, 23, 59, 59)
-    const isValid = isPatient.value ? finDelDia > limite48h : true
+  const diaSemana = new Date(y, m, d).getDay()
+  const esDomingo = diaSemana === 0
 
-    cells.push({
-      day: d,
-      current: true,
-      key: `${y}-${m + 1}-${d}`,
-      isToday: d === today.getDate() && m === today.getMonth() && y === today.getFullYear(),
-      isValid,
-    })
-  }
+  const primerSlot = new Date(y, m, d, 9, 0, 0)
+  const isValid = esDomingo
+    ? false
+    : isPatient.value
+      ? primerSlot > limite48h
+      : true
+
+  cells.push({
+    day: d,
+    current: true,
+    key: `${y}-${m + 1}-${d}`,
+    isToday: d === today.getDate() && m === today.getMonth() && y === today.getFullYear(),
+    isValid,
+  })
+}
 
   const remaining = 42 - cells.length
   for (let d = 1; d <= remaining; d++) {
@@ -494,15 +501,22 @@ function selectAppointment(appt: Appointment, cellKey: string) {
 
 async function selectDay(cell: CalendarCell) {
   if (!cell.current) return
-  if (isPatient.value && !cell.isValid) return
-
+ 
+  if (isPatient.value && !cell.isValid) {
+    // Día fuera de la ventana de 48h: limpiamos el panel para que no
+    // quede abierto un formulario de una selección anterior.
+    resetPanelState()
+    showForm.value = false
+    return
+  }
+ 
   const [y, m, d] = cell.key.split('-')
   const formattedDate = `${y}-${(m ?? '').padStart(2, '0')}-${(d ?? '').padStart(2, '0')}`
   selectedDate.value = formattedDate
-
+ 
   resetPanelState()
   showForm.value = false
-
+ 
   if (isDentist.value) {
     dentistForm.value.date = formattedDate
   }
