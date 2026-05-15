@@ -43,15 +43,15 @@ Seguimiento.init(
             onDelete: 'CASCADE'
         },
         estado_seguimiento: {
-            type: DataTypes.ENUM('en curso', 'alerta', 'finalizado'),
+            type: DataTypes.ENUM('en curso', 'alerta', 'finalizado','cancelado'),
             allowNull: false,
             defaultValue: 'en curso'
         },
-        plan_cuidados: {
+        plan_cuidados: {// data
             type: DataTypes.TEXT,
             allowNull: true
         },
-        indicaciones_medicas: {
+        indicaciones_medicas: {//data
             type: DataTypes.TEXT,
             allowNull: true
         },
