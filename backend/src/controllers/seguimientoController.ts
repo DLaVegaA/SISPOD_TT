@@ -176,12 +176,12 @@ export const obtenerCuestionarioSeguimiento = async(req:Request, res:Response, n
         if(Number.isNaN(id_seguimiento)){
             throw new AppError('Seguimiento inválido',400);
         }
-
+        
         if(tipo_cuestionario !== '72h' && tipo_cuestionario !== '24h'){
             throw new AppError('Tipo inválido',400);
         }
 
-        const cuestionario = obtenerCuestionarioSeguimientoService(id_seguimiento, tipo_cuestionario)
+        const cuestionario = await obtenerCuestionarioSeguimientoService(id_seguimiento, tipo_cuestionario)
 
         return res.json({
             message:'Cuestionario',
