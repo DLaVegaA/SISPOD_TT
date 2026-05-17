@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-3">
- 
+
     <!-- escala_1_10 ──────────────────────────────────────────────── -->
     <template v-if="pregunta.tipo_control === 'escala_1_10'">
       <div class="flex items-center justify-between text-xs text-muted mb-1">
@@ -21,7 +21,7 @@
         <span v-for="n in 10" :key="n">{{ n }}</span>
       </div>
     </template>
- 
+
     <!-- booleano_si_no ───────────────────────────────────────────── -->
     <template v-else-if="pregunta.tipo_control === 'booleano_si_no'">
       <div class="flex gap-3">
@@ -38,7 +38,7 @@
           <input
             type="radio"
             class="sr-only"
-            :name="`pregunta-${pregunta.id_pregunta}`"
+            :name="`pregunta-${pregunta.id_pregunta_base}`"
             :value="opcion.valor"
             :checked="modelValue === opcion.valor"
             @change="emit('update:modelValue', opcion.valor)"
@@ -47,7 +47,7 @@
         </label>
       </div>
     </template>
- 
+
     <!-- opcion_multiple ─────────────────────────────────────────── -->
     <template v-else-if="pregunta.tipo_control === 'opcion_multiple'">
       <div class="space-y-2">
@@ -72,7 +72,7 @@
         </label>
       </div>
     </template>
- 
+
     <!-- texto_libre ─────────────────────────────────────────────── -->
     <template v-else-if="pregunta.tipo_control === 'texto_libre'">
       <textarea
@@ -83,61 +83,55 @@
         @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
       />
     </template>
- 
+
     <!-- Error de validación (trayectoria B) ─────────────────────── -->
     <p v-if="tocada && !tieneRespuesta" class="text-xs text-red-500 mt-1 flex items-center gap-1">
       <span>Esta pregunta es obligatoria.</span>
     </p>
- 
+
   </div>
 </template>
- 
+
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Pregunta } from '@/entities/seguimiento'
 import type { ValorRespuesta } from '../model/useResponderCuestionario'
- 
+
 const props = defineProps<{
   pregunta: Pregunta
   modelValue: ValorRespuesta
   tocada: boolean
 }>()
- 
+
 const emit = defineEmits<{
   (e: 'update:modelValue', v: ValorRespuesta): void
 }>()
- 
-// ── Radio Sí / No ─────────────────────────────────────────────────────────
-// Los valores 'true' / 'false' como string coinciden con ValorAlerta.valor del backend
+
 const BOOL_OPCIONES = [
-  { etiqueta: 'Sí', valor: 'true' },
-  { etiqueta: 'No', valor: 'false' },
+    { etiqueta: 'Sí', valor: 'true' },
+    { etiqueta: 'No', valor: 'false' },
 ] as const
- 
-// ── Escala numérica ───────────────────────────────────────────────────────
+
 const valorNumerico = computed(() =>
-  props.modelValue !== null ? Number(props.modelValue) : 5,
+    props.modelValue !== null ? Number(props.modelValue) : 5,
 )
- 
-// ── Opción múltiple ───────────────────────────────────────────────────────
+
 const seleccionados = computed<string[]>(() =>
-  Array.isArray(props.modelValue) ? props.modelValue : [],
+    Array.isArray(props.modelValue) ? props.modelValue : [],
 )
- 
+
 function onCheckbox(opcion: string) {
-  const actual = [...seleccionados.value]
-  const idx = actual.indexOf(opcion)
-  idx === -1 ? actual.push(opcion) : actual.splice(idx, 1)
-  emit('update:modelValue', actual)
+    const actual = [...seleccionados.value]
+    const idx = actual.indexOf(opcion)
+    idx === -1 ? actual.push(opcion) : actual.splice(idx, 1)
+    emit('update:modelValue', actual)
 }
- 
-// ── Validación ────────────────────────────────────────────────────────────
+
 const tieneRespuesta = computed(() => {
-  const v = props.modelValue
-  if (v === null || v === undefined) return false
-  if (Array.isArray(v)) return v.length > 0
-  if (typeof v === 'string') return v.trim().length > 0
-  return true
+    const v = props.modelValue
+    if (v === null || v === undefined) return false
+    if (Array.isArray(v)) return v.length > 0
+    if (typeof v === 'string') return v.trim().length > 0
+    return true
 })
 </script>
- 

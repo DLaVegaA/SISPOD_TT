@@ -1,9 +1,9 @@
-import { DataTypes, Model } from "sequelize";
-import { sequelize } from "../config/database";
+import { DataTypes, Model } from 'sequelize';
+import { sequelize } from '../config/database';
 
 export class Respuesta_paciente extends Model {
     declare id_respuesta: number;
-    declare id_pregunta: number;
+    declare id_pregunta_base: number;   // ← migrado desde id_pregunta
     declare id_seguimiento: number;
     declare id_cuestionario: number;
     declare valor_respuesta: string;
@@ -17,14 +17,14 @@ Respuesta_paciente.init(
             autoIncrement: true,
             primaryKey: true
         },
-        id_pregunta: {
+        id_pregunta_base: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'preguntas',
-                key: 'id_pregunta'
+                model: 'preguntas_base',
+                key: 'id_pregunta_base'
             },
-            onDelete: 'CASCADE'
+            onDelete: 'RESTRICT'
         },
         id_seguimiento: {
             type: DataTypes.INTEGER,
