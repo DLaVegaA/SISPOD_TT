@@ -1,22 +1,31 @@
-import {permitirRoles} from '../middleware/rolesMiddleware'
-import {verificarToken} from '../middleware/authMiddleware'
-import { Router } from 'express'
+import { verificarToken } from '../middleware/authMiddleware';
+import { permitirRoles } from '../middleware/rolesMiddleware';
+import { Router } from 'express';
 import {
     crearSeguimiento,
     listarSeguimientos,
-    obtenerSeguimiento, 
+    obtenerSeguimiento,
     editarSeguimiento,
     cancelarSeguimiento,
-    obtenerCuestionarioSeguimiento
-}from '../controllers/seguimientoController';
+    finalizarSeguimiento,
+    obtenerCuestionarioSeguimiento,
+    guardarRespuestas
+} from '../controllers/seguimientoController';
 
 const router = Router();
 
-router.post('/', verificarToken, crearSeguimiento);
-router.get('/', verificarToken,listarSeguimientos);
+// Gestión de seguimientos (dentista)
+router.post('/', verificarToken, permitirRoles(2), crearSeguimiento);
+router.get('/', verificarToken, listarSeguimientos);
 router.get('/:id_seguimiento', verificarToken, obtenerSeguimiento);
-router.put('/:id_seguimiento', verificarToken, editarSeguimiento);
-router.patch('/:id_seguimiento/cancelar',verificarToken,cancelarSeguimiento);
-router.get('/:id_seguimiento/cuestionario/:tipo_cuestionario',verificarToken,obtenerCuestionarioSeguimiento)
+router.put('/:id_seguimiento', verificarToken, permitirRoles(2), editarSeguimiento);
+router.patch('/:id_seguimiento/cancelar', verificarToken, permitirRoles(2), cancelarSeguimiento);
+
+// BUG FIX: endpoint correcto para finalizar (CU16) — antes llamaba a /cancelar
+router.patch('/:id_seguimiento/finalizar', verificarToken, permitirRoles(2), finalizarSeguimiento);
+
+// Cuestionario para el paciente (CU22)
+router.get('/:id_seguimiento/cuestionario/:tipo_cuestionario', verificarToken, obtenerCuestionarioSeguimiento);
+router.post('/:id_seguimiento/respuestas', verificarToken, guardarRespuestas);
 
 export default router;
