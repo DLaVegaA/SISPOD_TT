@@ -1,4 +1,4 @@
-import { Cuestionario, CuestionarioPregunta, PreguntaBase } from '../models/index';
+import { Catalogo_Procedimientos, Cuestionario, CuestionarioPregunta, PreguntaBase } from '../models/index';
 import { AppError } from '../helpers/AppError';
 import { obtenerProcedimientoService } from './catalogoProcedimientosService';
 import { obtenerPreguntaBaseService } from './preguntaBaseService';
@@ -18,16 +18,29 @@ export const crearCuestionarioService = async (id_procedimiento: number, data: a
 
 // ─── Listar cuestionarios ─────────────────────────────────────────────────────
 
-export const listarCuestionariosService = async (id_procedimiento?: number, tipo?: string) => {
+export const listarCuestionariosService = async (
+    id_procedimiento?: number,
+    tipo?: string,
+    incluirInactivos = false
+) => {
     const where: any = {};
     if (id_procedimiento) where.id_procedimiento = id_procedimiento;
     if (tipo) where.tipo_cuestionario = tipo;
-
+ 
+    // Por defecto solo muestra activos (para el selector de seguimiento).
+    // La biblioteca del dentista pasa incluirInactivos = true.
+    if (!incluirInactivos) where.activo = true;
+ 
     const cuestionarios = await Cuestionario.findAll({
         where,
+        include: [{
+            model: Catalogo_Procedimientos,
+            as: 'procedimiento_asociado',  // ← alias real del modelo
+            attributes: ['nombre_procedimiento']
+        }],
         order: [['id_cuestionario', 'DESC']]
     });
-
+ 
     return cuestionarios;
 };
 
@@ -124,4 +137,13 @@ export const listarPreguntasDeCuestionarioService = async (id_cuestionario: numb
     if (!cuestionario) throw new AppError('El cuestionario no existe', 404);
 
     return aplanarPreguntas(cuestionario).preguntas;
+};
+
+export const desactivarCuestionarioService = async (id_cuestionario: number) => {
+    const cuestionario = await Cuestionario.findByPk(id_cuestionario);
+    if (!cuestionario) throw new AppError('El cuestionario no existe', 404);
+    if (cuestionario.activo === false) throw new AppError('El cuestionario ya está inactivo', 400);
+ 
+    await cuestionario.update({ activo: false });
+    return cuestionario;
 };

@@ -4,7 +4,8 @@ import {
     crearCuestionarioService,
     listarCuestionariosService,
     asignarPreguntasService,
-    listarPreguntasDeCuestionarioService
+    listarPreguntasDeCuestionarioService,
+    desactivarCuestionarioService
 } from '../services/cuestionarioService';
 
 const TIPO_CUESTIONARIO = ['24h', '72h'] as const;
@@ -55,7 +56,9 @@ export const listarCuestionarios = async (req: Request, res: Response, next: Nex
         ? Number(req.query.id_procedimiento)
         : undefined;
     const tipo = req.query.tipo as string | undefined;
-
+    // El dentista pide todos (activos e inactivos) para la biblioteca
+    const incluirInactivos = req.query.todos === 'true';
+ 
     try {
         if (id_procedimiento !== undefined && Number.isNaN(id_procedimiento)) {
             throw new AppError('Procedimiento inválido', 400);
@@ -63,13 +66,14 @@ export const listarCuestionarios = async (req: Request, res: Response, next: Nex
         if (tipo && !TIPO_CUESTIONARIO.includes(tipo as any)) {
             throw new AppError('Tipo de cuestionario inválido', 400);
         }
-
-        const cuestionarios = await listarCuestionariosService(id_procedimiento, tipo);
-
-        return res.json({
-            message: 'Cuestionarios disponibles',
-            cuestionarios
-        });
+ 
+        const cuestionarios = await listarCuestionariosService(
+            id_procedimiento,
+            tipo,
+            incluirInactivos
+        );
+ 
+        return res.json({ message: 'Cuestionarios disponibles', cuestionarios });
     } catch (error) {
         next(error);
     }
@@ -122,6 +126,17 @@ export const listarPreguntasDeCuestionario = async (req: Request, res: Response,
             message: 'Preguntas del cuestionario',
             preguntas
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const desactivarCuestionario = async (req: Request, res: Response, next: NextFunction) => {
+    const id = Number(req.params.id_cuestionario);
+    try {
+        if (isNaN(id)) throw new AppError('ID inválido', 400);
+        const cuestionario = await desactivarCuestionarioService(id);
+        return res.json({ message: 'Cuestionario desactivado', cuestionario });
     } catch (error) {
         next(error);
     }

@@ -7,6 +7,93 @@ import { obtenerCitaId } from './citaService';
 import { obtenerProcedimientoService } from './catalogoProcedimientosService';
 import { obtenerCuestionarioPorId } from './cuestionarioService';
 
+export interface RespuestaDetalleItem {
+    id_pregunta_base: number;
+    texto_pregunta:   string;
+    tipo_control:     string;
+    opciones:         string[] | null;
+    valor_alerta:     Record<string, any> | null;
+    valor_respuesta:  string;
+    fecha_respuesta:  Date;
+    disparo_alerta:   boolean;
+}
+
+export const obtenerRespuestasSeguimientoService = async (id_seguimiento: number) => {
+    const seguimiento = await Seguimiento.findByPk(id_seguimiento, {
+        attributes: [
+            'id_seguimiento',
+            'id_cuestionario_24h', 'id_cuestionario_72h',
+            'enviado_24h', 'enviado_72h',
+            'fecha_envio_24h', 'fecha_envio_72h',
+        ]
+    });
+    if (!seguimiento) throw new AppError('No se encontró el seguimiento', 404);
+ 
+    // Traer respuestas con la info de la pregunta en un solo JOIN
+    // Alias `pregunta_base` confirmado en models/index.ts
+    const filas = await Respuesta_paciente.findAll({
+        where: { id_seguimiento },
+        attributes: ['id_respuesta', 'id_pregunta_base', 'id_cuestionario', 'valor_respuesta', 'fecha_respuesta'],
+        include: [{
+            model: PreguntaBase,
+            as: 'pregunta_base',
+            attributes: ['id_pregunta_base', 'texto_pregunta', 'tipo_control', 'opciones', 'valor_alerta']
+        }],
+        order: [['id_cuestionario', 'ASC'], ['id_respuesta', 'ASC']]
+    });
+ 
+    // Evalúa si una respuesta individual cumple la condición de alerta de su pregunta
+    const evaluarIndividual = (
+        tipoControl: string,
+        valorAlerta: any,
+        valorRespuesta: string
+    ): boolean => {
+        if (!valorAlerta) return false;
+        if (tipoControl === 'escala_1_10' && valorAlerta.min !== undefined)
+            return Number(valorRespuesta) >= valorAlerta.min;
+        if (tipoControl === 'booleano_si_no' && valorAlerta.valor !== undefined)
+            return valorRespuesta === valorAlerta.valor;
+        if (tipoControl === 'opcion_multiple' && valorAlerta.incluye !== undefined) {
+            const sel = valorRespuesta.split(',').map((v: string) => v.trim());
+            return sel.includes(valorAlerta.incluye);
+        }
+        return false;
+    };
+ 
+    const mapear = (f: any): RespuestaDetalleItem | null => {
+        const p = f.pregunta_base;
+        if (!p) return null;
+        return {
+            id_pregunta_base: p.id_pregunta_base,
+            texto_pregunta:   p.texto_pregunta,
+            tipo_control:     p.tipo_control,
+            opciones:         p.opciones,
+            valor_alerta:     p.valor_alerta,
+            valor_respuesta:  f.valor_respuesta,
+            fecha_respuesta:  f.fecha_respuesta,
+            disparo_alerta:   evaluarIndividual(p.tipo_control, p.valor_alerta, f.valor_respuesta),
+        };
+    };
+ 
+    // Agrupar por tipo de cuestionario usando los IDs asignados al seguimiento
+    const respuestas24h = filas
+        .filter((f: any) => f.id_cuestionario === seguimiento.id_cuestionario_24h)
+        .map(mapear)
+        .filter(Boolean) as RespuestaDetalleItem[];
+ 
+    const respuestas72h = filas
+        .filter((f: any) => f.id_cuestionario === seguimiento.id_cuestionario_72h)
+        .map(mapear)
+        .filter(Boolean) as RespuestaDetalleItem[];
+ 
+    return {
+        respuestas_24h:  respuestas24h,
+        respuestas_72h:  respuestas72h,
+        fecha_envio_24h: seguimiento.fecha_envio_24h ?? null,
+        fecha_envio_72h: seguimiento.fecha_envio_72h ?? null,
+    };
+};
+
 // ─── Crear seguimiento (CU14) ─────────────────────────────────────────────────
 
 export const crearSeguimientoService = async (

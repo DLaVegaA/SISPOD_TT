@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../helpers/AppError';
 import {
     crearPreguntaBaseService,
+    editarPreguntaBaseService,
+    eliminarPreguntaBaseService,
     listarPreguntasBaseService
 } from '../services/preguntaBaseService';
 
@@ -79,6 +81,57 @@ export const crearPreguntaBase = async (req: Request, res: Response, next: NextF
             message: 'Pregunta creada en el banco',
             pregunta
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const editarPreguntaBase = async (req: Request, res: Response, next: NextFunction) => {
+    const id = Number(req.params.id);
+    const { texto_pregunta, tipo_control, opciones, valor_alerta, aplica_24h, aplica_72h } = req.body;
+ 
+    try {
+        if (isNaN(id)) throw new AppError('ID inválido', 400);
+ 
+        // Al menos un campo debe venir en el body
+        if (
+            texto_pregunta === undefined && tipo_control === undefined &&
+            opciones       === undefined && valor_alerta === undefined &&
+            aplica_24h     === undefined && aplica_72h   === undefined
+        ) throw new AppError('Envía al menos un campo a actualizar', 400);
+ 
+        if (tipo_control !== undefined && !TIPOS_CONTROL.includes(tipo_control as any)) {
+            throw new AppError('Tipo de control inválido', 400);
+        }
+ 
+        if (aplica_24h !== undefined && typeof aplica_24h !== 'boolean') {
+            throw new AppError('aplica_24h debe ser booleano', 400);
+        }
+        if (aplica_72h !== undefined && typeof aplica_72h !== 'boolean') {
+            throw new AppError('aplica_72h debe ser booleano', 400);
+        }
+ 
+        const data: any = {};
+        if (texto_pregunta !== undefined) data.texto_pregunta = texto_pregunta;
+        if (tipo_control   !== undefined) data.tipo_control   = tipo_control;
+        if (opciones       !== undefined) data.opciones       = opciones;
+        if (valor_alerta   !== undefined) data.valor_alerta   = valor_alerta;
+        if (aplica_24h     !== undefined) data.aplica_24h     = aplica_24h;
+        if (aplica_72h     !== undefined) data.aplica_72h     = aplica_72h;
+ 
+        const pregunta = await editarPreguntaBaseService(id, data);
+        return res.json({ message: 'Pregunta actualizada', pregunta });
+    } catch (error) {
+        next(error);
+    }
+};
+ 
+export const eliminarPreguntaBase = async (req: Request, res: Response, next: NextFunction) => {
+    const id = Number(req.params.id);
+    try {
+        if (isNaN(id)) throw new AppError('ID inválido', 400);
+        await eliminarPreguntaBaseService(id);
+        return res.json({ message: 'Pregunta eliminada' });
     } catch (error) {
         next(error);
     }
