@@ -1,6 +1,6 @@
 import {
     Seguimiento, Catalogo_Procedimientos, Cita, Paciente, Usuario,
-    Respuesta_paciente, Cuestionario, CuestionarioPregunta
+    Respuesta_paciente, Cuestionario, CuestionarioPregunta, PreguntaBase
 } from '../models/index';
 import { AppError } from '../helpers/AppError';
 import { obtenerCitaId } from './citaService';
@@ -55,6 +55,9 @@ export const crearSeguimientoService = async (
         fecha_envio_72h: null
     });
 
+    // Marcar la cita como Atendida al activar el seguimiento (CU14)
+    await Cita.update({ estado: 'Atendida' }, { where: { id_cita: cita.id_cita } });
+
     return seguimiento;
 };
 
@@ -72,7 +75,6 @@ export const listarSeguimientosService = async (
     const where: any = {};
     if (estado) where.estado_seguimiento = estado;
 
-    // Incluir siempre la relación con Cita y Paciente
     const citaInclude: any = {
         model: Cita,
         as: 'cita',
@@ -89,7 +91,7 @@ export const listarSeguimientosService = async (
         }]
     };
 
-    // BUG FIX: filtrar por paciente autenticado (id_rol 3 = Paciente)
+    // Filtrar por paciente autenticado (id_rol 3 = Paciente)
     if (userData?.id_rol === 3) {
         const paciente = await Paciente.findOne({ where: { id_usuario: userData.id } });
         if (!paciente) throw new AppError('Paciente no encontrado', 404);
@@ -111,13 +113,23 @@ export const listarSeguimientosService = async (
     });
 
     const listaSeguimiento = rows.map((s: any) => ({
-        id_seguimiento:    s.id_seguimiento,
-        estado_seguimiento: s.estado_seguimiento,
-        fecha_inicio:      s.fecha_inicio,
-        fecha_fin:         s.fecha_fin,
-        procedimiento:     s.tipo_procedimiento.nombre_procedimiento,
-        id_paciente:       s.cita.paciente.id_paciente,
-        nombre:            `${s.cita.paciente.usuario.nombre} ${s.cita.paciente.usuario.apellido_paterno} ${s.cita.paciente.usuario.apellido_materno ?? ''}`.trim(),
+        // IDs necesarios para el kanban y para pre-llenar el modal de editar
+        id_seguimiento:      s.id_seguimiento,
+        id_cita:             s.id_cita,
+        id_procedimiento:    s.id_procedimiento,
+        id_cuestionario_24h: s.id_cuestionario_24h,
+        id_cuestionario_72h: s.id_cuestionario_72h,
+        // Estado y fechas
+        estado_seguimiento:  s.estado_seguimiento,
+        fecha_inicio:        s.fecha_inicio,
+        fecha_fin:           s.fecha_fin,
+        // Flags de cuestionarios completados (para PatientFollowUp)
+        enviado_24h:         s.enviado_24h,
+        enviado_72h:         s.enviado_72h,
+        // Info derivada para mostrar en cards
+        procedimiento:       s.tipo_procedimiento.nombre_procedimiento,
+        id_paciente:         s.cita.paciente.id_paciente,
+        nombre:              `${s.cita.paciente.usuario.nombre} ${s.cita.paciente.usuario.apellido_paterno} ${s.cita.paciente.usuario.apellido_materno ?? ''}`.trim(),
         tiene_cuestionario_24h: !!s.id_cuestionario_24h,
         tiene_cuestionario_72h: !!s.id_cuestionario_72h
     }));
@@ -162,31 +174,64 @@ export const obtenerSeguimientoService = async (id_seguimiento: number) => {
 };
 
 // ─── Editar seguimiento ───────────────────────────────────────────────────────
+// Permite editar en estado 'en curso' y 'alerta' (BUG FIX)
+// Acepta cambios de cuestionarios (CU15)
 
-export const editarSeguimientoService = async (id_seguimiento: number, data: any) => {
+export interface EditarSeguimientoData {
+    plan_cuidados?:        string | null;
+    indicaciones_medicas?: string | null;
+    id_cuestionario_24h?:  number | null;
+    id_cuestionario_72h?:  number | null;
+}
+
+export const editarSeguimientoService = async (
+    id_seguimiento: number,
+    data: EditarSeguimientoData
+) => {
     const seguimiento = await Seguimiento.findByPk(id_seguimiento);
     if (!seguimiento) throw new AppError('No se encontró el seguimiento', 404);
-    if (seguimiento.estado_seguimiento !== 'en curso') {
-        throw new AppError('Solo se pueden editar seguimientos en curso', 400);
+
+    if (!['en curso', 'alerta'].includes(seguimiento.estado_seguimiento)) {
+        throw new AppError('Solo se pueden editar seguimientos activos', 400);
     }
+
+    // Validar cuestionario 24h si se está cambiando
+    if (data.id_cuestionario_24h !== undefined && data.id_cuestionario_24h !== null) {
+        const c = await Cuestionario.findByPk(data.id_cuestionario_24h);
+        if (!c) throw new AppError('El cuestionario de 24h no existe', 404);
+        if (c.tipo_cuestionario !== '24h')
+            throw new AppError('El cuestionario seleccionado no es de tipo 24h', 400);
+    }
+
+    // Validar cuestionario 72h si se está cambiando
+    if (data.id_cuestionario_72h !== undefined && data.id_cuestionario_72h !== null) {
+        const c = await Cuestionario.findByPk(data.id_cuestionario_72h);
+        if (!c) throw new AppError('El cuestionario de 72h no existe', 404);
+        if (c.tipo_cuestionario !== '72h')
+            throw new AppError('El cuestionario seleccionado no es de tipo 72h', 400);
+    }
+
     await seguimiento.update(data);
     return seguimiento;
 };
 
 // ─── Cancelar seguimiento ─────────────────────────────────────────────────────
+// Permite cancelar en estado 'en curso' y 'alerta' (BUG FIX — RN11)
 
 export const cancelarSeguimientoService = async (id_seguimiento: number) => {
     const seguimiento = await Seguimiento.findByPk(id_seguimiento);
     if (!seguimiento) throw new AppError('No se encontró el seguimiento', 404);
-    if (seguimiento.estado_seguimiento !== 'en curso') {
-        throw new AppError('Solo se pueden cancelar seguimientos en curso', 400);
+
+    if (!['en curso', 'alerta'].includes(seguimiento.estado_seguimiento)) {
+        throw new AppError('Solo se pueden cancelar seguimientos activos', 400);
     }
+
     await seguimiento.update({ estado_seguimiento: 'cancelado' });
     return seguimiento;
 };
 
 // ─── Finalizar seguimiento (CU16) ─────────────────────────────────────────────
-// Solo el dentista puede marcar como finalizado (en curso o alerta → finalizado)
+// El dentista puede finalizar desde 'en curso' o 'alerta'
 
 export const finalizarSeguimientoService = async (id_seguimiento: number) => {
     const seguimiento = await Seguimiento.findByPk(id_seguimiento);
@@ -234,7 +279,7 @@ export const obtenerCuestionarioSeguimientoService = async (
 
 export interface RespuestaInput {
     id_pregunta_base: number;
-    valor_respuesta: string;
+    valor_respuesta:  string;
 }
 
 export const guardarRespuestasService = async (
@@ -252,7 +297,7 @@ export const guardarRespuestasService = async (
     const cuestionario = await Cuestionario.findByPk(id_cuestionario);
     if (!cuestionario) throw new AppError('El cuestionario no existe', 404);
 
-    // Verificar que las preguntas pertenecen al cuestionario
+    // Verificar que todas las preguntas pertenecen al cuestionario
     const pivotIds = await CuestionarioPregunta.findAll({
         where: { id_cuestionario },
         attributes: ['id_pregunta_base']
@@ -273,17 +318,73 @@ export const guardarRespuestasService = async (
             id_pregunta_base: r.id_pregunta_base,
             id_seguimiento,
             id_cuestionario,
-            valor_respuesta: r.valor_respuesta,
-            fecha_respuesta: new Date()
+            valor_respuesta:  r.valor_respuesta,
+            fecha_respuesta:  new Date()
         }))
     );
 
-    // Marcar como enviado (RN12)
+    // Marcar cuestionario como completado (RN12)
     if (cuestionario.tipo_cuestionario === '24h') {
         await seguimiento.update({ enviado_24h: true, fecha_envio_24h: new Date() });
     } else if (cuestionario.tipo_cuestionario === '72h') {
         await seguimiento.update({ enviado_72h: true, fecha_envio_72h: new Date() });
     }
 
-    return { guardadas: respuestas.length };
+    // ─── RN13: evaluar alertas y actualizar estado en el backend ─────────────
+    // Si alguna respuesta cumple las condiciones de alerta y el seguimiento está
+    // en curso, lo transiciona a 'alerta' para que el dentista lo vea en su kanban.
+    const hayAlerta = await evaluarAlertasRN13(respuestas);
+    if (hayAlerta && seguimiento.estado_seguimiento === 'en curso') {
+        await seguimiento.update({ estado_seguimiento: 'alerta' });
+    }
+
+    return { guardadas: respuestas.length, alerta: hayAlerta };
 };
+
+// ─── Helper RN13: evalúa si alguna respuesta activa una alerta ────────────────
+// Espeja la lógica de evaluarAlerta del frontend (useResponderCuestionario.ts)
+// para garantizar que el estado se actualice en la fuente de verdad (BD).
+
+async function evaluarAlertasRN13(respuestas: RespuestaInput[]): Promise<boolean> {
+    const ids = respuestas.map(r => r.id_pregunta_base);
+
+    const preguntas = await PreguntaBase.findAll({
+        where: { id_pregunta_base: ids },
+        attributes: ['id_pregunta_base', 'tipo_control', 'valor_alerta']
+    });
+
+    // Map id → { tipo_control, valor_alerta } para lookup O(1)
+    const infoMap = new Map(
+        preguntas
+            .filter((p: any) => p.valor_alerta !== null)
+            .map((p: any) => [p.id_pregunta_base as number, {
+                tipo_control: p.tipo_control as string,
+                valor_alerta: p.valor_alerta as any
+            }])
+    );
+
+    for (const r of respuestas) {
+        const info = infoMap.get(r.id_pregunta_base);
+        if (!info) continue;
+
+        const { tipo_control, valor_alerta: va } = info;
+
+        // Escala numérica: alerta si el valor supera el umbral mínimo
+        if (tipo_control === 'escala_1_10' && va.min !== undefined) {
+            if (Number(r.valor_respuesta) >= va.min) return true;
+        }
+
+        // Booleano Sí/No: alerta si la respuesta coincide con el valor de alerta
+        if (tipo_control === 'booleano_si_no' && va.valor !== undefined) {
+            if (r.valor_respuesta === va.valor) return true;
+        }
+
+        // Opción múltiple (checkbox): alerta si incluye la opción peligrosa
+        if (tipo_control === 'opcion_multiple' && va.incluye !== undefined) {
+            const seleccionados = r.valor_respuesta.split(',').map((v: string) => v.trim());
+            if (seleccionados.includes(va.incluye)) return true;
+        }
+    }
+
+    return false;
+}

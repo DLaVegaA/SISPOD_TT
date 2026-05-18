@@ -1,4 +1,4 @@
-import { Cita, Dentista, Paciente, Usuario, TipoCita, Bitacora } from '../models/index';
+import { Cita, Dentista, Paciente, Usuario, TipoCita, Bitacora, Seguimiento } from '../models/index';
 import { Model, NUMBER, Op, WhereOptions } from 'sequelize';
 import { AppError } from '../helpers/AppError';
 import { obtenerPacientePorUsuario } from './pacienteService';
@@ -497,6 +497,25 @@ export const listarCitas = async (filtros: FiltrosCita, limit: number, offset: n
     // Si no hay ninguna bitácora, Op.notIn con array vacío daría error en algunos drivers,
     // por eso usamos [0] como fallback (ningún id_cita es 0 en la BD).
     where.id_cita = { [Op.notIn]: idsOcupados.length > 0 ? idsOcupados : [0] };
+  }
+
+  if (filtros.sinSeguimiento) {
+    const citasConSeguimiento = await Seguimiento.findAll({
+      attributes: ['id_cita'],
+      where: { estado_seguimiento: { [Op.notIn]: ['cancelado', 'finalizado'] } },
+    });
+    const ids = citasConSeguimiento.map((s: any) => s.id_cita);
+    const excluir = ids.length > 0 ? ids : [0];
+    if (where.id_cita) {
+      where.id_cita = { [Op.and]: [where.id_cita, { [Op.notIn]: excluir }] };
+    } else {
+      where.id_cita = { [Op.notIn]: excluir };
+    }
+  }
+
+  // Mostrar solo citas cuya fecha_hora_fin ya pasó (la cita ya ocurrió)
+  if (filtros.pasadas) {
+    where.fecha_hora_fin = { [Op.lt]: new Date() };
   }
 
   const { count, rows } = await Cita.findAndCountAll({

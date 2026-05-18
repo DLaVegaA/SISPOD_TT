@@ -10,16 +10,18 @@ import { httpClient } from '@/shared/api/http'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Seguimiento {
-  id_seguimiento:        number
-  id_cita:               number
-  id_procedimiento:      number
-  estado_seguimiento:    'en curso' | 'finalizado' | 'alerta' | 'cancelado'
-  plan_cuidados:         string
-  indicaciones_medicas:  string
-  fecha_inicio:          string
-  fecha_fin:             string | null
-  pacienteNombre:        string
-  procedimientoNombre:   string
+  id_seguimiento:         number
+  id_cita:                number
+  id_procedimiento:       number
+  id_cuestionario_24h:    number | null
+  id_cuestionario_72h:    number | null
+  estado_seguimiento:     'en curso' | 'finalizado' | 'alerta' | 'cancelado'
+  plan_cuidados:          string
+  indicaciones_medicas:   string
+  fecha_inicio:           string
+  fecha_fin:              string | null
+  pacienteNombre:         string
+  procedimientoNombre:    string
   tiene_cuestionario_24h: boolean
   tiene_cuestionario_72h: boolean
 }
@@ -30,14 +32,16 @@ interface Cuestionario { id_cuestionario: number; nombre_cuestionario: string; t
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-const seguimientos   = ref<Seguimiento[]>([])
-const searchQuery    = ref('')
-const isLoading      = ref(true)
-const isSaving       = ref(false)
-const successMsg     = ref<string | null>(null)
-const errorMsg       = ref<string | null>(null)
-const isModalOpen    = ref(false)
-const modalMode      = ref<'crear' | 'editar'>('crear')
+const seguimientos    = ref<Seguimiento[]>([])
+const searchQuery     = ref('')
+const isLoading       = ref(true)
+const isSaving        = ref(false)
+const successMsg      = ref<string | null>(null)
+const errorMsg        = ref<string | null>(null)
+const isModalOpen     = ref(false)
+const modalMode       = ref<'crear' | 'editar'>('crear')
+// Referencia al item en edición para mostrar info de solo lectura en el modal
+const itemEditando    = ref<Seguimiento | null>(null)
 
 const form = ref({
   id_seguimiento:       0,
@@ -51,10 +55,10 @@ const form = ref({
 
 // ─── Catálogos desde la API ───────────────────────────────────────────────────
 
-const procedures        = ref<Procedure[]>([])
-const citasOpciones     = ref<CitaOpcion[]>([])
-const cuestionarios24   = ref<Cuestionario[]>([])
-const cuestionarios72   = ref<Cuestionario[]>([])
+const procedures         = ref<Procedure[]>([])
+const citasOpciones      = ref<CitaOpcion[]>([])
+const cuestionarios24    = ref<Cuestionario[]>([])
+const cuestionarios72    = ref<Cuestionario[]>([])
 const isLoadingCatalogos = ref(false)
 
 async function cargarCatalogos() {
@@ -65,15 +69,14 @@ async function cargarCatalogos() {
       httpClient.get<{ listaCatalogo: Procedure[] }>('/catalogo-procedimientos'),
       httpClient.get<{ cuestionarios: Cuestionario[] }>('/cuestionario?tipo=24h'),
       httpClient.get<{ cuestionarios: Cuestionario[] }>('/cuestionario?tipo=72h'),
-      // BUG FIX: cargar citas reales (Atendidas) para el dropdown del modal
-      httpClient.get<{ citas: any[] }>('/citas?estado=Atendida&limit=100'),
+      // Solo citas Confirmadas que ya ocurrieron y sin seguimiento activo
+      httpClient.get<{ citas: any[] }>('/citas?estado=Confirmada&sinSeguimiento=true&pasadas=true&limit=200'),
     ])
 
-    procedures.value    = resProcedimientos.listaCatalogo ?? []
+    procedures.value      = resProcedimientos.listaCatalogo ?? []
     cuestionarios24.value = resCuest24.cuestionarios ?? []
     cuestionarios72.value = resCuest72.cuestionarios ?? []
 
-    // Formatear citas para el dropdown
     citasOpciones.value = (resCitas.citas ?? []).map((c: any) => {
       const paciente = c.paciente?.usuario
       const nombre   = paciente
@@ -98,31 +101,31 @@ async function cargarCatalogos() {
 
 const columns = [
   {
-    key: 'alerta',
-    label: 'Alerta',
-    icon: AlertCircle,
-    accent: 'text-red-500',
+    key:        'alerta',
+    label:      'Alerta',
+    icon:       AlertCircle,
+    accent:     'text-red-500',
     borderLeft: 'border-l-red-400',
-    badge: 'bg-red-500/10 text-red-600 border-red-400/30',
-    headerBg: 'bg-red-500/5 border-red-400/20',
+    badge:      'bg-red-500/10 text-red-600 border-red-400/30',
+    headerBg:   'bg-red-500/5 border-red-400/20',
   },
   {
-    key: 'en curso',
-    label: 'En Curso',
-    icon: Clock,
-    accent: 'text-accent',
+    key:        'en curso',
+    label:      'En Curso',
+    icon:       Clock,
+    accent:     'text-accent',
     borderLeft: 'border-l-accent',
-    badge: 'bg-accent/10 text-accent border-accent/20',
-    headerBg: 'bg-accent/5 border-accent/20',
+    badge:      'bg-accent/10 text-accent border-accent/20',
+    headerBg:   'bg-accent/5 border-accent/20',
   },
   {
-    key: 'finalizado',
-    label: 'Finalizado',
-    icon: CheckCircle2,
-    accent: 'text-emerald-500',
+    key:        'finalizado',
+    label:      'Finalizado',
+    icon:       CheckCircle2,
+    accent:     'text-emerald-500',
     borderLeft: 'border-l-emerald-400',
-    badge: 'bg-emerald-500/10 text-emerald-600 border-emerald-400/30',
-    headerBg: 'bg-emerald-500/5 border-emerald-400/20',
+    badge:      'bg-emerald-500/10 text-emerald-600 border-emerald-400/30',
+    headerBg:   'bg-emerald-500/5 border-emerald-400/20',
   },
 ]
 
@@ -159,16 +162,18 @@ async function fetchSeguimientos() {
   try {
     const res = await httpClient.get<{ seguimientos: any[] }>('/seguimiento?limit=100')
     seguimientos.value = (res.seguimientos ?? []).map((s: any) => ({
-      id_seguimiento:        s.id_seguimiento,
-      id_cita:               s.id_cita ?? 0,
-      id_procedimiento:      s.id_procedimiento ?? 0,
-      estado_seguimiento:    s.estado_seguimiento,
-      plan_cuidados:         s.plan_cuidados ?? '',
-      indicaciones_medicas:  s.indicaciones_medicas ?? '',
-      fecha_inicio:          s.fecha_inicio,
-      fecha_fin:             s.fecha_fin,
-      pacienteNombre:        s.nombre ?? '—',
-      procedimientoNombre:   s.procedimiento ?? '—',
+      id_seguimiento:         s.id_seguimiento,
+      id_cita:                s.id_cita ?? 0,
+      id_procedimiento:       s.id_procedimiento ?? 0,
+      id_cuestionario_24h:    s.id_cuestionario_24h ?? null,
+      id_cuestionario_72h:    s.id_cuestionario_72h ?? null,
+      estado_seguimiento:     s.estado_seguimiento,
+      plan_cuidados:          s.plan_cuidados ?? '',
+      indicaciones_medicas:   s.indicaciones_medicas ?? '',
+      fecha_inicio:           s.fecha_inicio,
+      fecha_fin:              s.fecha_fin,
+      pacienteNombre:         s.nombre ?? '—',
+      procedimientoNombre:    s.procedimiento ?? '—',
       tiene_cuestionario_24h: s.tiene_cuestionario_24h ?? false,
       tiene_cuestionario_72h: s.tiene_cuestionario_72h ?? false,
     }))
@@ -182,38 +187,70 @@ async function fetchSeguimientos() {
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
 function abrirModal(modo: 'crear' | 'editar', item?: Seguimiento) {
-  modalMode.value = modo
-  errorMsg.value  = null
+  modalMode.value   = modo
+  errorMsg.value    = null
+  itemEditando.value = modo === 'editar' ? (item ?? null) : null
+
   form.value = modo === 'editar' && item
-    ? { id_seguimiento: item.id_seguimiento, id_cita: item.id_cita.toString(), id_procedimiento: item.id_procedimiento.toString(), plan_cuidados: item.plan_cuidados, indicaciones_medicas: item.indicaciones_medicas, id_cuestionario_24h: '', id_cuestionario_72h: '' }
-    : { id_seguimiento: 0, id_cita: '', id_procedimiento: '', plan_cuidados: '', indicaciones_medicas: '', id_cuestionario_24h: '', id_cuestionario_72h: '' }
+    ? {
+        id_seguimiento:       item.id_seguimiento,
+        id_cita:              item.id_cita.toString(),
+        id_procedimiento:     item.id_procedimiento.toString(),
+        plan_cuidados:        item.plan_cuidados,
+        indicaciones_medicas: item.indicaciones_medicas,
+        // Pre-llenar con los cuestionarios actualmente asignados (CU15)
+        id_cuestionario_24h:  item.id_cuestionario_24h?.toString() ?? '',
+        id_cuestionario_72h:  item.id_cuestionario_72h?.toString() ?? '',
+      }
+    : {
+        id_seguimiento:       0,
+        id_cita:              '',
+        id_procedimiento:     '',
+        plan_cuidados:        '',
+        indicaciones_medicas: '',
+        id_cuestionario_24h:  '',
+        id_cuestionario_72h:  '',
+      }
+
   isModalOpen.value = true
 }
 
-function cerrarModal() { isModalOpen.value = false; errorMsg.value = null }
+function cerrarModal() {
+  isModalOpen.value  = false
+  errorMsg.value     = null
+  itemEditando.value = null
+}
 
 async function guardarSeguimiento() {
-  if (!form.value.id_cita || !form.value.id_procedimiento) {
-    errorMsg.value = 'Selecciona la cita y el procedimiento.'
-    return
-  }
-  isSaving.value = true
   errorMsg.value = null
+
+  // Validar campos obligatorios solo al crear
+  if (modalMode.value === 'crear') {
+    if (!form.value.id_cita || !form.value.id_procedimiento) {
+      errorMsg.value = 'Selecciona la cita y el procedimiento.'
+      return
+    }
+  }
+
+  isSaving.value = true
   try {
     if (modalMode.value === 'crear') {
       await httpClient.post('/seguimiento', {
         id_cita:              Number(form.value.id_cita),
         id_procedimiento:     Number(form.value.id_procedimiento),
-        plan_cuidados:        form.value.plan_cuidados || null,
+        plan_cuidados:        form.value.plan_cuidados    || null,
         indicaciones_medicas: form.value.indicaciones_medicas || null,
         id_cuestionario_24h:  form.value.id_cuestionario_24h ? Number(form.value.id_cuestionario_24h) : null,
         id_cuestionario_72h:  form.value.id_cuestionario_72h ? Number(form.value.id_cuestionario_72h) : null,
       })
       successMsg.value = 'Seguimiento creado correctamente.'
     } else {
+      // En editar solo se envían los campos modificables (CU15)
       await httpClient.put(`/seguimiento/${form.value.id_seguimiento}`, {
-        plan_cuidados:        form.value.plan_cuidados || null,
+        plan_cuidados:        form.value.plan_cuidados    || null,
         indicaciones_medicas: form.value.indicaciones_medicas || null,
+        id_cuestionario_24h:  form.value.id_cuestionario_24h ? Number(form.value.id_cuestionario_24h) : null,
+        id_cuestionario_72h:  form.value.id_cuestionario_72h ? Number(form.value.id_cuestionario_72h) : null,
       })
       successMsg.value = 'Seguimiento actualizado correctamente.'
     }
@@ -227,7 +264,6 @@ async function guardarSeguimiento() {
   }
 }
 
-// BUG FIX: llama a /finalizar, no a /cancelar
 async function terminarSeguimiento(id: number) {
   if (!confirm('¿Marcar este seguimiento como Finalizado? Esta acción no se puede deshacer.')) return
   try {
@@ -259,7 +295,8 @@ onMounted(async () => {
         <h1 class="font-display text-4xl font-semibold text-black">Seguimiento Postoperatorio</h1>
         <p class="text-sm text-muted mt-1">Planes de cuidado e indicaciones médicas para pacientes en recuperación.</p>
       </div>
-      <button class="flex items-center gap-2 bg-ink/65 text-text-secondary hover:bg-ink/80 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all hover:scale-105 active:scale-95 self-start md:self-auto"
+      <button
+        class="flex items-center gap-2 bg-ink/65 text-text-secondary hover:bg-ink/80 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all hover:scale-105 active:scale-95 self-start md:self-auto"
         @click="abrirModal('crear')">
         <Plus class="w-4 h-4" /> Nuevo Seguimiento
       </button>
@@ -356,6 +393,7 @@ onMounted(async () => {
               <CalendarDays class="w-3 h-3 shrink-0" />
               <span>{{ formatearFecha(item.fecha_inicio) }}</span>
               <template v-if="!item.fecha_fin">
+                <span>·</span>
                 <span class="font-semibold text-black">· {{ diasTranscurridos(item.fecha_inicio) }} días</span>
               </template>
               <template v-else>
@@ -369,7 +407,6 @@ onMounted(async () => {
                 title="Editar" @click="abrirModal('editar', item)">
                 <Pencil class="w-3.5 h-3.5" />
               </button>
-              <!-- BUG FIX: ahora llama a terminarSeguimiento que usa /finalizar -->
               <button class="p-1.5 rounded-lg text-muted hover:text-emerald-600 hover:bg-emerald-500/10 transition-colors"
                 title="Finalizar" @click="terminarSeguimiento(item.id_seguimiento)">
                 <CheckCircle2 class="w-3.5 h-3.5" />
@@ -389,13 +426,15 @@ onMounted(async () => {
           <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="cerrarModal" />
 
           <div class="relative bg-card border border-border rounded-3xl shadow-2xl w-full max-w-lg flex flex-col gap-5 max-h-[90dvh] overflow-y-auto p-6">
+
+            <!-- Header del modal -->
             <div class="flex items-start justify-between shrink-0">
               <div>
                 <h3 class="font-display font-bold text-black text-base">
                   {{ modalMode === 'crear' ? 'Nuevo Seguimiento' : 'Editar Seguimiento' }}
                 </h3>
                 <p class="text-xs text-muted mt-0.5">
-                  {{ modalMode === 'crear' ? 'Selecciona la cita y asigna los cuestionarios.' : 'Modifica el plan existente.' }}
+                  {{ modalMode === 'crear' ? 'Selecciona la cita y asigna los cuestionarios.' : 'Modifica el plan y los cuestionarios asignados.' }}
                 </p>
               </div>
               <button class="p-1.5 rounded-xl hover:bg-surface transition-colors text-muted hover:text-black shrink-0" @click="cerrarModal">
@@ -405,36 +444,55 @@ onMounted(async () => {
 
             <div class="space-y-4">
 
-              <!-- Cita -->
-              <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-muted uppercase tracking-wider px-1">Cita Quirúrgica *</label>
-                <div class="relative">
-                  <select v-model="form.id_cita" :disabled="modalMode === 'editar'"
-                    class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all appearance-none disabled:opacity-50">
-                    <option value="">{{ isLoadingCatalogos ? 'Cargando citas...' : citasOpciones.length === 0 ? 'Sin citas atendidas disponibles' : 'Selecciona la cita...' }}</option>
-                    <option v-for="c in citasOpciones" :key="c.id_cita" :value="c.id_cita">{{ c.label }}</option>
-                  </select>
-                  <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
+              <!-- ── Modo CREAR: selects de cita y procedimiento ───────── -->
+              <template v-if="modalMode === 'crear'">
+                <!-- Cita -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-bold text-muted uppercase tracking-wider px-1">Cita Quirúrgica *</label>
+                  <div class="relative">
+                    <select v-model="form.id_cita"
+                      class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all appearance-none">
+                      <option value="">{{ isLoadingCatalogos ? 'Cargando citas...' : citasOpciones.length === 0 ? 'Sin citas confirmadas disponibles' : 'Selecciona la cita...' }}</option>
+                      <option v-for="c in citasOpciones" :key="c.id_cita" :value="c.id_cita">{{ c.label }}</option>
+                    </select>
+                    <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
+                  </div>
                 </div>
-              </div>
 
-              <!-- Procedimiento -->
-              <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-muted uppercase tracking-wider px-1">Procedimiento *</label>
-                <div class="relative">
-                  <select v-model="form.id_procedimiento"
-                    class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all appearance-none">
-                    <option value="">{{ isLoadingCatalogos ? 'Cargando...' : 'Selecciona el procedimiento...' }}</option>
-                    <option v-for="p in procedures" :key="p.id_procedimiento" :value="p.id_procedimiento">{{ p.nombre_procedimiento }}</option>
-                  </select>
-                  <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
+                <!-- Procedimiento -->
+                <div class="space-y-1.5">
+                  <label class="text-[10px] font-bold text-muted uppercase tracking-wider px-1">Procedimiento *</label>
+                  <div class="relative">
+                    <select v-model="form.id_procedimiento"
+                      class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all appearance-none">
+                      <option value="">{{ isLoadingCatalogos ? 'Cargando...' : 'Selecciona el procedimiento...' }}</option>
+                      <option v-for="p in procedures" :key="p.id_procedimiento" :value="p.id_procedimiento">{{ p.nombre_procedimiento }}</option>
+                    </select>
+                    <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
+                  </div>
                 </div>
-              </div>
+              </template>
 
-              <!-- Cuestionario 24h -->
-              <div v-if="modalMode === 'crear'" class="space-y-1.5">
+              <!-- ── Modo EDITAR: info de solo lectura (no selects) ─────── -->
+              <template v-else-if="itemEditando">
+                <div class="flex gap-3 px-4 py-3 bg-surface rounded-xl border border-border">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[10px] font-bold text-muted uppercase tracking-wider mb-0.5">Paciente · Cita</p>
+                    <p class="text-sm font-semibold text-black truncate">{{ itemEditando.pacienteNombre }}</p>
+                    <p class="text-xs text-muted font-mono">Cita #{{ itemEditando.id_cita }}</p>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[10px] font-bold text-muted uppercase tracking-wider mb-0.5">Procedimiento</p>
+                    <p class="text-sm font-semibold text-black truncate">{{ itemEditando.procedimientoNombre }}</p>
+                  </div>
+                </div>
+              </template>
+
+              <!-- ── Cuestionario 24h (ambos modos) ─────────────────────── -->
+              <div class="space-y-1.5">
                 <label class="text-[10px] font-bold text-muted uppercase tracking-wider px-1 flex items-center gap-1">
-                  Cuestionario 24h <span class="font-normal text-muted/50 normal-case tracking-normal">(opcional)</span>
+                  Cuestionario 24h
+                  <span class="font-normal text-muted/50 normal-case tracking-normal">(opcional)</span>
                 </label>
                 <div class="relative">
                   <select v-model="form.id_cuestionario_24h"
@@ -449,10 +507,11 @@ onMounted(async () => {
                 </p>
               </div>
 
-              <!-- Cuestionario 72h -->
-              <div v-if="modalMode === 'crear'" class="space-y-1.5">
+              <!-- ── Cuestionario 72h (ambos modos) ─────────────────────── -->
+              <div class="space-y-1.5">
                 <label class="text-[10px] font-bold text-muted uppercase tracking-wider px-1 flex items-center gap-1">
-                  Cuestionario 72h <span class="font-normal text-muted/50 normal-case tracking-normal">(opcional)</span>
+                  Cuestionario 72h
+                  <span class="font-normal text-muted/50 normal-case tracking-normal">(opcional)</span>
                 </label>
                 <div class="relative">
                   <select v-model="form.id_cuestionario_72h"
@@ -467,14 +526,14 @@ onMounted(async () => {
                 </p>
               </div>
 
-              <!-- Plan de cuidados -->
+              <!-- ── Plan de cuidados ────────────────────────────────────── -->
               <div class="space-y-1.5">
                 <label class="text-[10px] font-bold text-muted uppercase tracking-wider px-1">Plan de Cuidados</label>
                 <textarea v-model="form.plan_cuidados" rows="3" placeholder="Ej. Dieta blanda, aplicar hielo, no usar popote..."
                   class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black placeholder:text-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all resize-none" />
               </div>
 
-              <!-- Indicaciones médicas -->
+              <!-- ── Indicaciones médicas ────────────────────────────────── -->
               <div class="space-y-1.5">
                 <label class="text-[10px] font-bold text-muted uppercase tracking-wider px-1">Indicaciones Médicas</label>
                 <textarea v-model="form.indicaciones_medicas" rows="3" placeholder="Ej. Paracetamol 500mg cada 8 hrs..."
@@ -496,6 +555,7 @@ onMounted(async () => {
               </button>
               <button class="w-full py-2 text-xs font-bold text-muted hover:text-black transition-colors" @click="cerrarModal">Cancelar</button>
             </div>
+
           </div>
         </div>
       </Transition>

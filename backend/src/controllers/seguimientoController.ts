@@ -9,7 +9,8 @@ import {
     cancelarSeguimientoService,
     finalizarSeguimientoService,
     obtenerCuestionarioSeguimientoService,
-    guardarRespuestasService
+    guardarRespuestasService,
+    EditarSeguimientoData
 } from '../services/seguimientoService';
 
 const ESTADOS_VALIDOS = ['en curso', 'alerta', 'finalizado', 'cancelado'];
@@ -96,14 +97,40 @@ export const obtenerSeguimiento = async (req: CustomRequest, res: Response, next
 // ─── Editar seguimiento ───────────────────────────────────────────────────────
 
 export const editarSeguimiento = async (req: CustomRequest, res: Response, next: NextFunction) => {
-    const { indicaciones_medicas, plan_cuidados } = req.body;
     const id_seguimiento = Number(req.params.id_seguimiento);
+    const { plan_cuidados, indicaciones_medicas, id_cuestionario_24h, id_cuestionario_72h } = req.body;
+ 
     try {
-        if (!id_seguimiento || Number.isNaN(id_seguimiento)) throw new AppError('Seguimiento inválido', 400);
-        if (plan_cuidados === undefined && indicaciones_medicas === undefined)
-            throw new AppError('Envía al menos un campo a actualizar', 400);
-
-        const seguimiento = await editarSeguimientoService(id_seguimiento, { plan_cuidados, indicaciones_medicas });
+        if (!id_seguimiento || Number.isNaN(id_seguimiento))
+            throw new AppError('Seguimiento inválido', 400);
+ 
+        // Debe enviarse al menos un campo modificable
+        if (
+            plan_cuidados        === undefined &&
+            indicaciones_medicas === undefined &&
+            id_cuestionario_24h  === undefined &&
+            id_cuestionario_72h  === undefined
+        ) throw new AppError('Envía al menos un campo a actualizar', 400);
+ 
+        // Validar IDs de cuestionarios si se envían (deben ser números o null)
+        if (id_cuestionario_24h !== undefined && id_cuestionario_24h !== null &&
+            Number.isNaN(Number(id_cuestionario_24h)))
+            throw new AppError('Cuestionario 24h inválido', 400);
+ 
+        if (id_cuestionario_72h !== undefined && id_cuestionario_72h !== null &&
+            Number.isNaN(Number(id_cuestionario_72h)))
+            throw new AppError('Cuestionario 72h inválido', 400);
+ 
+        // Construir objeto con solo los campos presentes en el body
+        const data: EditarSeguimientoData = {};
+        if (plan_cuidados        !== undefined) data.plan_cuidados        = plan_cuidados;
+        if (indicaciones_medicas !== undefined) data.indicaciones_medicas = indicaciones_medicas;
+        if (id_cuestionario_24h  !== undefined)
+            data.id_cuestionario_24h = id_cuestionario_24h !== null ? Number(id_cuestionario_24h) : null;
+        if (id_cuestionario_72h  !== undefined)
+            data.id_cuestionario_72h = id_cuestionario_72h !== null ? Number(id_cuestionario_72h) : null;
+ 
+        const seguimiento = await editarSeguimientoService(id_seguimiento, data);
         return res.json({ message: 'Seguimiento actualizado correctamente', seguimiento });
     } catch (error) {
         next(error);
