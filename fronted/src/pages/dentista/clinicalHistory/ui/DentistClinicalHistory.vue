@@ -13,6 +13,7 @@ const selectedStatus = ref('todos')
 
 type ExpedienteCard = {
   id: number
+  id_expediente?: number
   expediente: string
   avatar: string
   nombre: string
@@ -64,8 +65,10 @@ const PACIENTES_PAGE_SIZE = 5
 
 const mapExpediente = (item: ExpedienteCard): ExpedienteCard => {
   const id = Number(item.id ?? 0)
+  const idExpediente = Number((item as any).id_expediente ?? 0)
   return {
     id,
+    id_expediente: Number.isFinite(idExpediente) ? idExpediente : undefined,
     expediente: String(item.expediente ?? id),
     avatar: '', // No se usa, se reemplaza con UserAvatar component
     nombre: item.nombre || 'Paciente',
@@ -255,11 +258,15 @@ const selectPaciente = (pacienteId: number) => {
   openClinicalHistory(pacienteId, 'edit')
 }
 
-function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
+function openClinicalHistory(recordId: number, mode: 'edit' | 'view', expedienteId?: number) {
+  const query: Record<string, string> = { mode }
+  if (expedienteId) {
+    query.expedienteId = String(expedienteId)
+  }
   router.push({
     name: ROUTE_NAMES.DENTIST_CLINICAL_HISTORY_DETAIL,
     params: { id: dentistId.value, patientId: String(recordId) },
-    query: { mode },
+    query,
   })
 }
 </script>
@@ -461,7 +468,7 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
             <button
               class="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted/70 hover:text-accent hover:bg-card transition-colors"
               type="button"
-              @click="openClinicalHistory(record.id, 'view')"
+              @click="openClinicalHistory(record.id, 'view', record.id_expediente)"
             >
               <FileText class="w-3.5 h-3.5" />
               Historial
@@ -476,7 +483,7 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view') {
             <button
               class="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted/70 hover:text-accent hover:bg-card transition-colors"
               type="button"
-              @click="openClinicalHistory(record.id, 'edit')"
+              @click="openClinicalHistory(record.id, 'edit', record.id_expediente)"
             >
               <Pencil class="w-3.5 h-3.5" />
               Editar
