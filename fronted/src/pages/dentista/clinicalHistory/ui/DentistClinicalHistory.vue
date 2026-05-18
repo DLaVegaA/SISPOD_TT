@@ -66,6 +66,7 @@ const PACIENTES_PAGE_SIZE = 5
 const mapExpediente = (item: ExpedienteCard): ExpedienteCard => {
   const id = Number(item.id ?? 0)
   const idExpediente = Number((item as any).id_expediente ?? 0)
+  console.log(item.estado)
   return {
     id,
     id_expediente: Number.isFinite(idExpediente) ? idExpediente : undefined,
@@ -81,7 +82,7 @@ const mapExpediente = (item: ExpedienteCard): ExpedienteCard => {
     tratamiento: item.tratamiento || 'Sin tratamiento',
     odontologo: item.odontologo || 'Dentista',
     fechaCreacion: item.fechaCreacion || '',
-    estado: item.estado || 'Pendiente',
+    estado: item.estado || 'finalizado',
   }
 }
 
@@ -181,23 +182,20 @@ type EstadoConfig = {
 }
 
 const ESTADO_CONFIG: Record<string, EstadoConfig> = {
-  // 🟢 Activo, en proceso — verde
-  'En Tratamiento': {
+  'en curso': {
     badge: 'bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold',
     dot: 'bg-emerald-500',
-    label: 'En Tratamiento',
+    label: 'En curso',
   },
-  // 🟣 Completado — violeta
-  Finalizado: {
+  alerta: {
     badge: 'bg-red-100 text-red-800 border border-red-300 font-semibold',
     dot: 'bg-red-500',
-    label: 'Finalizado',
+    label: 'Alerta',
   },
-  // 🔴 Sin actividad — rojo
-  'Sin Seguimiento': {
+  finalizado: {
     badge: 'bg-amber-100 text-amber-800 border border-amber-300 font-semibold',
     dot: 'bg-amber-500',
-    label: 'Sin Seguimiento',
+    label: 'Finalizado',
   },
 }
 
@@ -216,9 +214,9 @@ function getEstadoConfig(estado: string): EstadoConfig {
 
 const filterStatuses = [
   { value: 'todos', label: 'Todos' },
-  { value: 'En Tratamiento', label: 'En tratamiento' },
-  { value: 'Finalizado', label: 'Finalizado' },
-  { value: 'Sin Seguimiento', label: 'Sin seguimiento' },
+  { value: 'en curso', label: 'En curso' },
+  { value: 'alerta', label: 'Alerta' },
+  { value: 'finalizado', label: 'Finalizado' },
 ]
 
 const clearSearch = () => {

@@ -4,11 +4,12 @@ import { AppError } from '../helpers/AppError';
 import {
   crearExpedienteService,
   agregarPadecimientoService,
+  actualizarExpedienteService,
+  sincronizarPadecimientosService,
   obtenerExpedienteService,
   eliminarPadecimientoService,
   listarExpedientesService,
 } from '../services/expedienteService';
-import { NUMBER } from 'sequelize';
 
 export const crearExpediente = async (req: CustomRequest, res: Response, next: NextFunction) => {
   try {
@@ -75,6 +76,62 @@ export const agregarPadecimiento = async (req: Request, res: Response, next: Nex
     return res.status(201).json({
       message: 'Padecimientos agregados correctamente',
       result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const actualizarExpediente = async (req: Request, res: Response, next: NextFunction) => {
+  const id_expediente = Number(req.params.id_expediente);
+  const hasPadecimientos = Object.prototype.hasOwnProperty.call(req.body || {}, 'padecimientos');
+
+  try {
+    if (!id_expediente) {
+      throw new AppError('El expediente es obligatorio', 400);
+    }
+    if (Number.isNaN(id_expediente)) {
+      throw new AppError('El expediente es obligatorio', 400);
+    }
+
+    if (hasPadecimientos && !Array.isArray(req.body?.padecimientos)) {
+      throw new AppError('Los padecimientos deben ser un arreglo', 400);
+    }
+
+    const expediente = await actualizarExpedienteService(id_expediente, req.body);
+
+    let padecimientosResult = null;
+    if (hasPadecimientos) {
+      const items = Array.isArray(req.body?.padecimientos) ? req.body.padecimientos : [];
+      const data = items.map((item: any) => {
+        const id_padecimiento = Number(item.id_padecimiento);
+        const { tipo_antecedente, nota } = item;
+
+        if (!id_padecimiento || Number.isNaN(id_padecimiento)) {
+          throw new AppError('El padecimiento es obligatorio', 400);
+        }
+
+        if (tipo_antecedente && typeof tipo_antecedente !== 'string') {
+          throw new AppError('El tipo de antecendete debe ser texto', 400);
+        }
+        if (nota && typeof nota !== 'string') {
+          throw new AppError('La nota debe ser texto', 400);
+        }
+
+        return {
+          id_padecimiento,
+          tipo_antecedente: tipo_antecedente ?? null,
+          nota: nota ?? null,
+        };
+      });
+
+      padecimientosResult = await sincronizarPadecimientosService(id_expediente, data);
+    }
+
+    return res.json({
+      message: 'Expediente actualizado',
+      expediente,
+      padecimientos: padecimientosResult,
     });
   } catch (error) {
     next(error);
