@@ -1,5 +1,6 @@
 <template>
   <div class="fade-in max-w-7xl mx-auto pb-10 px-4 sm:px-6 lg:px-8">
+
     <!-- ── Header ─────────────────────────────────────────────────────── -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 pt-6">
       <div>
@@ -127,7 +128,7 @@
         <header class="flex flex-col gap-4">
           <div class="flex items-center justify-between gap-2">
             <h2 class="font-display font-bold text-black text-base">Banco de Preguntas</h2>
-            <button class="flex items-center gap-1.5 text-xs font-bold text-accent hover:text-accent/70 transition-colors" @click="openQuestionModal">
+            <button class="flex items-center gap-1.5 text-xs font-bold text-accent hover:text-accent/70 transition-colors" @click="openQuestionModal()">
               <Plus class="w-3.5 h-3.5" /> Crear Pregunta
             </button>
           </div>
@@ -149,7 +150,9 @@
             draggable="true"
             @dragstart="onDragStart($event, item)"
             @dragend="onDragEnd">
-            <div class="flex flex-col gap-1.5 w-full min-w-0 pr-20">
+
+            <!-- Texto e info — se deja espacio a la derecha para los botones -->
+            <div class="flex flex-col gap-1.5 w-full min-w-0 pr-28">
               <p class="text-sm font-semibold text-black line-clamp-2">{{ item.texto_pregunta }}</p>
               <div class="text-[10px] text-muted flex items-center gap-1 flex-wrap">
                 <span class="font-bold text-black/70">Tipo:</span>
@@ -159,10 +162,20 @@
                 <span v-if="item.valor_alerta" class="bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-lg font-medium">⚠ Alarma</span>
               </div>
             </div>
-            <div class="flex items-center gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 top-1/2 -translate-y-1/2">
+
+            <!-- Botones: Agregar · Editar · Eliminar (visibles al hover) -->
+            <div class="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2">
               <button class="w-7 h-7 rounded-lg bg-surface border border-border text-muted hover:text-accent hover:border-accent/30 flex items-center justify-center transition-all"
-                title="Agregar" @click.stop="addToBuilder(item)">
+                title="Agregar al cuestionario" @click.stop="addToBuilder(item)">
                 <Plus class="w-3.5 h-3.5" />
+              </button>
+              <button class="w-7 h-7 rounded-lg bg-surface border border-border text-muted hover:text-blue-600 hover:border-blue-300 flex items-center justify-center transition-all"
+                title="Editar pregunta" @click.stop="openQuestionModal(item)">
+                <Pencil class="w-3.5 h-3.5" />
+              </button>
+              <button class="w-7 h-7 rounded-lg bg-surface border border-border text-muted hover:text-red-500 hover:border-red-300 hover:bg-red-50 flex items-center justify-center transition-all"
+                title="Eliminar pregunta" @click.stop="deleteQuestion(item)">
+                <Trash2 class="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -175,97 +188,203 @@
       </div>
     </div>
 
-    <!-- ── Modal crear pregunta ───────────────────────────────────────── -->
+    <!-- ── Modal crear / editar pregunta ─────────────────────────────── -->
     <Teleport to="body">
       <Transition name="fade">
-        <div v-if="isQuestionModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" @click.self="closeQuestionModal">
-          <div class="bg-white rounded-3xl shadow-xl w-full max-w-lg p-6 space-y-5 border border-border">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <h2 class="font-display text-xl font-semibold text-black">Crear Pregunta</h2>
-                <p class="text-xs text-muted mt-0.5">Se guardará en el banco y podrás reutilizarla en otros cuestionarios.</p>
+        <div v-if="isQuestionModalOpen"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          @click.self="closeQuestionModal">
+
+          <!--
+            FIX OVERFLOW: flex column con max-h y overflow en el cuerpo,
+            footer siempre visible en la parte inferior.
+          -->
+          <div class="bg-white rounded-3xl shadow-xl w-full max-w-lg flex flex-col max-h-[90dvh] border border-border">
+
+            <!-- Cuerpo scrolleable -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
+
+              <!-- Header del modal -->
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <h2 class="font-display text-xl font-semibold text-black">
+                    {{ questionModalMode === 'crear' ? 'Crear Pregunta' : 'Editar Pregunta' }}
+                  </h2>
+                  <p class="text-xs text-muted mt-0.5">
+                    {{ questionModalMode === 'crear'
+                      ? 'Se guardará en el banco y podrás reutilizarla en otros cuestionarios.'
+                      : 'Los cambios se reflejarán en todos los cuestionarios que usen esta pregunta.' }}
+                  </p>
+                </div>
+                <button class="w-8 h-8 rounded-xl border border-border text-muted hover:text-black hover:bg-surface transition-all shrink-0"
+                  @click="closeQuestionModal">
+                  <X class="w-4 h-4 mx-auto" />
+                </button>
               </div>
-              <button class="w-8 h-8 rounded-xl border border-border text-muted hover:text-black hover:bg-surface transition-all" @click="closeQuestionModal">
-                <X class="w-4 h-4 mx-auto" />
+
+              <!-- Texto de la pregunta -->
+              <div>
+                <label class="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1">Pregunta</label>
+                <textarea v-model="questionForm.text" rows="3" placeholder="Escribe la pregunta..."
+                  class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black placeholder:text-muted/50 resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
+                <p v-if="questionFormErrors.text" class="text-xs text-red-500 mt-1">{{ questionFormErrors.text }}</p>
+              </div>
+
+              <!-- Tipo de control -->
+              <div>
+                <label class="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1">Tipo de control</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <label v-for="type in controlTypes" :key="type.value"
+                    :class="['border rounded-xl px-3 py-2.5 text-xs font-bold cursor-pointer transition-all', questionForm.controlType === type.value ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-surface text-muted hover:border-accent/30']">
+                    <input v-model="questionForm.controlType" type="radio" class="sr-only" :value="type.value" />
+                    {{ type.label }}
+                  </label>
+                </div>
+              </div>
+
+              <!-- Compatible con -->
+              <div>
+                <label class="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1">Compatible con</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <label v-for="t in ['24h', '72h']" :key="t"
+                    :class="['border rounded-xl px-3 py-2.5 text-xs font-bold cursor-pointer text-center transition-all', questionForm.questionnaireTypes.includes(t) ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-border bg-surface text-muted hover:border-blue-200']">
+                    <input type="checkbox" class="sr-only" :checked="questionForm.questionnaireTypes.includes(t)" @change="toggleQuestionnaireType(t)" />
+                    {{ t }}
+                  </label>
+                </div>
+                <p v-if="questionFormErrors.questionnaireTypes" class="text-xs text-red-500 mt-1">{{ questionFormErrors.questionnaireTypes }}</p>
+              </div>
+
+              <!-- Opciones (solo opción múltiple) -->
+              <div v-if="questionForm.controlType === 'opcion_multiple'" class="space-y-2">
+                <label class="block text-[10px] font-bold text-muted uppercase tracking-wide">Opciones</label>
+                <div v-for="(_, index) in questionForm.options" :key="index" class="flex gap-2">
+                  <input v-model="questionForm.options[index]" type="text" :placeholder="`Opción ${index + 1}`"
+                    class="flex-1 bg-surface border border-border rounded-xl px-4 py-2 text-sm text-black placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
+                  <button v-if="questionForm.options.length > 2"
+                    class="w-9 h-9 rounded-xl border border-border text-muted hover:text-red-500 hover:bg-red-50 transition-all"
+                    @click="questionForm.options.splice(index, 1)">
+                    <Trash2 class="w-4 h-4 mx-auto" />
+                  </button>
+                </div>
+                <button class="text-xs font-bold text-accent hover:text-accent/70" @click="questionForm.options.push('')">+ Agregar opción</button>
+                <p v-if="questionFormErrors.options" class="text-xs text-red-500 mt-1">{{ questionFormErrors.options }}</p>
+              </div>
+
+              <!-- ── Valor de alerta clínica ─────────────────────────── -->
+              <div class="rounded-2xl border border-border bg-surface p-4 space-y-3">
+                <label class="block text-[10px] font-bold text-muted uppercase tracking-wide">
+                  Valor de alerta clínica
+                  <span class="font-normal text-muted/50 normal-case tracking-normal ml-1">(opcional)</span>
+                </label>
+
+                <!-- Escala 1-10 -->
+                <div v-if="questionForm.controlType === 'escala_1_10'" class="flex items-center gap-2">
+                  <span class="text-xs text-muted">Alertar si el valor es mayor o igual a</span>
+                  <input v-model.number="questionForm.alertMin" type="number" min="1" max="10" placeholder="8"
+                    class="w-20 bg-card border border-border rounded-xl px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
+                </div>
+
+                <!--
+                  BUG FIX: las etiquetas anteriores eran "Sí dispara alerta" / "No dispara alerta",
+                  lo que hacía pensar que "No dispara alerta" = sin alerta. En realidad ambas opciones
+                  CONFIGURAN una alerta (que dispara según la respuesta del paciente).
+                  Las nuevas etiquetas son explícitas: "Alerta si responde Sí" / "Alerta si responde No".
+                  Para NO tener alerta, simplemente no se selecciona ninguna opción (o se borra con ✕).
+                -->
+                <div v-else-if="questionForm.controlType === 'booleano_si_no'" class="space-y-2">
+                  <div class="flex gap-2">
+                    <label v-for="opt in alertBooleanOptions" :key="opt.value"
+                      :class="['flex-1 text-center border rounded-xl px-3 py-2 text-xs font-bold cursor-pointer transition-all',
+                        questionForm.alertValue === opt.value
+                          ? 'border-amber-400 bg-amber-50 text-amber-700'
+                          : 'border-border bg-card text-muted hover:border-amber-300']">
+                      <input v-model="questionForm.alertValue" type="radio" class="sr-only" :value="opt.value" />
+                      {{ opt.label }}
+                    </label>
+                    <!-- Botón para limpiar la selección → sin alerta -->
+                    <button v-if="questionForm.alertValue"
+                      class="w-9 h-9 rounded-xl border border-border text-muted hover:text-red-500 hover:bg-red-50 transition-all shrink-0"
+                      title="Sin alerta"
+                      @click="questionForm.alertValue = null">
+                      <X class="w-4 h-4 mx-auto" />
+                    </button>
+                  </div>
+                  <p class="text-[10px] text-muted">
+                    Sin selección = esta pregunta no genera alerta automática.
+                  </p>
+                </div>
+
+                <!-- Opción múltiple -->
+                <div v-else-if="questionForm.controlType === 'opcion_multiple'">
+                  <input v-model="questionForm.alertIncludes" type="text"
+                    placeholder="Texto de opción que dispara alerta. Ej. Pus"
+                    class="w-full bg-card border border-border rounded-xl px-4 py-2 text-sm text-black placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
+                  <p class="text-[10px] text-muted mt-1">Deja vacío si ninguna opción debe generar alerta.</p>
+                </div>
+
+                <!-- Texto libre -->
+                <p v-else class="text-xs text-muted">Las preguntas de texto libre no generan alerta automática.</p>
+              </div>
+
+            </div><!-- /cuerpo scrolleable -->
+
+            <!-- Footer siempre visible -->
+            <div class="px-6 pb-6 pt-4 border-t border-border shrink-0 flex gap-3">
+              <button class="flex-1 border border-border rounded-2xl py-3 text-sm font-bold text-muted hover:bg-surface hover:text-black transition-all"
+                @click="closeQuestionModal">
+                Cancelar
+              </button>
+              <button :disabled="isSavingQuestion"
+                class="flex-1 bg-accent text-white rounded-2xl py-3 text-sm font-bold hover:bg-accent/90 transition-all disabled:opacity-60"
+                @click="saveQuestion">
+                {{ isSavingQuestion
+                    ? 'Guardando...'
+                    : questionModalMode === 'crear' ? 'Agregar pregunta' : 'Guardar cambios' }}
               </button>
             </div>
 
-            <div>
-              <label class="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1">Pregunta</label>
-              <textarea v-model="questionForm.text" rows="3" placeholder="Escribe la pregunta..."
-                class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black placeholder:text-muted/50 resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
-              <p v-if="questionFormErrors.text" class="text-xs text-red-500 mt-1">{{ questionFormErrors.text }}</p>
-            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
-            <div>
-              <label class="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1">Tipo de control</label>
-              <div class="grid grid-cols-2 gap-2">
-                <label v-for="type in controlTypes" :key="type.value"
-                  :class="['border rounded-xl px-3 py-2.5 text-xs font-bold cursor-pointer transition-all', questionForm.controlType === type.value ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-surface text-muted hover:border-accent/30']">
-                  <input v-model="questionForm.controlType" type="radio" class="sr-only" :value="type.value" />
-                  {{ type.label }}
-                </label>
+    <!-- ── Modal: advertencia sin alertas clínicas ───────────────────── -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showNoAlertWarning" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div class="bg-white rounded-3xl shadow-xl w-full max-w-md p-6 space-y-4 border border-border">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0">
+                <AlertTriangle class="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 class="font-bold text-black">Sin alertas clínicas configuradas</h3>
+                <p class="text-sm text-muted mt-1 leading-relaxed">
+                  Ninguna de las preguntas de este cuestionario tiene configurada una alerta clínica.
+                  Si el paciente reporta síntomas de riesgo, el sistema <strong class="text-black">no podrá notificarte automáticamente</strong>.
+                </p>
               </div>
             </div>
-
-            <div>
-              <label class="block text-[10px] font-bold text-muted uppercase tracking-wide mb-1">Compatible con</label>
-              <div class="grid grid-cols-2 gap-2">
-                <label v-for="t in ['24h', '72h']" :key="t"
-                  :class="['border rounded-xl px-3 py-2.5 text-xs font-bold cursor-pointer text-center transition-all', questionForm.questionnaireTypes.includes(t) ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-border bg-surface text-muted hover:border-blue-200']">
-                  <input type="checkbox" class="sr-only" :checked="questionForm.questionnaireTypes.includes(t)" @change="toggleQuestionnaireType(t)" />
-                  {{ t }}
-                </label>
-              </div>
-              <p v-if="questionFormErrors.questionnaireTypes" class="text-xs text-red-500 mt-1">{{ questionFormErrors.questionnaireTypes }}</p>
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-xs text-amber-700 leading-relaxed">
+              Para configurar alertas, edita las preguntas del banco usando el botón ✏ y define el valor de alerta clínica correspondiente.
             </div>
-
-            <div v-if="questionForm.controlType === 'opcion_multiple'" class="space-y-2">
-              <label class="block text-[10px] font-bold text-muted uppercase tracking-wide">Opciones</label>
-              <div v-for="(_, index) in questionForm.options" :key="index" class="flex gap-2">
-                <input v-model="questionForm.options[index]" type="text" :placeholder="`Opción ${index + 1}`"
-                  class="flex-1 bg-surface border border-border rounded-xl px-4 py-2 text-sm text-black placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
-                <button v-if="questionForm.options.length > 2" class="w-9 h-9 rounded-xl border border-border text-muted hover:text-red-500 hover:bg-red-50 transition-all"
-                  @click="questionForm.options.splice(index, 1)"><Trash2 class="w-4 h-4 mx-auto" /></button>
-              </div>
-              <button class="text-xs font-bold text-accent hover:text-accent/70" @click="questionForm.options.push('')">+ Agregar opción</button>
-              <p v-if="questionFormErrors.options" class="text-xs text-red-500 mt-1">{{ questionFormErrors.options }}</p>
-            </div>
-
-            <!-- Valor de alerta -->
-            <div class="rounded-2xl border border-border bg-surface p-4 space-y-3">
-              <label class="block text-[10px] font-bold text-muted uppercase tracking-wide">Valor de alerta clínica (opcional)</label>
-              <div v-if="questionForm.controlType === 'escala_1_10'" class="flex items-center gap-2">
-                <span class="text-xs text-muted">Alertar si el valor es mayor o igual a</span>
-                <input v-model.number="questionForm.alertMin" type="number" min="1" max="10" placeholder="8"
-                  class="w-20 bg-card border border-border rounded-xl px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
-              </div>
-              <div v-else-if="questionForm.controlType === 'booleano_si_no'" class="flex gap-2">
-                <label v-for="opt in [{ value: 'true', label: 'Sí dispara alerta' }, { value: 'false', label: 'No dispara alerta' }]" :key="opt.value"
-                  :class="['flex-1 text-center border rounded-xl px-3 py-2 text-xs font-bold cursor-pointer transition-all', questionForm.alertValue === opt.value ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-border bg-card text-muted hover:border-amber-300']">
-                  <input v-model="questionForm.alertValue" type="radio" class="sr-only" :value="opt.value" />
-                  {{ opt.label }}
-                </label>
-                <button v-if="questionForm.alertValue" class="w-9 h-9 rounded-xl border border-border text-muted hover:text-red-500 hover:bg-red-50 transition-all"
-                  @click="questionForm.alertValue = null"><X class="w-4 h-4 mx-auto" /></button>
-              </div>
-              <div v-else-if="questionForm.controlType === 'opcion_multiple'">
-                <input v-model="questionForm.alertIncludes" type="text" placeholder="Texto de opción que dispara alerta. Ej. Pus"
-                  class="w-full bg-card border border-border rounded-xl px-4 py-2 text-sm text-black placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all" />
-              </div>
-              <p v-else class="text-xs text-muted">Las preguntas de texto libre no generan alerta automática.</p>
-            </div>
-
-            <div class="flex gap-3 pt-2">
-              <button class="flex-1 border border-border rounded-2xl py-3 text-sm font-bold text-muted hover:bg-surface hover:text-black transition-all" @click="closeQuestionModal">Cancelar</button>
-              <button :disabled="isSavingQuestion" class="flex-1 bg-accent text-white rounded-2xl py-3 text-sm font-bold hover:bg-accent/90 transition-all disabled:opacity-60" @click="createQuestion">
-                {{ isSavingQuestion ? 'Guardando...' : 'Agregar pregunta' }}
+            <div class="flex gap-3">
+              <button class="flex-1 border border-border rounded-2xl py-3 text-sm font-bold text-muted hover:bg-surface hover:text-black transition-all"
+                @click="showNoAlertWarning = false">
+                Revisar preguntas
+              </button>
+              <button :disabled="isSaving"
+                class="flex-1 bg-accent text-white rounded-2xl py-3 text-sm font-bold hover:bg-accent/90 transition-all disabled:opacity-60"
+                @click="confirmarGuardarSinAlertas">
+                Guardar de todas formas
               </button>
             </div>
           </div>
         </div>
       </Transition>
     </Teleport>
+
   </div>
 </template>
 
@@ -276,34 +395,34 @@ import { ROUTE_NAMES } from '@/shared/routes'
 import { httpClient } from '@/shared/api/http'
 import { preguntaBaseApi, type PreguntaBase } from '@/entities/preguntaBase'
 import {
-    AlertCircle, CheckCircle2, ChevronDown, ClipboardList,
-    Loader2, Plus, Save, Search, Trash2, X
+    AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, ClipboardList,
+    Loader2, Pencil, Plus, Save, Search, Trash2, X
 } from 'lucide-vue-next'
 
-type TipoControl = 'escala_1_10' | 'booleano_si_no' | 'texto_libre' | 'opcion_multiple'
+type TipoControl    = 'escala_1_10' | 'booleano_si_no' | 'texto_libre' | 'opcion_multiple'
 type TipoCuestionario = '24h' | '72h'
-type AlertValue = { min: number } | { valor: 'true' | 'false' } | { incluye: string } | null
+type AlertValue     = { min: number } | { valor: 'true' | 'false' } | { incluye: string } | null
 
-interface Procedure { id_procedimiento: number; nombre_procedimiento: string }
-interface ProceduresResponse { message: string; listaCatalogo: Procedure[] }
+interface Procedure                   { id_procedimiento: number; nombre_procedimiento: string }
+interface ProceduresResponse          { message: string; listaCatalogo: Procedure[] }
 interface CreateQuestionnaireResponse { message: string; cuestionario: { id_cuestionario: number } }
 
-const route = useRoute()
-const router = useRouter()
+const route       = useRoute()
+const router      = useRouter()
 const routeParams = computed(() => ({ id: String(route.params.id ?? '') }))
 
 // ── Formulario del cuestionario ───────────────────────────────────────────
 const form = reactive({
     nombre_cuestionario: '',
-    tipo_cuestionario: '24h' as TipoCuestionario,
-    id_procedimiento: null as number | null,
-    descripcion: ''
+    tipo_cuestionario:   '24h' as TipoCuestionario,
+    id_procedimiento:    null as number | null,
+    descripcion:         ''
 })
 const formErrors = reactive({ nombre_cuestionario: '', id_procedimiento: '' })
 
-// ── Banco de preguntas (real API) ─────────────────────────────────────────
-const bankQuestions = ref<PreguntaBase[]>([])
-const isLoadingBank = ref(false)
+// ── Banco de preguntas ────────────────────────────────────────────────────
+const bankQuestions  = ref<PreguntaBase[]>([])
+const isLoadingBank  = ref(false)
 
 async function loadBank() {
     isLoadingBank.value = true
@@ -317,8 +436,8 @@ async function loadBank() {
     }
 }
 
-// Filtrar banco por tipo del cuestionario y por búsqueda
-const searchQuery = ref('')
+// Filtrar banco por tipo del cuestionario y búsqueda
+const searchQuery  = ref('')
 const bankFiltered = computed(() => {
     const builderIds = new Set(builderQuestions.value.map(q => q.id_pregunta_base))
     let list = bankQuestions.value.filter(q => {
@@ -333,7 +452,7 @@ const bankFiltered = computed(() => {
 })
 
 // ── Procedimientos ────────────────────────────────────────────────────────
-const procedures = ref<Procedure[]>([])
+const procedures        = ref<Procedure[]>([])
 const isLoadingProcedures = ref(false)
 
 async function loadProcedures() {
@@ -366,11 +485,11 @@ function removeFromBuilder(id: number) {
 
 // ── Drag & Drop ───────────────────────────────────────────────────────────
 const draggedItem = ref<PreguntaBase | null>(null)
-const isDragging = ref(false)
+const isDragging  = ref(false)
 
 function onDragStart(event: DragEvent, q: PreguntaBase) {
-    draggedItem.value = q
-    isDragging.value = true
+    draggedItem.value  = q
+    isDragging.value   = true
     if (event.dataTransfer) {
         event.dataTransfer.effectAllowed = 'move'
         event.dataTransfer.setData('text/plain', String(q.id_pregunta_base))
@@ -381,7 +500,7 @@ function onDragOver(event: DragEvent) {
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
 }
 function onDragLeave() { isDragging.value = false }
-function onDragEnd() { isDragging.value = false }
+function onDragEnd()   { isDragging.value = false }
 function onDrop(event: DragEvent) {
     event.preventDefault()
     isDragging.value = false
@@ -390,42 +509,57 @@ function onDrop(event: DragEvent) {
 }
 
 // ── Guardar cuestionario ──────────────────────────────────────────────────
-const isSaving = ref(false)
-const errorMessage = ref<string | null>(null)
-const successMessage = ref<string | null>(null)
+const isSaving          = ref(false)
+const errorMessage      = ref<string | null>(null)
+const successMessage    = ref<string | null>(null)
+const showNoAlertWarning = ref(false)
 
 function validateQuestionnaire() {
     let ok = true
     formErrors.nombre_cuestionario = ''
-    formErrors.id_procedimiento = ''
+    formErrors.id_procedimiento    = ''
     if (!form.nombre_cuestionario.trim()) { formErrors.nombre_cuestionario = 'El nombre es obligatorio.'; ok = false }
-    if (!form.id_procedimiento) { formErrors.id_procedimiento = 'Selecciona un procedimiento.'; ok = false }
+    if (!form.id_procedimiento)           { formErrors.id_procedimiento    = 'Selecciona un procedimiento.'; ok = false }
     if (builderQuestions.value.length === 0) { errorMessage.value = 'Agrega al menos una pregunta.'; ok = false }
     return ok
 }
 
 async function saveQuestionnaire() {
-    errorMessage.value = null
+    errorMessage.value   = null
     successMessage.value = null
     if (!validateQuestionnaire()) return
 
+    // Advertencia si ninguna pregunta tiene alerta clínica configurada
+    const tieneAlguna = builderQuestions.value.some(q => q.valor_alerta !== null)
+    if (!tieneAlguna) {
+        showNoAlertWarning.value = true
+        return
+    }
+
+    await doSaveQuestionnaire()
+}
+
+async function confirmarGuardarSinAlertas() {
+    showNoAlertWarning.value = false
+    await doSaveQuestionnaire()
+}
+
+async function doSaveQuestionnaire() {
     isSaving.value = true
     try {
-        // 1. Crear el cuestionario
         const res = await httpClient.post<CreateQuestionnaireResponse, any>('/cuestionario', {
             nombre_cuestionario: form.nombre_cuestionario.trim(),
-            tipo_cuestionario: form.tipo_cuestionario,
-            id_procedimiento: form.id_procedimiento,
-            descripcion: form.descripcion.trim() || null
+            tipo_cuestionario:   form.tipo_cuestionario,
+            id_procedimiento:    form.id_procedimiento,
+            descripcion:         form.descripcion.trim() || null
         })
 
         const id_cuestionario = res.cuestionario.id_cuestionario
 
-        // 2. Asignar preguntas del banco vía pivot (una sola llamada)
         await httpClient.post(`/cuestionario/${id_cuestionario}/preguntas`, {
             preguntas: builderQuestions.value.map((q, idx) => ({
                 id_pregunta_base: q.id_pregunta_base,
-                orden: idx
+                orden:            idx
             }))
         })
 
@@ -440,81 +574,152 @@ async function saveQuestionnaire() {
     }
 }
 
-// ── Modal crear pregunta ──────────────────────────────────────────────────
+// ── Modal crear / editar pregunta ─────────────────────────────────────────
 const isQuestionModalOpen = ref(false)
-const isSavingQuestion = ref(false)
+const isSavingQuestion    = ref(false)
+const questionModalMode   = ref<'crear' | 'editar'>('crear')
+const editingQuestionId   = ref<number | null>(null)
 
 const questionForm = reactive({
-    text: '',
-    controlType: 'booleano_si_no' as TipoControl,
-    options: ['', ''],
-    alertMin: null as number | null,
-    alertValue: null as 'true' | 'false' | null,
-    alertIncludes: '',
+    text:               '',
+    controlType:        'booleano_si_no' as TipoControl,
+    options:            ['', ''],
+    alertMin:           null as number | null,
+    alertValue:         null as 'true' | 'false' | null,
+    alertIncludes:      '',
     questionnaireTypes: ['24h', '72h'] as string[]
 })
 
 const questionFormErrors = reactive({ text: '', options: '', questionnaireTypes: '' })
 
 const controlTypes = [
-    { value: 'escala_1_10', label: 'Escala 1–10' },
+    { value: 'escala_1_10',    label: 'Escala 1–10' },
     { value: 'booleano_si_no', label: 'Sí / No' },
     { value: 'opcion_multiple', label: 'Opción múltiple' },
-    { value: 'texto_libre', label: 'Texto libre' }
+    { value: 'texto_libre',    label: 'Texto libre' }
 ]
 
-function openQuestionModal() {
-    Object.assign(questionForm, { text: '', controlType: 'booleano_si_no', options: ['', ''], alertMin: null, alertValue: null, alertIncludes: '', questionnaireTypes: ['24h', '72h'] })
-    questionFormErrors.text = ''
-    questionFormErrors.options = ''
+// FIX: etiquetas claras que no confunden con "sin alerta"
+const alertBooleanOptions = [
+    { value: 'true',  label: 'Alerta si responde Sí' },
+    { value: 'false', label: 'Alerta si responde No' },
+] as const
+
+// Limpiar alerta al cambiar tipo de control
+watch(() => questionForm.controlType, () => {
+    questionForm.alertMin      = null
+    questionForm.alertValue    = null
+    questionForm.alertIncludes = ''
+    if (questionForm.controlType !== 'opcion_multiple') {
+        questionForm.options = ['', '']
+    }
+})
+
+function openQuestionModal(q?: PreguntaBase) {
+    questionFormErrors.text               = ''
+    questionFormErrors.options            = ''
     questionFormErrors.questionnaireTypes = ''
+
+    if (q) {
+        // ── Modo editar: pre-llenar con datos existentes ──────────────
+        questionModalMode.value  = 'editar'
+        editingQuestionId.value  = q.id_pregunta_base
+        const va = q.valor_alerta as any
+        Object.assign(questionForm, {
+            text:          q.texto_pregunta,
+            controlType:   q.tipo_control,
+            options:       q.opciones && q.opciones.length >= 2 ? [...q.opciones] : ['', ''],
+            alertMin:      va && 'min'     in va ? va.min     : null,
+            alertValue:    va && 'valor'   in va ? va.valor   : null,
+            alertIncludes: va && 'incluye' in va ? va.incluye : '',
+            questionnaireTypes: [
+                ...(q.aplica_24h ? ['24h'] : []),
+                ...(q.aplica_72h ? ['72h'] : [])
+            ]
+        })
+    } else {
+        // ── Modo crear ────────────────────────────────────────────────
+        questionModalMode.value  = 'crear'
+        editingQuestionId.value  = null
+        Object.assign(questionForm, {
+            text: '', controlType: 'booleano_si_no', options: ['', ''],
+            alertMin: null, alertValue: null, alertIncludes: '',
+            questionnaireTypes: ['24h', '72h']
+        })
+    }
+
     isQuestionModalOpen.value = true
 }
+
 function closeQuestionModal() { isQuestionModalOpen.value = false }
 
 function toggleQuestionnaireType(t: string) {
     const idx = questionForm.questionnaireTypes.indexOf(t)
-    idx >= 0 ? questionForm.questionnaireTypes.splice(idx, 1) : questionForm.questionnaireTypes.push(t)
+    idx >= 0
+        ? questionForm.questionnaireTypes.splice(idx, 1)
+        : questionForm.questionnaireTypes.push(t)
 }
 
 function buildAlertValue(): AlertValue {
-    if (questionForm.controlType === 'escala_1_10' && questionForm.alertMin !== null) return { min: questionForm.alertMin }
-    if (questionForm.controlType === 'booleano_si_no' && questionForm.alertValue) return { valor: questionForm.alertValue }
-    if (questionForm.controlType === 'opcion_multiple' && questionForm.alertIncludes.trim()) return { incluye: questionForm.alertIncludes.trim() }
+    if (questionForm.controlType === 'escala_1_10' && questionForm.alertMin !== null)
+        return { min: questionForm.alertMin }
+    // FIX: solo se incluye valor_alerta cuando el dentista ELIGIÓ una opción (alertValue !== null)
+    if (questionForm.controlType === 'booleano_si_no' && questionForm.alertValue !== null)
+        return { valor: questionForm.alertValue }
+    if (questionForm.controlType === 'opcion_multiple' && questionForm.alertIncludes.trim())
+        return { incluye: questionForm.alertIncludes.trim() }
     return null
 }
 
-async function createQuestion() {
-    questionFormErrors.text = ''
-    questionFormErrors.options = ''
+async function saveQuestion() {
+    questionFormErrors.text               = ''
+    questionFormErrors.options            = ''
     questionFormErrors.questionnaireTypes = ''
 
-    if (!questionForm.text.trim()) { questionFormErrors.text = 'La pregunta es obligatoria.'; return }
+    if (!questionForm.text.trim())                  { questionFormErrors.text = 'La pregunta es obligatoria.'; return }
     if (questionForm.questionnaireTypes.length === 0) { questionFormErrors.questionnaireTypes = 'Selecciona al menos un tipo.'; return }
 
     const options = questionForm.options.map(o => o.trim()).filter(Boolean)
-    if (questionForm.controlType === 'opcion_multiple' && options.length < 2) { questionFormErrors.options = 'Agrega mínimo dos opciones.'; return }
+    if (questionForm.controlType === 'opcion_multiple' && options.length < 2) {
+        questionFormErrors.options = 'Agrega mínimo dos opciones.'; return
+    }
+
+    const payload = {
+        texto_pregunta:    questionForm.text.trim(),
+        tipo_control:      questionForm.controlType,
+        opciones:          questionForm.controlType === 'opcion_multiple' ? options : null,
+        valor_alerta:      buildAlertValue(),
+        aplica_24h:        questionForm.questionnaireTypes.includes('24h'),
+        aplica_72h:        questionForm.questionnaireTypes.includes('72h')
+    }
 
     isSavingQuestion.value = true
     try {
-        // Persiste en el banco real del backend
-        const res = await preguntaBaseApi.crear({
-            texto_pregunta: questionForm.text.trim(),
-            tipo_control: questionForm.controlType,
-            opciones: questionForm.controlType === 'opcion_multiple' ? options : null,
-            valor_alerta: buildAlertValue(),
-            aplica_24h: questionForm.questionnaireTypes.includes('24h'),
-            aplica_72h: questionForm.questionnaireTypes.includes('72h')
-        })
+        if (questionModalMode.value === 'editar' && editingQuestionId.value !== null) {
+            // ── Editar pregunta existente ─────────────────────────────
+            const res = await preguntaBaseApi.editar(editingQuestionId.value, payload)
 
-        // Agregar al banco local y al builder si es compatible con el tipo actual
-        bankQuestions.value.unshift(res.pregunta)
-        const tipoCuestionarioActual = form.tipo_cuestionario
-        if (
-            (tipoCuestionarioActual === '24h' && res.pregunta.aplica_24h) ||
-            (tipoCuestionarioActual === '72h' && res.pregunta.aplica_72h)
-        ) {
-            addToBuilder(res.pregunta)
+            // Actualizar en bankQuestions
+            const bIdx = bankQuestions.value.findIndex(q => q.id_pregunta_base === editingQuestionId.value)
+            if (bIdx !== -1) bankQuestions.value[bIdx] = res.pregunta
+
+            // Actualizar en builderQuestions si ya estaba añadida
+            const wIdx = builderQuestions.value.findIndex(q => q.id_pregunta_base === editingQuestionId.value)
+            if (wIdx !== -1) builderQuestions.value[wIdx] = res.pregunta
+        } else {
+            // ── Crear nueva pregunta ──────────────────────────────────
+            const res = await preguntaBaseApi.crear(payload)
+
+            // Agregar al banco local
+            bankQuestions.value.unshift(res.pregunta)
+
+            // Agregar al builder si es compatible con el tipo actual
+            if (
+                (form.tipo_cuestionario === '24h' && res.pregunta.aplica_24h) ||
+                (form.tipo_cuestionario === '72h' && res.pregunta.aplica_72h)
+            ) {
+                addToBuilder(res.pregunta)
+            }
         }
 
         closeQuestionModal()
@@ -525,12 +730,31 @@ async function createQuestion() {
     }
 }
 
+// ── Eliminar pregunta del banco ───────────────────────────────────────────
+async function deleteQuestion(q: PreguntaBase) {
+    const preview = q.texto_pregunta.length > 60
+        ? q.texto_pregunta.substring(0, 60) + '...'
+        : q.texto_pregunta
+
+    if (!confirm(`¿Eliminar la pregunta "${preview}"?\n\nEsta acción no se puede deshacer.`)) return
+
+    try {
+        await preguntaBaseApi.eliminar(q.id_pregunta_base)
+
+        // Retirar del banco y del builder
+        bankQuestions.value    = bankQuestions.value.filter(b => b.id_pregunta_base !== q.id_pregunta_base)
+        builderQuestions.value = builderQuestions.value.filter(b => b.id_pregunta_base !== q.id_pregunta_base)
+    } catch (error: any) {
+        errorMessage.value = error?.response?.data?.message ?? 'No se pudo eliminar la pregunta.'
+    }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 function typeLabel(type: TipoControl) {
     const labels: Record<TipoControl, string> = {
-        escala_1_10: 'Escala 1–10',
+        escala_1_10:    'Escala 1–10',
         booleano_si_no: 'Sí / No',
-        texto_libre: 'Texto libre',
+        texto_libre:    'Texto libre',
         opcion_multiple: 'Opción múltiple'
     }
     return labels[type]

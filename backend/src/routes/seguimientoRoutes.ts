@@ -9,7 +9,8 @@ import {
     cancelarSeguimiento,
     finalizarSeguimiento,
     obtenerCuestionarioSeguimiento,
-    guardarRespuestas
+    guardarRespuestas,
+    obtenerRespuestasSeguimiento
 } from '../controllers/seguimientoController';
 
 const router = Router();
@@ -27,5 +28,5 @@ router.patch('/:id_seguimiento/finalizar', verificarToken, permitirRoles(2), fin
 // Cuestionario para el paciente (CU22)
 router.get('/:id_seguimiento/cuestionario/:tipo_cuestionario', verificarToken, obtenerCuestionarioSeguimiento);
 router.post('/:id_seguimiento/respuestas', verificarToken, guardarRespuestas);
-
+router.get('/:id_seguimiento/respuestas', verificarToken, permitirRoles(2), obtenerRespuestasSeguimiento);
 export default router;

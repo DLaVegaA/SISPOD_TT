@@ -51,3 +51,35 @@ export const obtenerPreguntaBaseService = async (id_pregunta_base: number) => {
 
     return pregunta;
 };
+
+export const editarPreguntaBaseService = async (
+    id: number,
+    data: Partial<CrearPreguntaBaseData>
+) => {
+    const pregunta = await PreguntaBase.findByPk(id);
+    if (!pregunta) throw new AppError('La pregunta no existe', 404);
+ 
+    if (data.tipo_control && !TIPOS_CONTROL.includes(data.tipo_control)) {
+        throw new AppError('Tipo de control inválido', 400);
+    }
+ 
+    // Validar opciones si cambia a opción múltiple
+    if (data.tipo_control === 'opcion_multiple' || pregunta.tipo_control === 'opcion_multiple') {
+        const opciones = data.opciones ?? pregunta.opciones;
+        if (!Array.isArray(opciones) || opciones.length < 2) {
+            throw new AppError('La pregunta de opción múltiple requiere mínimo dos opciones', 400);
+        }
+    }
+ 
+    await pregunta.update(data);
+    return pregunta;
+};
+
+export const eliminarPreguntaBaseService = async (id: number) => {
+    const pregunta = await PreguntaBase.findByPk(id);
+    if (!pregunta) throw new AppError('La pregunta no existe', 404);
+ 
+    // Soft delete: marca como inactiva para no romper respuestas históricas
+    await pregunta.update({ activa: false });
+    return pregunta;
+};

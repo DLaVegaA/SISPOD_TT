@@ -5,7 +5,8 @@ import {
     crearCuestionario,
     listarCuestionarios,
     asignarPreguntas,
-    listarPreguntasDeCuestionario
+    listarPreguntasDeCuestionario,
+    desactivarCuestionario
 } from '../controllers/cuestionarioController';
 
 const router = Router();
@@ -21,5 +22,8 @@ router.post('/:id_cuestionario/preguntas', verificarToken, permitirRoles(2), asi
 
 // GET  /cuestionario/:id_cuestionario/preguntas  → ver preguntas del cuestionario
 router.get('/:id_cuestionario/preguntas', verificarToken, listarPreguntasDeCuestionario);
+
+// PATCH /cuestionario/:id_cuestionario  → desactivar cuestionario
+router.patch('/:id_cuestionario', verificarToken, permitirRoles(2), desactivarCuestionario);
 
 export default router;
