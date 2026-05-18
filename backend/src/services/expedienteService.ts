@@ -78,6 +78,24 @@ export const crearExpedienteService = async (data: any, user: any) => {
     throw new AppError('Dentista no encontrado', 404);
   }
 
+  const tipoSangre = data.tipo_sangre;
+  const ocupacion = data.ocupacion;
+  const estatura = data.estatura;
+  const peso = data.peso;
+
+  if (!tipoSangre || typeof tipoSangre !== 'string') {
+    throw new AppError('El tipo de sangre es obligatorio', 400);
+  }
+  if (!ocupacion || typeof ocupacion !== 'string') {
+    throw new AppError('La ocupacion es obligatoria', 400);
+  }
+  if (estatura === undefined || estatura === null || Number.isNaN(Number(estatura))) {
+    throw new AppError('La estatura es obligatoria', 400);
+  }
+  if (peso === undefined || peso === null || Number.isNaN(Number(peso))) {
+    throw new AppError('El peso es obligatorio', 400);
+  }
+
   const existeExpediente = await Expediente.findOne({ where: { id_paciente: data.id_paciente } });
 
   if (existeExpediente) {
@@ -89,35 +107,49 @@ export const crearExpedienteService = async (data: any, user: any) => {
     id_dentista: dentista.id_dentista,
     fecha_creacion: new Date(),
     observaciones_generales: data.observaciones_generales,
+    tipo_sangre: tipoSangre,
+    estatura: Number(estatura),
+    peso: Number(peso),
+    ocupacion,
   });
 
   return expediente;
 };
 
-export const agregarPadecimientoService = async (id_expediente: number, data: any) => {
+export const agregarPadecimientoService = async (id_expediente: number, data: any[]) => {
   const expediente = await Expediente.findByPk(id_expediente);
 
   if (!expediente) {
     throw new AppError('Expediente no encontrado', 404);
   }
 
-  const existe = await Expediente_Padecimientos.findOne({
+  const ids = data.map((item) => item.id_padecimiento);
+  const uniqueIds = new Set(ids);
+  if (uniqueIds.size !== ids.length) {
+    throw new AppError('Hay padecimientos repetidos en la solicitud', 400);
+  }
+
+  const existentes = await Expediente_Padecimientos.findAll({
     where: {
       id_expediente: expediente.id_expediente,
-      id_padecimiento: data.id_padecimiento,
+      id_padecimiento: {
+        [Op.in]: ids,
+      },
     },
   });
 
-  if (existe) {
-    throw new AppError('Este padecimiento ya está registrado', 400);
+  if (existentes.length > 0) {
+    throw new AppError('Algunos padecimientos ya están registrados', 400);
   }
 
-  return await Expediente_Padecimientos.create({
+  const registros = data.map((item) => ({
     id_expediente: expediente.id_expediente,
-    id_padecimiento: data.id_padecimiento,
-    tipo_antecedente: data.tipo_antecedente || null,
-    nota: data.nota || null,
-  });
+    id_padecimiento: item.id_padecimiento,
+    tipo_antecedente: item.tipo_antecedente || null,
+    nota: item.nota || null,
+  }));
+
+  return await Expediente_Padecimientos.bulkCreate(registros);
 };
 
 export const obtenerExpedienteService = async (id_expediente: number) => {
@@ -142,11 +174,16 @@ export const obtenerExpedienteService = async (id_expediente: number) => {
 
   const expedienteLimpio = {
     id_expediente: expediente.id_expediente,
+    id_paciente: expediente.id_paciente,
     observaciones_generales: expediente.observaciones_generales,
+    tipo_sangre: expediente.tipo_sangre,
+    estatura: expediente.estatura,
+    peso: expediente.peso,
+    ocupacion: expediente.ocupacion,
     padecimientos: expediente.padecimientos.map((p: any) => ({
       id: p.id_padecimiento,
-      nombre: p.nombre_padecimiento,
-      categoria: p.padecimiento.categoria_padecimiento,
+      nombre: p.padecimiento?.nombre_padecimiento ?? null,
+      categoria: p.padecimiento?.categoria_padecimiento ?? null,
       tipo_antecedente: p.tipo_antecedente,
       nota: p.nota,
     })),
