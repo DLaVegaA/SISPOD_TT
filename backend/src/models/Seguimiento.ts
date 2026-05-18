@@ -52,7 +52,7 @@ Seguimiento.init(
       onDelete: 'SET NULL',
     },
     estado_seguimiento: {
-      type: DataTypes.ENUM('En Tratamiento', 'Urgencia', 'Finalizado'),
+      type: DataTypes.ENUM('en curso', 'alerta', 'finalizado', 'cancelado'),
       allowNull: false,
       defaultValue: 'En Tratamiento',
     },

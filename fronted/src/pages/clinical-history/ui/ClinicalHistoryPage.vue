@@ -112,6 +112,7 @@ const antecedentesPatologicos = ref<Record<number, string>>({})
 const antecedentesNoPatologicos = ref<Record<number, string>>({})
 const expedienteErrors = ref<Record<string, string>>({})
 const isSavingExpediente = ref(false)
+const expedienteLoaded = ref(false)
 const selectedHeredoByCategory = ref<Record<string, string>>({})
 const selectedPatologicosByCategory = ref<Record<string, string>>({})
 const selectedNoPatologicosByCategory = ref<Record<string, string>>({})
@@ -418,18 +419,26 @@ const handleCrearExpediente = async () => {
       ocupacion: patientInfo.value.ocupacion,
       observaciones_generales: null,
     }
-
-    const response: any = await httpClient.post('/expediente', payload)
-    const expedienteId = response?.expediente?.id_expediente
-
     const padecimientosPayload = [
       ...buildPadecimientosPayload(antecedentesHeredofamiliares.value, 'heredofamiliar'),
       ...buildPadecimientosPayload(antecedentesPatologicos.value, 'patologico_personal'),
       ...buildPadecimientosPayload(antecedentesNoPatologicos.value, 'no_patologico'),
     ]
 
-    if (expedienteId && padecimientosPayload.length > 0) {
-      await httpClient.post(`/expediente/${expedienteId}/padecimiento`, {
+    if (expedienteId.value) {
+      const updatePayload: Record<string, any> = { ...payload }
+      if (expedienteLoaded.value || padecimientosPayload.length > 0) {
+        updatePayload.padecimientos = padecimientosPayload
+      }
+      await httpClient.put(`/expediente/${expedienteId.value}`, updatePayload)
+      return
+    }
+
+    const response: any = await httpClient.post('/expediente', payload)
+    const newExpedienteId = response?.expediente?.id_expediente
+
+    if (newExpedienteId && padecimientosPayload.length > 0) {
+      await httpClient.post(`/expediente/${newExpedienteId}/padecimiento`, {
         padecimientos: padecimientosPayload,
       })
     }
@@ -455,11 +464,13 @@ const loadPerfilPaciente = async (id?: string) => {
 
 const loadExpediente = async (id?: number | null) => {
   if (!id) return
+  expedienteLoaded.value = false
   try {
     const data: any = await httpClient.get(`/expediente/${id}`)
     const expediente: ExpedienteDetalle = data?.expediente ?? data
     if (expediente) {
       applyExpediente(expediente)
+      expedienteLoaded.value = true
     }
   } catch (error) {
     console.error('Error al cargar expediente', error)
@@ -477,6 +488,7 @@ watch(patientId, (value) => {
 })
 
 watch(expedienteId, (value) => {
+  expedienteLoaded.value = false
   loadExpediente(value)
 })
 </script>

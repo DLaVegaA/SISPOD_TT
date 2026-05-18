@@ -116,6 +116,132 @@ export const crearExpedienteService = async (data: any, user: any) => {
   return expediente;
 };
 
+export const actualizarExpedienteService = async (id_expediente: number, data: any) => {
+  const expediente = await Expediente.findByPk(id_expediente);
+
+  if (!expediente) {
+    throw new AppError('Expediente no encontrado', 404);
+  }
+
+  const updates: any = {};
+
+  if (data.tipo_sangre !== undefined) {
+    if (!data.tipo_sangre || typeof data.tipo_sangre !== 'string') {
+      throw new AppError('El tipo de sangre es obligatorio', 400);
+    }
+    updates.tipo_sangre = data.tipo_sangre;
+  }
+
+  if (data.ocupacion !== undefined) {
+    if (!data.ocupacion || typeof data.ocupacion !== 'string') {
+      throw new AppError('La ocupacion es obligatoria', 400);
+    }
+    updates.ocupacion = data.ocupacion;
+  }
+
+  if (data.estatura !== undefined) {
+    if (data.estatura === null || Number.isNaN(Number(data.estatura))) {
+      throw new AppError('La estatura es obligatoria', 400);
+    }
+    updates.estatura = Number(data.estatura);
+  }
+
+  if (data.peso !== undefined) {
+    if (data.peso === null || Number.isNaN(Number(data.peso))) {
+      throw new AppError('El peso es obligatorio', 400);
+    }
+    updates.peso = Number(data.peso);
+  }
+
+  if (data.observaciones_generales !== undefined) {
+    if (data.observaciones_generales && typeof data.observaciones_generales !== 'string') {
+      throw new AppError('Las observaciones deben ser texto', 400);
+    }
+    updates.observaciones_generales = data.observaciones_generales ?? null;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await expediente.update(updates);
+  }
+
+  return expediente;
+};
+
+export const sincronizarPadecimientosService = async (id_expediente: number, data: any[]) => {
+  const expediente = await Expediente.findByPk(id_expediente);
+
+  if (!expediente) {
+    throw new AppError('Expediente no encontrado', 404);
+  }
+
+  const ids = data.map((item) => item.id_padecimiento);
+  const uniqueIds = new Set(ids);
+  if (uniqueIds.size !== ids.length) {
+    throw new AppError('Hay padecimientos repetidos en la solicitud', 400);
+  }
+
+  const existentes = await Expediente_Padecimientos.findAll({
+    where: {
+      id_expediente: expediente.id_expediente,
+    },
+  });
+
+  const existentesIds = new Set(existentes.map((item: any) => item.id_padecimiento));
+  const incomingIds = new Set(ids);
+
+  const deleteIds = existentes
+    .filter((item: any) => !incomingIds.has(item.id_padecimiento))
+    .map((item: any) => item.id_padecimiento);
+
+  if (deleteIds.length > 0) {
+    await Expediente_Padecimientos.destroy({
+      where: {
+        id_expediente: expediente.id_expediente,
+        id_padecimiento: {
+          [Op.in]: deleteIds,
+        },
+      },
+    });
+  }
+
+  const updates = data.filter((item) => existentesIds.has(item.id_padecimiento));
+  await Promise.all(
+    updates.map((item) =>
+      Expediente_Padecimientos.update(
+        {
+          tipo_antecedente: item.tipo_antecedente ?? null,
+          nota: item.nota ?? null,
+        },
+        {
+          where: {
+            id_expediente: expediente.id_expediente,
+            id_padecimiento: item.id_padecimiento,
+          },
+        },
+      ),
+    ),
+  );
+
+  const nuevos = data
+    .filter((item) => !existentesIds.has(item.id_padecimiento))
+    .map((item) => ({
+      id_expediente: expediente.id_expediente,
+      id_padecimiento: item.id_padecimiento,
+      tipo_antecedente: item.tipo_antecedente ?? null,
+      nota: item.nota ?? null,
+    }));
+
+  if (nuevos.length > 0) {
+    await Expediente_Padecimientos.bulkCreate(nuevos);
+  }
+
+  return {
+    created: nuevos.length,
+    updated: updates.length,
+    deleted: deleteIds.length,
+  };
+};
+
 export const agregarPadecimientoService = async (id_expediente: number, data: any[]) => {
   const expediente = await Expediente.findByPk(id_expediente);
 
@@ -329,7 +455,7 @@ export const listarExpedientesService = async (limit: number, offset: number) =>
       cita?.tipo?.nombre_corto ||
       'Sin tratamiento';
     const servicio = cita?.tipo?.nombre || 'Ninguno';
-    const estadoSeguimiento = seguimiento?.estado_seguimiento || 'Sin Seguimiento';
+    const estadoSeguimiento = seguimiento?.estado_seguimiento || 'finalizado';
 
     return {
       id: r.id_paciente,
