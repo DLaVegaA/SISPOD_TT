@@ -18,6 +18,7 @@ import padecimientosRoutes from './routes/padecimientosRoutes';
 import catalogoProcedimientosRoutes from './routes/catalogoProcedimientosRoutes';
 import seguimientoRoutes from './routes/seguimientoRoutes';
 import cuestionarioRoutes from './routes/cuestionarioRoutes';
+import odontogramaRoutes from './routes/odontogramaRoutes'
 import preguntaBaseRoutes from './routes/preguntaBaseRoutes';   // ← nuevo
 import { errorHandler } from './middleware/errorMiddleware';
 import bot from './config/telegram';
@@ -105,6 +106,9 @@ app.use('/padecimiento', padecimientosRoutes);
 app.use('/catalogo-procedimientos', catalogoProcedimientosRoutes);
 app.use('/catalogo-procedimientos', errorHandler);
 app.use('/seguimiento', seguimientoRoutes);
+app.use('/odontograma', odontogramaRoutes)
+app.use('/odontograma', errorHandler)
+app.use('/pregunta', errorHandler)
 app.use('/seguimiento', errorHandler);
 app.use('/cuestionario', cuestionarioRoutes);
 app.use('/cuestionario', errorHandler);

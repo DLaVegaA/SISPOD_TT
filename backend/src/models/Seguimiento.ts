@@ -54,7 +54,7 @@ Seguimiento.init(
     estado_seguimiento: {
       type: DataTypes.ENUM('en curso', 'alerta', 'finalizado', 'cancelado'),
       allowNull: false,
-      defaultValue: 'En Tratamiento',
+      defaultValue: 'en curso',
     },
     plan_cuidados: {
       type: DataTypes.TEXT,
