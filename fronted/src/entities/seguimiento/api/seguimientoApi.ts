@@ -46,6 +46,9 @@ export interface SeguimientoListItem {
     // Indica qué cuestionarios asignó el dentista (RN11)
     tiene_cuestionario_24h: boolean
     tiene_cuestionario_72h: boolean
+    // Indica si el paciente ya los envió (RN12)
+    enviado_24h: boolean
+    enviado_72h: boolean
 }
 
 export interface SeguimientoDetalle {
@@ -56,6 +59,8 @@ export interface SeguimientoDetalle {
     fecha_inicio: string
     fecha_fin: string
     id_procedimiento: number
+    enviado_24h: boolean
+    enviado_72h: boolean
     tipo_procedimiento: { nombre_procedimiento: string }
     cita: {
         paciente: {
