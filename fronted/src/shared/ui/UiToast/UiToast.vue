@@ -33,7 +33,7 @@ const props = withDefaults(defineProps<Props>(), {
   message: '',
 })
 
-const emit = defineEmits<{ 'update:modelValue': (value: boolean) => void }>()
+const emit = defineEmits<{ (e: 'update:modelValue', value: boolean): void }>()
 
 const isVisible = computed(() =>
   props.modelValue === null ? toastState.visible : props.modelValue,
@@ -54,12 +54,13 @@ const colorClass = computed(
     )[toastType.value],
 )
 
-const iconComponent = computed(
-  () =>
-    (({ success: CheckCircle2, error: AlertCircle, info: Info }) as Record<ToastType, any>)[
-      toastType.value
-    ],
-)
+const toastIcons = {
+  success: CheckCircle2,
+  error: AlertCircle,
+  info: Info,
+} as const
+
+const iconComponent = computed(() => toastIcons[toastType.value])
 
 function close() {
   if (props.modelValue !== null) {
