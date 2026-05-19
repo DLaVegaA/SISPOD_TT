@@ -123,21 +123,19 @@ const citaSeleccionadaData = computed<CitaOpcion | null>(() => {
 // Estrategia 2: fallback por nombre si los IDs no corresponden
 const procedimientoDerivado = computed<Procedure | null>(() => {
   const cita = citaSeleccionadaData.value
-  if (!cita) return null
+  if (!cita?.nombre_tipo || !procedures.value.length) return null
 
-  if (cita.id_tipocita) {
-    const porId = procedures.value.find(p => p.id_procedimiento === cita.id_tipocita)
-    if (porId) return porId
+  const palabrasClave = cita.nombre_tipo.toLowerCase().split(/\s+/)
+
+  for (const palabra of palabrasClave) {
+    if (palabra.length < 4) continue
+    const match = procedures.value.find(p => {
+      const nombreProc = p.nombre_procedimiento.toLowerCase()
+      const raiz = nombreProc.split(' ')[0] ?? ''  // ← ?? '' elimina el undefined
+      return nombreProc.includes(palabra) || palabra.includes(raiz)
+    })
+    if (match) return match
   }
-
-  if (cita.nombre_tipo) {
-    const nombre = cita.nombre_tipo.toLowerCase()
-    return procedures.value.find(p =>
-      p.nombre_procedimiento.toLowerCase().includes(nombre) ||
-      nombre.includes(p.nombre_procedimiento.toLowerCase())
-    ) ?? null
-  }
-
   return null
 })
 
@@ -399,46 +397,43 @@ onMounted(async () => { await Promise.all([fetchSeguimientos(), cargarCatalogos(
                 </div>
                 <div class="space-y-1.5">
                   <label class="text-[10px] font-bold text-muted uppercase tracking-wider px-1">
-                    Procedimiento realizado
+                    Procedimiento realizado *
                   </label>
 
-                  <!-- Caso A: procedimiento resuelto automáticamente → solo lectura -->
-                  <div
-                    v-if="procedimientoDerivado"
-                    class="flex items-center gap-3 px-4 py-2.5 bg-surface border border-border rounded-xl"
-                  >
-                    <Stethoscope class="w-4 h-4 text-accent shrink-0" />
-                    <div>
-                      <p class="text-sm font-medium text-black">{{ procedimientoDerivado.nombre_procedimiento }}</p>
-                      <p class="text-[10px] text-muted mt-0.5">Obtenido de la cita seleccionada</p>
-                    </div>
-                  </div>
-
-                  <!-- Caso B: no se pudo auto-resolver → selector manual de respaldo -->
-                  <template v-else-if="form.id_cita">
-                    <p class="text-[10px] text-amber-600 px-1 flex items-center gap-1 mb-1">
-                      <AlertCircle class="w-3 h-3 shrink-0" />
-                      No se encontró procedimiento automáticamente. Selecciónalo manualmente.
-                    </p>
-                    <select
-                      v-model="form.id_procedimiento"
-                      class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all appearance-none"
-                    >
-                      <option value="">Selecciona un procedimiento</option>
-                      <option
-                        v-for="p in procedures"
-                        :key="p.id_procedimiento"
-                        :value="String(p.id_procedimiento)"
-                      >
-                        {{ p.nombre_procedimiento }}
-                      </option>
-                    </select>
-                  </template>
-
-                  <!-- Caso C: sin cita aún seleccionada -->
-                  <p v-else class="text-xs text-muted px-1 italic">
+                  <!-- Sin cita seleccionada aún -->
+                  <p v-if="!form.id_cita" class="text-xs text-muted px-1 italic">
                     Selecciona primero una cita.
                   </p>
+
+                  <template v-else>
+                    <!-- Badge de sugerencia si hubo match automático -->
+                    <p v-if="procedimientoDerivado" class="text-[10px] text-accent font-semibold px-1 flex items-center gap-1 mb-1">
+                      <CheckCircle2 class="w-3 h-3 shrink-0" />
+                      Sugerido por tipo de cita · puedes cambiarlo si es necesario
+                    </p>
+                    <p v-else class="text-[10px] text-amber-600 px-1 flex items-center gap-1 mb-1">
+                      <AlertCircle class="w-3 h-3 shrink-0" />
+                      Selecciona el procedimiento realizado en esta cita
+                    </p>
+
+                    <!-- Siempre editable — pre-seleccionado si hubo match -->
+                    <div class="relative">
+                      <select
+                        v-model="form.id_procedimiento"
+                        class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all appearance-none"
+                      >
+                        <option value="">Selecciona el procedimiento...</option>
+                        <option
+                          v-for="p in procedures"
+                          :key="p.id_procedimiento"
+                          :value="String(p.id_procedimiento)"
+                        >
+                          {{ p.nombre_procedimiento }}
+                        </option>
+                      </select>
+                      <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
+                    </div>
+                  </template>
                 </div>
               </template>
               <template v-else-if="itemEditando">
