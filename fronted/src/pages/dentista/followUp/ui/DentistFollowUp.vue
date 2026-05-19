@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   Plus, Search, X, Pencil, CheckCircle2, AlertCircle,
   Clock, Loader2, HeartPulse, ChevronDown,
@@ -31,7 +31,12 @@ interface RespuestasDetalle {
 }
 
 interface Procedure    { id_procedimiento: number; nombre_procedimiento: string }
-interface CitaOpcion   { id_cita: number; label: string }
+interface CitaOpcion {
+  id_cita:     number
+  label:       string
+  id_tipocita: number | null   // ← para auto-mapear al procedimiento
+  nombre_tipo: string          // ← para mostrar en el modal read-only
+}
 interface Cuestionario { id_cuestionario: number; nombre_cuestionario: string; tipo_cuestionario: string }
 
 const seguimientos = ref<Seguimiento[]>([])
@@ -76,11 +81,18 @@ async function cargarCatalogos() {
     procedures.value      = resProcedimientos.listaCatalogo ?? []
     cuestionarios24.value = resCuest24.cuestionarios ?? []
     cuestionarios72.value = resCuest72.cuestionarios ?? []
-    citasOpciones.value   = (resCitas.citas ?? []).map((c: any) => {
+    citasOpciones.value = (resCitas.citas ?? []).map((c: any) => {
       const paciente = c.paciente?.usuario
       const nombre   = paciente ? `${paciente.nombre} ${paciente.apellido_paterno}`.trim() : `Paciente #${c.id_paciente}`
-      const fecha    = c.fecha_hora_inicio ? new Date(c.fecha_hora_inicio).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : ''
-      return { id_cita: c.id_cita, label: `Cita #${c.id_cita} — ${nombre} (${fecha})` }
+      const fecha    = c.fecha_hora_inicio
+        ? new Date(c.fecha_hora_inicio).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
+        : ''
+      return {
+        id_cita:     c.id_cita,
+        label:       `Cita #${c.id_cita} — ${nombre} (${fecha})`,
+        id_tipocita: c.tipo?.id_tipocita ?? null,                    // ← AGREGAR
+        nombre_tipo: c.tipo?.nombre_corto ?? c.tipo?.nombre ?? '',   // ← AGREGAR
+      }
     })
   } catch { errorMsg.value = 'No se pudieron cargar los catálogos.' }
   finally { isLoadingCatalogos.value = false }
@@ -97,6 +109,48 @@ const filtered = computed(() => {
   const q = searchQuery.value.toLowerCase()
   return seguimientos.value.filter(s => s.pacienteNombre.toLowerCase().includes(q) || s.procedimientoNombre.toLowerCase().includes(q))
 })
+
+// ── Cita actualmente seleccionada (datos enriquecidos) ────────────────────
+const citaSeleccionadaData = computed<CitaOpcion | null>(() => {
+  if (!form.value.id_cita) return null
+  return citasOpciones.value.find(
+    c => String(c.id_cita) === String(form.value.id_cita)  // ← String() en ambos lados
+  ) ?? null
+})
+
+// ── Procedimiento derivado automáticamente de la cita ─────────────────────
+// Estrategia 1: id_tipocita === id_procedimiento (convención del proyecto)
+// Estrategia 2: fallback por nombre si los IDs no corresponden
+const procedimientoDerivado = computed<Procedure | null>(() => {
+  const cita = citaSeleccionadaData.value
+  if (!cita) return null
+
+  if (cita.id_tipocita) {
+    const porId = procedures.value.find(p => p.id_procedimiento === cita.id_tipocita)
+    if (porId) return porId
+  }
+
+  if (cita.nombre_tipo) {
+    const nombre = cita.nombre_tipo.toLowerCase()
+    return procedures.value.find(p =>
+      p.nombre_procedimiento.toLowerCase().includes(nombre) ||
+      nombre.includes(p.nombre_procedimiento.toLowerCase())
+    ) ?? null
+  }
+
+  return null
+})
+
+// ── Watch: auto-populate id_procedimiento al seleccionar una cita ─────────
+watch(
+  () => form.value.id_cita,
+  () => {
+    if (modalMode.value !== 'crear') return
+    const proc = procedimientoDerivado.value
+    form.value.id_procedimiento = proc ? String(proc.id_procedimiento) : ''
+  }
+)
+
 function columnItems(key: string) { return filtered.value.filter(s => s.estado_seguimiento === key) }
 
 function formatearFecha(fechaStr: string) {
@@ -137,7 +191,17 @@ function cerrarModal() { isModalOpen.value = false; errorMsg.value = null; itemE
 
 async function guardarSeguimiento() {
   errorMsg.value = null
-  if (modalMode.value === 'crear' && (!form.value.id_cita || !form.value.id_procedimiento)) { errorMsg.value = 'Selecciona la cita y el procedimiento.'; return }
+  if (modalMode.value === 'crear') {
+    if (!form.value.id_cita) {
+      errorMsg.value = 'Selecciona una cita quirúrgica.'
+      return
+    }
+    if (!form.value.id_procedimiento) {
+      errorMsg.value = 'No se pudo determinar el procedimiento. Selecciónalo manualmente.'
+      return
+    }
+  }
+
   isSaving.value = true
   try {
     if (modalMode.value === 'crear') {
@@ -328,20 +392,53 @@ onMounted(async () => { await Promise.all([fetchSeguimientos(), cargarCatalogos(
                   <div class="relative">
                     <select v-model="form.id_cita" class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all appearance-none">
                       <option value="">{{ isLoadingCatalogos ? 'Cargando...' : citasOpciones.length === 0 ? 'Sin citas disponibles' : 'Selecciona la cita...' }}</option>
-                      <option v-for="c in citasOpciones" :key="c.id_cita" :value="c.id_cita">{{ c.label }}</option>
+                      <option v-for="c in citasOpciones" :key="c.id_cita" :value="String(c.id_cita)">{{ c.label }}</option>
                     </select>
                     <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
                   </div>
                 </div>
                 <div class="space-y-1.5">
-                  <label class="text-[10px] font-bold text-muted uppercase tracking-wider px-1">Procedimiento *</label>
-                  <div class="relative">
-                    <select v-model="form.id_procedimiento" class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all appearance-none">
-                      <option value="">Selecciona el procedimiento...</option>
-                      <option v-for="p in procedures" :key="p.id_procedimiento" :value="p.id_procedimiento">{{ p.nombre_procedimiento }}</option>
-                    </select>
-                    <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
+                  <label class="text-[10px] font-bold text-muted uppercase tracking-wider px-1">
+                    Procedimiento realizado
+                  </label>
+
+                  <!-- Caso A: procedimiento resuelto automáticamente → solo lectura -->
+                  <div
+                    v-if="procedimientoDerivado"
+                    class="flex items-center gap-3 px-4 py-2.5 bg-surface border border-border rounded-xl"
+                  >
+                    <Stethoscope class="w-4 h-4 text-accent shrink-0" />
+                    <div>
+                      <p class="text-sm font-medium text-black">{{ procedimientoDerivado.nombre_procedimiento }}</p>
+                      <p class="text-[10px] text-muted mt-0.5">Obtenido de la cita seleccionada</p>
+                    </div>
                   </div>
+
+                  <!-- Caso B: no se pudo auto-resolver → selector manual de respaldo -->
+                  <template v-else-if="form.id_cita">
+                    <p class="text-[10px] text-amber-600 px-1 flex items-center gap-1 mb-1">
+                      <AlertCircle class="w-3 h-3 shrink-0" />
+                      No se encontró procedimiento automáticamente. Selecciónalo manualmente.
+                    </p>
+                    <select
+                      v-model="form.id_procedimiento"
+                      class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all appearance-none"
+                    >
+                      <option value="">Selecciona un procedimiento</option>
+                      <option
+                        v-for="p in procedures"
+                        :key="p.id_procedimiento"
+                        :value="String(p.id_procedimiento)"
+                      >
+                        {{ p.nombre_procedimiento }}
+                      </option>
+                    </select>
+                  </template>
+
+                  <!-- Caso C: sin cita aún seleccionada -->
+                  <p v-else class="text-xs text-muted px-1 italic">
+                    Selecciona primero una cita.
+                  </p>
                 </div>
               </template>
               <template v-else-if="itemEditando">
