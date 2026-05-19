@@ -106,11 +106,9 @@ app.use('/padecimiento', padecimientosRoutes);
 app.use('/catalogo-procedimientos', catalogoProcedimientosRoutes);
 app.use('/catalogo-procedimientos', errorHandler);
 app.use('/seguimiento', seguimientoRoutes);
-app.use('/cuestionario',cuestionarioRoutes)
 app.use('/odontograma', odontogramaRoutes)
 app.use('/odontograma', errorHandler)
 app.use('/pregunta', errorHandler)
-app.use('/cuestionario',errorHandler)
 app.use('/seguimiento', errorHandler);
 app.use('/cuestionario', cuestionarioRoutes);
 app.use('/cuestionario', errorHandler);
