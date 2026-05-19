@@ -19,6 +19,7 @@ import catalogoProcedimientosRoutes from './routes/catalogoProcedimientosRoutes'
 import seguimientoRoutes from './routes/seguimientoRoutes';
 import cuestionarioRoutes from './routes/cuestionarioRoutes';
 import preguntaRoutes from './routes/preguntaRoutes'
+import odontogramaRoutes from './routes/odontogramaRoutes'
 import {errorHandler} from './middleware/errorMiddleware'
 import bot from './config/telegram';
 import { configurarBot } from './services/telegramService';
@@ -107,6 +108,8 @@ app.use('/catalogo-procedimientos', errorHandler);
 app.use('/seguimiento', seguimientoRoutes);
 app.use('/cuestionario',cuestionarioRoutes)
 app.use('/pregunta', preguntaRoutes)
+app.use('/odontograma', odontogramaRoutes)
+app.use('/odontograma', errorHandler)
 app.use('/pregunta', errorHandler)
 app.use('/cuestionario',errorHandler)
 app.use('/seguimiento', errorHandler);
