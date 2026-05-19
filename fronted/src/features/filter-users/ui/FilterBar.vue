@@ -11,16 +11,18 @@
       />
     </div>
     <!-- Filtro Rol -->
-    <UiSelect v-model="filters.filterRole.value">
-      <option value="">Todos los Roles</option>
-      <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.label }}</option>
-    </UiSelect>
-    <!-- Filtro Estado -->
-    <UiSelect v-model="filters.filterStatus.value">
-      <option value="">Todos los Estados</option>
-      <option value="active">Activo</option>
-      <option value="inactive">Inactivo</option>
-    </UiSelect>
+    <div class="flex gap-3">
+      <UiSelect v-model="filters.filterRole.value">
+        <option value="">Todos los Roles</option>
+        <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.label }}</option>
+      </UiSelect>
+      <!-- Filtro Estado -->
+      <UiSelect v-model="filters.filterStatus.value">
+        <option value="">Todos los Estados</option>
+        <option value="active">Activo</option>
+        <option value="inactive">Inactivo</option>
+      </UiSelect>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
