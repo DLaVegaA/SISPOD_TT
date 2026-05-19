@@ -11,6 +11,7 @@ import { OdontogramPreview } from '@/entities/odontogram'
 import { BinnaclePreview } from '@/widgets/binnacle-preview'
 import { httpClient } from '@/shared/api/http'
 import { Plus } from 'lucide-vue-next'
+import { showToast } from '@/shared/ui/UiToast/toast'
 
 const sessionStore = useSessionStore()
 const route = useRoute()
@@ -431,6 +432,7 @@ const handleCrearExpediente = async () => {
         updatePayload.padecimientos = padecimientosPayload
       }
       await httpClient.put(`/expediente/${expedienteId.value}`, updatePayload)
+      showToast('Expediente actualizado correctamente', 'success')
       return
     }
 
@@ -442,9 +444,11 @@ const handleCrearExpediente = async () => {
         padecimientos: padecimientosPayload,
       })
     }
+    showToast('Expediente creado correctamente', 'success')
   } catch (error: any) {
     const message = error?.response?.data?.message
     expedienteErrors.value = { general: message || 'No se pudo crear el expediente' }
+    showToast(message || 'No se pudo crear el expediente', 'error')
   } finally {
     isSavingExpediente.value = false
   }
@@ -565,7 +569,7 @@ watch(expedienteId, (value) => {
               type="date"
               :disabled="true"
             />
-            <div>
+            <!-- <div>
               <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">
                 Estado del Expediente
               </label>
@@ -574,7 +578,7 @@ watch(expedienteId, (value) => {
                 <option>Finalizado</option>
                 <option>Pendiente</option>
               </UiSelect>
-            </div>
+            </div> -->
           </div>
         </section>
 
