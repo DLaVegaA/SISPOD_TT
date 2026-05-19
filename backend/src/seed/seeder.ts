@@ -9,6 +9,7 @@ import { TipoCita } from '../models/Tipo_Citas';
 import procedimientos_postoperatorios from './catalogo_procedimientos'
 import {Catalogo_Procedimientos} from '../models/Catalogo_Procedimientos'
 import padecimientos from './padecimientos'
+import { seedCuestionarios } from './cuestionarios';
 
 const importarDatos = async() =>{
     try{
@@ -30,11 +31,13 @@ const importarDatos = async() =>{
 
        await Padecimiento.bulkCreate(padecimientos,{
             ignoreDuplicates:true
-       })
+       });
 
        await Catalogo_Procedimientos.bulkCreate(procedimientos_postoperatorios,{
             ignoreDuplicates:true
-       })
+       });
+
+       await seedCuestionarios();
 
        console.log('Datos importados correctamente');
     }catch(error){

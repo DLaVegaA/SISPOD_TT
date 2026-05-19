@@ -6,6 +6,7 @@ export class Cuestionario extends Model {
     declare nombre_cuestionario: string;
     declare tipo_cuestionario: string;
     declare descripcion: string;
+    declare activo: boolean;
 }
 
 Cuestionario.init(
@@ -36,6 +37,11 @@ Cuestionario.init(
                 key: 'id_procedimiento'
             },
             onDelete: 'CASCADE'
+        },
+        activo: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true
         }
     },
     {

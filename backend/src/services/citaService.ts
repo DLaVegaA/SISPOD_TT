@@ -1,4 +1,4 @@
-import { Cita, Dentista, Paciente, Usuario, TipoCita } from '../models/index';
+import { Cita, Dentista, Paciente, Usuario, TipoCita, Bitacora, Seguimiento } from '../models/index';
 import { Model, NUMBER, Op, WhereOptions } from 'sequelize';
 import { AppError } from '../helpers/AppError';
 import { obtenerPacientePorUsuario } from './pacienteService';
@@ -9,10 +9,12 @@ import {
 } from '../services/emailService';
 import { FiltrosCita } from '../controllers/citaController';
 import { obtenerTipoCita } from '../controllers/tipoCitaController';
+
 type CitaFormateada = {
   inicio: string;
   fin: string;
 };
+
 // type TiposCita = {
 //   [key: number]: number
 // }
@@ -27,6 +29,7 @@ type CitaCompleta = Cita & {
   dentista: Dentista & { usuario: Usuario };
   tipo: TipoCita;
 };
+
 export const validarTipoCita = async (id_tipo_cita: number, user: any) => {
   let tipoCita;
   let duracion;
@@ -137,23 +140,50 @@ export const obtenerDisponibilidad = async (
   return disponibles.map((slot) => slot.toISOString());
 };
 
+const validarCitaActivaPaciente = async (id_paciente: number): Promise<void> => {
+  const ahora = new Date();
+ 
+  const citaActiva = await Cita.findOne({
+    where: {
+      id_paciente,
+      estado: { [Op.in]: ['Pendiente', 'Confirmada'] },
+      fecha_hora_inicio: { [Op.gt]: ahora },
+    },
+  });
+ 
+  if (citaActiva) {
+    throw new AppError(
+      'Ya tienes una cita activa. Cancela o completa tu cita actual antes de agendar una nueva.',
+      400,
+    );
+  }
+};
+
 export const crearCita = async (data: any, user: any) => {
   const { fecha_hora_inicio, tipo_cita } = data;
-
+ 
   const inicio = validarFechas(fecha_hora_inicio);
   validarAnticipacion(inicio, 48, 'agendar');
-
+ 
   let { tipo, duracion } = await validarTipoCita(tipo_cita, user);
   if (!duracion) {
     throw new AppError('Tipo cita invalido', 400);
   }
+ 
   const id_dentista = await resolverDentista(user, data);
   const id_paciente = await resolverPaciente(user, data);
+ 
+  // RN17: el paciente no puede tener más de 1 cita activa en el futuro
+  if (user.id_rol === 3) {
+    await validarCitaActivaPaciente(id_paciente);
+  }
+ 
   const fin = new Date(inicio.getTime() + duracion * 60000);
   await Promise.all([
     validarTraslape(inicio, fin, id_dentista, 2),
     validarTraslape(inicio, fin, id_paciente, 3),
   ]);
+ 
   const cita = await Cita.create({
     fecha_hora_inicio: inicio,
     fecha_hora_fin: fin,
@@ -162,14 +192,14 @@ export const crearCita = async (data: any, user: any) => {
     id_tipocita: tipo,
     estado: 'Pendiente',
   });
-
+ 
   const citaCompleta = (await obtenerCitaCompleta(cita.id_cita)) as CitaCompleta;
   const usuario_paciente = citaCompleta.paciente.usuario;
   const usuario_dentista = citaCompleta.dentista.usuario;
-
+ 
   notificarNuevaCita(citaCompleta, usuario_paciente, 3).catch(console.error);
   notificarNuevaCita(citaCompleta, usuario_dentista, 2).catch(console.error);
-
+ 
   return cita;
 };
 
@@ -456,6 +486,36 @@ export const listarCitas = async (filtros: FiltrosCita, limit: number, offset: n
   if (filtros.user?.id_rol === 3) {
     const paciente = await obtenerPacientePorUsuario(filtros.user);
     where.id_paciente = paciente;
+  }
+
+  if (filtros.sinBitacora) {
+    const citasConBitacora = await Bitacora.findAll({
+      attributes: ['id_cita'],
+      where: { estado_bitacora: { [Op.ne]: 'Anulada' } },
+    });
+    const idsOcupados = citasConBitacora.map((b: any) => b.id_cita);
+    // Si no hay ninguna bitácora, Op.notIn con array vacío daría error en algunos drivers,
+    // por eso usamos [0] como fallback (ningún id_cita es 0 en la BD).
+    where.id_cita = { [Op.notIn]: idsOcupados.length > 0 ? idsOcupados : [0] };
+  }
+
+  if (filtros.sinSeguimiento) {
+    const citasConSeguimiento = await Seguimiento.findAll({
+      attributes: ['id_cita'],
+      where: { estado_seguimiento: { [Op.notIn]: ['cancelado', 'finalizado'] } },
+    });
+    const ids = citasConSeguimiento.map((s: any) => s.id_cita);
+    const excluir = ids.length > 0 ? ids : [0];
+    if (where.id_cita) {
+      where.id_cita = { [Op.and]: [where.id_cita, { [Op.notIn]: excluir }] };
+    } else {
+      where.id_cita = { [Op.notIn]: excluir };
+    }
+  }
+
+  // Mostrar solo citas cuya fecha_hora_fin ya pasó (la cita ya ocurrió)
+  if (filtros.pasadas) {
+    where.fecha_hora_fin = { [Op.lt]: new Date() };
   }
 
   const { count, rows } = await Cita.findAndCountAll({

@@ -13,14 +13,14 @@ import rolesRoutes from './routes/rolesRoutes';
 import tipoCitasRoutes from './routes/tipoCitasRoutes';
 import consentimientoRoutes from './routes/consentimientoRoutes';
 import bitacoraRoutes from './routes/bitacoraRoute';
-import expedienteRoutes from './routes/expedienteRoutes'
+import expedienteRoutes from './routes/expedienteRoutes';
 import padecimientosRoutes from './routes/padecimientosRoutes';
 import catalogoProcedimientosRoutes from './routes/catalogoProcedimientosRoutes';
 import seguimientoRoutes from './routes/seguimientoRoutes';
 import cuestionarioRoutes from './routes/cuestionarioRoutes';
-import preguntaRoutes from './routes/preguntaRoutes'
 import odontogramaRoutes from './routes/odontogramaRoutes'
-import {errorHandler} from './middleware/errorMiddleware'
+import preguntaBaseRoutes from './routes/preguntaBaseRoutes';   // ← nuevo
+import { errorHandler } from './middleware/errorMiddleware';
 import bot from './config/telegram';
 import { configurarBot } from './services/telegramService';
 import asistenteRoutes from './routes/asistenteRoutes';
@@ -101,22 +101,25 @@ app.use('/roles', rolesRoutes);
 app.use('/tipo-cita', tipoCitasRoutes);
 app.use('/consentimiento', consentimientoRoutes);
 app.use('/bitacora', bitacoraRoutes);
-app.use('/expediente', expedienteRoutes)
-app.use('/padecimiento',padecimientosRoutes);
+app.use('/expediente', expedienteRoutes);
+app.use('/padecimiento', padecimientosRoutes);
 app.use('/catalogo-procedimientos', catalogoProcedimientosRoutes);
 app.use('/catalogo-procedimientos', errorHandler);
 app.use('/seguimiento', seguimientoRoutes);
 app.use('/cuestionario',cuestionarioRoutes)
-app.use('/pregunta', preguntaRoutes)
 app.use('/odontograma', odontogramaRoutes)
 app.use('/odontograma', errorHandler)
 app.use('/pregunta', errorHandler)
 app.use('/cuestionario',errorHandler)
 app.use('/seguimiento', errorHandler);
-app.use('/padecimiento',errorHandler);
-app.use('/expediente', errorHandler)
-app.use('/bitacora', errorHandler); // Provisional en lo que cambio la demas logica
-app.use('/consentimiento', errorHandler); // Provisional en lo que cambio la demas logica
+app.use('/cuestionario', cuestionarioRoutes);
+app.use('/cuestionario', errorHandler);
+app.use('/preguntas-base', preguntaBaseRoutes);        // ← nuevo
+app.use('/preguntas-base', errorHandler);              // ← nuevo
+app.use('/padecimiento', errorHandler);
+app.use('/expediente', errorHandler);
+app.use('/bitacora', errorHandler);
+app.use('/consentimiento', errorHandler);
 app.use('/asistentes', asistenteRoutes);
 configurarBot();
 startServer();

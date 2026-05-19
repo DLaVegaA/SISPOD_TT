@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Paciente, Direccion, Usuario, Token } from '../models/index';
+import { Paciente, Direccion, Usuario, Token, Expediente } from '../models/index';
 import { sequelize } from '../config/database';
 import { generarContra } from '../helpers/generarContra';
 import { generarToken } from '../helpers/generarToken';
@@ -178,15 +178,8 @@ import crypto from 'crypto';
 }; */
 
 export const registrarPaciente = async (req: Request, res: Response) => {
-  const {
-    nombre,
-    id_rol,
-    apellido_paterno,
-    apellido_materno,
-    correo,
-    fecha_nacimiento,
-    curp,
-  } = req.body;
+  const { nombre, id_rol, apellido_paterno, apellido_materno, correo, fecha_nacimiento, curp } =
+    req.body;
 
   // RN3: Validamos solo la información mínima para el pre-registro
   if (!nombre || !apellido_paterno || !correo || !fecha_nacimiento || !curp || !id_rol) {
@@ -199,13 +192,19 @@ export const registrarPaciente = async (req: Request, res: Response) => {
 
   // RN4: Validaciones estrictas de formato
   const soloLetrasRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
-  if (!soloLetrasRegex.test(nombre) || !soloLetrasRegex.test(apellido_paterno) || (apellido_materno && !soloLetrasRegex.test(apellido_materno))) {
+  if (
+    !soloLetrasRegex.test(nombre) ||
+    !soloLetrasRegex.test(apellido_paterno) ||
+    (apellido_materno && !soloLetrasRegex.test(apellido_materno))
+  ) {
     return res.status(400).json({ message: 'Nombre y apellidos solo deben contener letras' });
   }
 
   const curpRegex = /^[A-Z0-9]{18}$/;
   if (!curpRegex.test(curp)) {
-    return res.status(400).json({ message: 'La CURP debe tener exactamente 18 caracteres alfanuméricos en mayúscula' });
+    return res
+      .status(400)
+      .json({ message: 'La CURP debe tener exactamente 18 caracteres alfanuméricos en mayúscula' });
   }
 
   const t = await sequelize.transaction();
@@ -234,7 +233,7 @@ export const registrarPaciente = async (req: Request, res: Response) => {
         apellido_paterno,
         apellido_materno: apellido_materno || null,
         correo,
-        contrasena: passwordPlaceholder, 
+        contrasena: passwordPlaceholder,
         fecha_nacimiento,
         curp,
         estado: 'pendiente', // Se activará cuando complete el perfil
@@ -248,15 +247,12 @@ export const registrarPaciente = async (req: Request, res: Response) => {
     );
 
     // Dirección vacía a la espera de que el paciente la llene
-    await Direccion.create(
-      { id_paciente: pacienteNuevo.id_paciente },
-      { transaction: t },
-    );
+    await Direccion.create({ id_paciente: pacienteNuevo.id_paciente }, { transaction: t });
 
     const token = generarToken();
     const expira = new Date();
     expira.setHours(expira.getHours() + 24);
-    
+
     await Token.create(
       {
         id_usuario: usuarioNuevo.id_usuario,
@@ -422,8 +418,8 @@ export const actualizarPaciente = async (req: CustomRequest, res: Response) => {
     });
   }
 
-  if(telefono.length !==10){
-    console.log('Error de tamaño de teñefono')
+  if (telefono.length !== 10) {
+    console.log('Error de tamaño de teñefono');
     return res.status(400).json({
       message: 'El télefono debe tener 10 dígitos',
     });
@@ -436,9 +432,9 @@ export const actualizarPaciente = async (req: CustomRequest, res: Response) => {
     // 🔴 LA MAGIA DE SEGURIDAD E IDs ESTÁ AQUÍ 🔴
     if (req.userData?.id_rol === 3) {
       // Si es un paciente, ignoramos la URL y buscamos SU paciente usando su token
-      paciente = await Paciente.findOne({ 
-        where: { id_usuario: req.userData.id }, 
-        transaction: t 
+      paciente = await Paciente.findOne({
+        where: { id_usuario: req.userData.id },
+        transaction: t,
       });
     } else {
       // Si es el dentista/admin, sí le hacemos caso al ID de la URL
@@ -470,7 +466,9 @@ export const actualizarPaciente = async (req: CustomRequest, res: Response) => {
     console.log('Error al editar paciente: ', error);
     if (error.name === 'SequelizeUniqueConstraintError') {
       //return res.status(400).json({ message: 'El correo electrónico ya esta registrado' });
-      return res.status(400).json({ message: 'Algún dato de contacto (como el teléfono) ya está en uso por otro paciente.' });
+      return res.status(400).json({
+        message: 'Algún dato de contacto (como el teléfono) ya está en uso por otro paciente.',
+      });
     }
     return res.status(500).json({ message: 'Error del servidor' });
   }
@@ -509,12 +507,102 @@ export const obtenerPerfilPaciente = async (req: CustomRequest, res: Response) =
     const perfilAplanado = {
       ...usuarioData.toJSON(), // Saca nombre, apellidos, correo a la raíz del JSON
       id_paciente: perfil.id_paciente,
-      direccion: direccionData ? direccionData.toJSON() : null
+      direccion: direccionData ? direccionData.toJSON() : null,
     };
 
     return res.json(perfilAplanado);
   } catch (error) {
     console.log('Error al obtener perfil del paciente: ', error);
     return res.status(500).json({ message: 'Error del servidor' });
+  }
+};
+
+export const obtenerPerfilPacienteCompleto = async (req: Request, res: Response) => {
+  const id_paciente = Number(req.params.id);
+  if (isNaN(id_paciente)) {
+    return res.status(400).json({ message: 'ID inválido' });
+  }
+
+  try {
+    const perfil = await Paciente.findByPk(id_paciente, {
+      include: [
+        {
+          model: Usuario,
+          as: 'usuario',
+          attributes: { exclude: ['contrasena'] },
+        },
+        {
+          model: Direccion,
+          as: 'direccion',
+        },
+      ],
+    });
+
+    if (!perfil) {
+      return res.status(404).json({ message: 'Paciente no encontrado' });
+    }
+
+    // Aplanamos la respuesta para el frontend
+    const usuarioData = perfil.get('usuario') as any;
+    const direccionData = perfil.get('direccion') as any;
+
+    const perfilAplanado = {
+      ...usuarioData.toJSON(),
+      id_paciente: perfil.id_paciente,
+      direccion: direccionData ? direccionData.toJSON() : null,
+    };
+
+    return res.json(perfilAplanado);
+  } catch (error) {
+    console.log('Error al obtener perfil completo del paciente: ', error);
+    return res.status(500).json({ message: 'Error del servidor' });
+  }
+};
+
+export const listarPacientesSinExpediente = async (req: Request, res: Response) => {
+  const pagina = Number(req.query.pagina) || 1;
+  const limitQuery = Number(req.query.limit) || 10;
+  const limit = Math.max(1, Math.min(limitQuery, 500));
+
+  try {
+    const offset = pagina * limit - limit;
+
+    const { count: total, rows: pacientes } = await Paciente.findAndCountAll({
+      attributes: ['id_paciente'],
+      limit,
+      offset,
+      include: [
+        {
+          model: Usuario,
+          as: 'usuario',
+          attributes: ['id_usuario', 'nombre', 'apellido_paterno', 'apellido_materno', 'correo'],
+        },
+        {
+          model: Expediente,
+          as: 'expediente',
+          required: false,
+          attributes: [],
+        },
+      ],
+      where: {
+        '$expediente.id_expediente$': null,
+      },
+    });
+
+    const totalPaginas = Math.ceil(total / limit);
+
+    return res.status(200).json({
+      message: 'Pacientes sin expediente',
+      total,
+      pagina,
+      totalPaginas,
+      limit,
+      pacientes,
+    });
+  } catch (error) {
+    console.log('Error al listar pacientes sin expediente: ', error);
+    return res.status(500).json({
+      message: 'Error del Servidor',
+    });
   }
 };
