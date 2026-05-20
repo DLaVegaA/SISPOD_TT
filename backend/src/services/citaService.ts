@@ -578,3 +578,17 @@ export const listarCitas = async (filtros: FiltrosCita, limit: number, offset: n
 export const obtenerCitaId = async (id_cita: number) => {
   return await Cita.findByPk(id_cita);
 };
+
+
+export const proximaCita = async(id_paciente:number)=>{
+  const cita = await Cita.findOne({
+    where:{
+      id_paciente,
+      fecha_hora_inicio:{[Op.gt]: new Date()},
+      estado:'Pendiente' 
+    },
+    order: [['fecha_hora_inicio', 'ASC']]
+  });
+  return cita;
+
+}

@@ -2,6 +2,7 @@ import bot from '../config/telegram';
 import {Usuario, Paciente, Telegram} from '../models/index';
 import { message } from 'telegraf/filters';
 import { Markup } from 'telegraf';
+import {proximaCita} from './citaService'
 
 export const obtenerEstadoTelegram = async(id_usuario:number) =>{
     const paciente = await Paciente.findOne({
@@ -35,7 +36,7 @@ export const validarVinculacion =async(ctx:any) =>{
     const vinculado = await estaVinculadoTelegram(ctx.chat.id);
 
     if(!vinculado){
-        await ctx.reply('Debes vicnular tu cuenta con /vincular seguido del token');
+        await ctx.reply('Debes vincular tu cuenta con /vincular seguido del token');
         return false
     }
     return true;
@@ -119,6 +120,15 @@ export const desvincularTelegramChat = async(id_chat:number)=>{
     }
     await limpiarVinculacion(registroTelegram);
 }
+export const obtenerIdPacientePorTelegram = async(id_chat:number) =>{
+    const id_chatString = id_chat.toString();
+    const registroTelegram = await Telegram.findOne({where:{id_chat:id_chatString}});
+    if(!registroTelegram){
+        throw new Error('TELEGRAM_NO_ENCONTRADO');
+    }
+
+    return registroTelegram.id_paciente;
+}
 
 export const configurarBot = () =>{
     //ctx (contexto) es un objeto que envuelve toda la informacion del que escribe 
@@ -167,7 +177,7 @@ export const configurarBot = () =>{
         await ctx.reply(
             'Menú principal:\n\nSelecciona una opción \n\n(Si no ves los botones revisa el icono en la barra inferior)',
             Markup.keyboard([
-                ['Ver citas'],
+                ['Próxima cita'],
                 ['Vincular cuenta'],
                 ['Ayuda'],
                 ['Desvincular cuenta']
@@ -176,10 +186,32 @@ export const configurarBot = () =>{
         );
     });
 
-    bot.hears('Ver citas', async(ctx)=>{
+    bot.hears('Próxima cita', async(ctx)=>{
         if(!(await validarVinculacion(ctx)))return
-        await ctx.reply('Tus proximas citas:\n');
-        //Falta hacer funcion para traer las citas 
+        await ctx.reply('Tu próxima cita:\n');
+        //Falta hacer funcion para traer las citas
+        try {
+            const id_paciente = await obtenerIdPacientePorTelegram(ctx.chat.id)
+            const cita = await proximaCita(id_paciente);
+            if(!cita){
+                throw new Error('No_Citas');
+            }
+            const fecha = cita.fecha_hora_inicio;
+            const fechaFormateada = fecha.toLocaleString('es-MX', {
+                timeZone: 'America/Mexico_City',
+                dateStyle: 'full',
+                timeStyle: 'short'
+            });
+
+            return ctx.reply(`Tu próxima cita es: ${fechaFormateada}`);
+
+        } catch (error:any) {
+            console.log('Error al listar próxima cita: ',error);
+            if (error.message === 'No_Citas') {
+                return ctx.reply('No tienes ninguna cita');
+            }   
+            return ctx.reply('Ocurrió un error, intentalo más tarde');
+        }
     });
 
     bot.hears('Vincular cuenta',async(ctx) =>{
@@ -189,7 +221,7 @@ export const configurarBot = () =>{
     bot.hears('Ayuda', async(ctx)=>{
         await ctx.reply(
             'Puedo ayudarte con:\n\n'+
-            'Ver tus citas\n'+
+            'Ver tu próxima cita\n'+
             'Recordatorios\n'+
             'Vincular tu cuenta\n'+
             'Desvincular (Usa el botón del menú o escribe /desvincular)\n'+

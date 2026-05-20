@@ -1,8 +1,10 @@
 import dotenv from 'dotenv';
+dotenv.config()
+
+
 import bot from './config/telegram';
 import { configurarBot } from './services/telegramService';
 
-dotenv.config()
 
 bot.catch((err) => {
     console.error('Error en bot:', err);
@@ -18,11 +20,11 @@ process.on('uncaughtException', (error) => {
 const startBot = async()=>{
     try{
         configurarBot()
-        await bot.launch();
-        console.log('Bot de Telegram activo');
-
         await bot.telegram.getMe();
+        
         console.log('Bot de Telegram activo y conectado'); 
+        console.log('Bot de Telegram activo');
+        await bot.launch();
     }catch(error){
         console.error('Error al iniciar bot:', error);
     }
