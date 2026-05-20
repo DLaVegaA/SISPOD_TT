@@ -1,22 +1,16 @@
 {
   "compilerOptions": {
-    /* Estructura */
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
-
-    /* JS generado */
     "target": "ES2020",
     "module": "CommonJS",
-
-    /* TypeScript */
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-
-    /* Calidad */
     "sourceMap": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "jest"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*", "__tests__/**/*"],
+  "exclude": ["node_modules", "dist", "dist-test"]
 }
