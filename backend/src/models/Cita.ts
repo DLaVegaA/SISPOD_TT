@@ -61,6 +61,10 @@ Cita.init(
             type:DataTypes.STRING,
             allowNull:false,//hacer un validate con los tipos
             defaultValue: "Pendiente"
+        },
+        recordatorio_enviado:{
+            type:DataTypes.BOOLEAN,
+            defaultValue:false
         }
     },{
         sequelize,

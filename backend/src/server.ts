@@ -22,6 +22,7 @@ import odontogramaRoutes from './routes/odontogramaRoutes'
 import preguntaBaseRoutes from './routes/preguntaBaseRoutes';   // ← nuevo
 import { errorHandler } from './middleware/errorMiddleware';
 import asistenteRoutes from './routes/asistenteRoutes';
+import './cron/recordatorioCron';
 
 dotenv.config();
 const app = express();

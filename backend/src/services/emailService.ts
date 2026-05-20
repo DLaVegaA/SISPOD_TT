@@ -12,7 +12,6 @@ const enviarCorreoBase = async (usuario: any, subject: string, template: string,
   } as any);
 };
 
-
 const formatearFechaHBS = (fecha: Date | string, compacta: boolean = false) => {
   const fechaObj = new Date(fecha);
   
@@ -31,7 +30,13 @@ const formatearFechaHBS = (fecha: Date | string, compacta: boolean = false) => {
   return f.charAt(0).toUpperCase() + f.slice(1);
 };
 
-
+export const recordatorioProximaCita= async(cita:any, usuario:any)=>{
+  const fechaBonita = formatearFechaHBS(cita.fecha_hora_inicio);
+  await enviarCorreoBase(usuario, 'Próxima cita','recordatorioCita',{
+    nombre: `${usuario.nombre}`,
+    fecha:fechaBonita
+  });
+}
 export const notificarNuevaCita = async (cita: any, usuario: any, rol: number) => {
   const titulo = rol === 2 ? 'Dr. ' : '';
   const nombreServicio = cita.tipo?.nombre_corto || 'Consulta General';

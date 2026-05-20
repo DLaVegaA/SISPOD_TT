@@ -16,7 +16,6 @@ export const obtenerEstadoTelegram = async(id_usuario:number) =>{
         where:{id_paciente:paciente.id_paciente},
         attributes:['id_chat']
     });
-
     return {
         vinculado: !!registroTelegram?.id_chat // !!Convierte a booleano
     }
@@ -128,6 +127,10 @@ export const obtenerIdPacientePorTelegram = async(id_chat:number) =>{
     }
 
     return registroTelegram.id_paciente;
+}
+
+export const enviarRecordatorioTelegram =async(id_chat:string,mensaje:string)=>{
+    await bot.telegram.sendMessage(id_chat,mensaje);
 }
 
 export const configurarBot = () =>{
