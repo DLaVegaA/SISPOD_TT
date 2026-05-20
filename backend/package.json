@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node src/server.ts",
+    "dev:bot":"ts-node src/bot.ts",
     "build": "tsc && copyfiles -u 1 src/emails/**/*.hbs dist/",
     "start": "node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",

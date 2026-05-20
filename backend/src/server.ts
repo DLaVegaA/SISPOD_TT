@@ -21,8 +21,6 @@ import cuestionarioRoutes from './routes/cuestionarioRoutes';
 import odontogramaRoutes from './routes/odontogramaRoutes'
 import preguntaBaseRoutes from './routes/preguntaBaseRoutes';   // ← nuevo
 import { errorHandler } from './middleware/errorMiddleware';
-import bot from './config/telegram';
-import { configurarBot } from './services/telegramService';
 import asistenteRoutes from './routes/asistenteRoutes';
 
 dotenv.config();
@@ -69,24 +67,6 @@ async function startServer() {
       console.log(`Servidor corriendo en http://localhost:${PORT}`);
     });
 
-    // await bot.launch();
-    // console.log('Bot de Telegram activo');
-
-    /* bot.launch();
-    await bot.telegram.getMe();
-    console.log('Bot de Telegram activo y conectado'); */
-    try {
-      if(!(global as any).__botStarted){
-        (global as any).__botStarted = true;
-        await bot.launch();
-        await bot.telegram.getMe();
-        console.log('Bot de Telegram activo y conectado');
-      }else{
-        console.log("Bot ya iniciado")
-      }
-    } catch (error) {
-      console.error('Advertencia: El bot de Telegram no pudo iniciar, pero la API sigue viva.', error);
-    }
   } catch (error) {
     console.error('Error al iniciar servidor: ', error);
   }
@@ -112,7 +92,6 @@ app.use('/odontograma', errorHandler)
 app.use('/pregunta', errorHandler)
 app.use('/cuestionario',errorHandler)
 app.use('/seguimiento', errorHandler);
-app.use('/cuestionario', cuestionarioRoutes);
 app.use('/cuestionario', errorHandler);
 app.use('/preguntas-base', preguntaBaseRoutes);        // ← nuevo
 app.use('/preguntas-base', errorHandler);              // ← nuevo
@@ -121,7 +100,4 @@ app.use('/expediente', errorHandler);
 app.use('/bitacora', errorHandler);
 app.use('/consentimiento', errorHandler);
 app.use('/asistentes', asistenteRoutes);
-configurarBot();
 startServer();
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
