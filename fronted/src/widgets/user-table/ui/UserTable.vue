@@ -1,6 +1,71 @@
 <template>
   <div class="bg-card border border-border rounded-2xl overflow-hidden">
-    <table class="w-full">
+    <div class="lg:hidden flex flex-col gap-3 p-3 sm:p-4">
+      <article
+        v-if="users.length === 0"
+        class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-surface/70 px-6 py-16 text-center text-muted shadow-sm"
+      >
+        <SearchX class="w-8 h-8 opacity-40" />
+        <p class="text-sm">No se encontraron usuarios</p>
+      </article>
+
+      <article
+        v-for="user in users"
+        :key="user.id"
+        class="rounded-2xl border border-border bg-white/80 p-4 shadow-sm transition-colors hover:bg-white"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0 flex-1 space-y-4">
+            <div class="flex items-center gap-3 min-w-0">
+              <UserAvatar :name="user.name" size="md" :role="user.role" />
+              <div class="min-w-0">
+                <p class="truncate text-sm font-medium text-black">{{ user.name }}</p>
+                <p class="truncate text-sm text-muted">{{ user.email }}</p>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <UserRoleBadge :role="user.role" />
+              <span
+                :class="[
+                  'role-badge inline-flex items-center gap-1',
+                  user.status === 'active'
+                    ? 'bg-emerald-500/10 text-emerald-500'
+                    : 'bg-red-500/10 text-red-500',
+                ]"
+              >
+                <component :is="user.status === 'active' ? CheckCircle : XCircle" class="w-3 h-3" />
+                {{ user.status === 'active' ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+
+            <p class="text-sm text-muted">
+              <span class="font-medium text-muted-foreground">Creado:</span>
+              {{ user.createdAt }}
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              class="p-2 rounded-lg hover:bg-accent-dim hover:text-accent text-muted transition-all"
+              title="Editar usuario"
+              @click="$emit('edit', user)"
+            >
+              <Pencil class="w-4 h-4" />
+            </button>
+            <button
+              class="p-2 rounded-lg hover:bg-accent-dim hover:text-accent text-muted transition-all"
+              title="Eliminar usuario"
+              @click="$emit('delete', user)"
+            >
+              <Trash2 class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <table class="hidden lg:table w-full">
       <thead>
         <tr class="border-b border-border">
           <th class="text-left px-6 py-4 text-xs font-semibold text-muted uppercase tracking-wider">

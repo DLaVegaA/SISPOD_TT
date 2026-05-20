@@ -61,6 +61,7 @@
         </div>
       </div>
       <RouterView :class="isAuth ? 'mt-3' : ''" />
+      <UiToast />
     </main>
   </div>
 </template>
@@ -71,6 +72,7 @@ import { AppSideBar } from '@/widgets/sidebar'
 import { Menu, X } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import UiToast from '@/shared/ui/UiToast/UiToast.vue'
 
 const sessionStore = useSessionStore()
 const route = useRoute()
@@ -92,3 +94,9 @@ watch(
   },
 )
 </script>
+
+<style scoped>
+.app-toast {
+  z-index: 9999;
+}
+</style>

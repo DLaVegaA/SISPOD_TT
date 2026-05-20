@@ -1,38 +1,52 @@
 <template>
-  <div class="space-y-3">
-
+  <div class="space-y-4">
     <!-- escala_1_10 ──────────────────────────────────────────────── -->
     <template v-if="pregunta.tipo_control === 'escala_1_10'">
-      <div class="flex items-center justify-between text-xs text-muted mb-1">
-        <span>Sin dolor</span>
-        <span class="text-lg font-semibold text-black tabular-nums">{{ valorNumerico }}</span>
-        <span>Dolor severo</span>
+      <div class="flex items-center justify-between px-2 mb-2">
+        <span class="text-[10px] font-bold text-muted uppercase tracking-wider">Sin dolor</span>
+        <div class="flex flex-col items-center">
+          <span class="text-2xl font-display font-black text-accent tabular-nums">{{ valorNumerico }}</span>
+          <span class="text-[8px] font-bold text-muted uppercase">Nivel</span>
+        </div>
+        <span class="text-[10px] font-bold text-muted uppercase tracking-wider">Dolor severo</span>
       </div>
-      <input
-        type="range"
-        min="1"
-        max="10"
-        step="1"
-        :value="valorNumerico"
-        class="w-full accent-accent"
-        @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-      />
-      <div class="flex justify-between text-xs text-muted select-none">
-        <span v-for="n in 10" :key="n">{{ n }}</span>
+      
+      <div class="relative px-2 py-4">
+        <input
+          type="range"
+          min="1"
+          max="10"
+          step="1"
+          :value="valorNumerico"
+          class="w-full h-2 bg-surface rounded-lg appearance-none cursor-pointer accent-accent"
+          @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+        />
+        <div class="flex justify-between mt-3 px-0.5">
+          <span 
+            v-for="n in 10" 
+            :key="n" 
+            :class="[
+              'text-[10px] font-bold transition-colors',
+              valorNumerico === n ? 'text-accent scale-125' : 'text-muted/40'
+            ]"
+          >
+            {{ n }}
+          </span>
+        </div>
       </div>
     </template>
 
     <!-- booleano_si_no ───────────────────────────────────────────── -->
     <template v-else-if="pregunta.tipo_control === 'booleano_si_no'">
-      <div class="flex gap-3">
+      <div class="flex gap-4">
         <label
           v-for="opcion in BOOL_OPCIONES"
           :key="opcion.valor"
           :class="[
-            'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border cursor-pointer transition-all text-sm font-medium select-none',
+            'flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl border-2 cursor-pointer transition-all text-sm font-bold select-none',
             modelValue === opcion.valor
-              ? 'bg-accent/10 border-accent text-accent'
-              : 'border-border text-muted hover:border-accent/40',
+              ? 'bg-accent/5 border-accent text-accent shadow-sm shadow-accent/10'
+              : 'bg-white border-border text-muted hover:border-accent/30 hover:bg-surface',
           ]"
         >
           <input
@@ -43,6 +57,14 @@
             :checked="modelValue === opcion.valor"
             @change="emit('update:modelValue', opcion.valor)"
           />
+          <div 
+            v-if="modelValue === opcion.valor"
+            class="w-4 h-4 rounded-full border-4 border-accent bg-white"
+          />
+          <div 
+            v-else
+            class="w-4 h-4 rounded-full border-2 border-border bg-white"
+          />
           {{ opcion.etiqueta }}
         </label>
       </div>
@@ -50,24 +72,31 @@
 
     <!-- opcion_multiple ─────────────────────────────────────────── -->
     <template v-else-if="pregunta.tipo_control === 'opcion_multiple'">
-      <div class="space-y-2">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <label
           v-for="opcion in pregunta.opciones ?? []"
           :key="opcion"
           :class="[
-            'flex items-center gap-3 py-2.5 px-3 rounded-xl border cursor-pointer transition-all text-sm select-none',
+            'flex items-center gap-3 py-3 px-4 rounded-xl border transition-all text-xs font-medium select-none cursor-pointer',
             seleccionados.includes(opcion)
-              ? 'bg-accent/10 border-accent text-black'
-              : 'border-border text-muted hover:border-accent/40',
+              ? 'bg-accent/5 border-accent text-black'
+              : 'bg-white border-border text-muted hover:border-accent/30',
           ]"
         >
-          <input
-            type="checkbox"
-            :value="opcion"
-            :checked="seleccionados.includes(opcion)"
-            class="rounded accent-accent"
-            @change="onCheckbox(opcion)"
-          />
+          <div class="relative flex items-center justify-center">
+            <input
+              type="checkbox"
+              :value="opcion"
+              :checked="seleccionados.includes(opcion)"
+              class="peer sr-only"
+              @change="onCheckbox(opcion)"
+            />
+            <div class="w-5 h-5 border-2 border-border rounded-lg peer-checked:bg-accent peer-checked:border-accent transition-all flex items-center justify-center">
+              <svg v-if="seleccionados.includes(opcion)" class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
           {{ opcion }}
         </label>
       </div>
@@ -75,20 +104,29 @@
 
     <!-- texto_libre ─────────────────────────────────────────────── -->
     <template v-else-if="pregunta.tipo_control === 'texto_libre'">
-      <textarea
-        :value="String(modelValue ?? '')"
-        rows="3"
-        placeholder="Escribe tu respuesta aquí..."
-        class="w-full rounded-xl border border-border bg-surface text-sm text-black placeholder:text-muted px-3 py-2.5 resize-none focus:outline-none focus:border-accent transition-colors"
-        @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
-      />
+      <div class="relative">
+        <textarea
+          :value="String(modelValue ?? '')"
+          rows="3"
+          placeholder="Escribe tus observaciones aquí..."
+          class="w-full rounded-2xl border-2 border-border bg-white text-sm text-black placeholder:text-muted/60 px-4 py-3.5 resize-none focus:outline-none focus:border-accent/50 focus:bg-surface transition-all font-medium"
+          @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+        />
+        <div class="absolute bottom-3 right-3 text-[10px] font-bold text-muted/40 uppercase">
+          Libre
+        </div>
+      </div>
     </template>
 
-    <!-- Error de validación (trayectoria B) ─────────────────────── -->
-    <p v-if="tocada && !tieneRespuesta" class="text-xs text-red-500 mt-1 flex items-center gap-1">
-      <span>Esta pregunta es obligatoria.</span>
-    </p>
-
+    <!-- Error de validación ─────────────────────── -->
+    <Transition name="shake">
+      <p v-if="tocada && !tieneRespuesta" class="text-[10px] font-bold text-red-500 mt-2 flex items-center gap-1.5 px-1 uppercase tracking-wider">
+        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        Esta respuesta es necesaria para tu seguimiento
+      </p>
+    </Transition>
   </div>
 </template>
 
@@ -135,3 +173,33 @@ const tieneRespuesta = computed(() => {
     return true
 })
 </script>
+
+<style scoped>
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid var(--color-accent, #3b82f6);
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+.shake-enter-active {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+</style>

@@ -425,6 +425,12 @@ const selectedEditTime = computed(() =>
 const isLoadingSelectedEditSlots = computed(() =>
   isDentist.value ? isLoadingDentistEditSlots.value : isLoadingEditSlots.value,
 )
+const isCitaSeleccionadaCancelada = computed<boolean>(() => {
+  if (isDentist.value) {
+    return dentistSelectedAppointment.value?.status === 'Cancelada'
+  }
+  return citaSeleccionada.value?.status === 'Cancelada'
+})
 
 const appointmentTypeModel = computed({
   get() {
@@ -512,34 +518,34 @@ function selectAppointment(appt: Appointment, cellKey: string) {
 
 async function selectDay(cell: CalendarCell) {
   if (!cell.current) return
- 
+
   if (isPatient.value && !cell.isValid) {
     resetPanelState()
     showForm.value = false
     return
   }
- 
+
   const [y, m, d] = cell.key.split('-')
   const formattedDate = `${y}-${(m ?? '').padStart(2, '0')}-${(d ?? '').padStart(2, '0')}`
- 
-  // Modo reprogramación paciente
-  if (isPatient.value && isEditing.value) {
+
+  // ← MODIFICAR: bloquear reprogramación si la cita ya está cancelada
+  if (isPatient.value && isEditing.value && !isCitaSeleccionadaCancelada.value) {
     fechaEdicion.value = formattedDate
     await fetchSlotsEdicion(formattedDate)
     return
   }
- 
-  // Modo reprogramación dentista
-  if (isDentist.value && isEditingDentist.value) {
+
+  // ← MODIFICAR: igual para dentista
+  if (isDentist.value && isEditingDentist.value && !isCitaSeleccionadaCancelada.value) {
     fechaEdicionDentista.value = formattedDate
     await fetchDentistEditSlots(formattedDate, dentistSelectedAppointment.value?.typeId ?? 1)
     return
   }
- 
+
   selectedDate.value = formattedDate
   resetPanelState()
   showForm.value = false
- 
+
   if (isDentist.value) {
     dentistForm.value.date = formattedDate
   }
@@ -824,16 +830,24 @@ async function handleCancelarCita(idCita: number) {
   if (!isPatient.value) return
   if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return
 
+  isSaving.value = true          // ← AGREGAR: bloquea UI durante el call
+  errorMsg.value = null
+
   try {
     await citasApi.cancelarCita(idCita)
     successMsg.value = '¡Cita cancelada correctamente!'
     citaSeleccionada.value = null
+    selectedDate.value = null    // ← AGREGAR: limpia el día resaltado
     isEditing.value = false
+    fechaEdicion.value = ''      // ← AGREGAR: limpia fecha en modo edición
+    horaEditada.value = null
     await cargarCitasDelCalendario()
     showForm.value = false
   } catch (error: unknown) {
     const err = error as { response?: { data?: { message?: string } } }
     errorMsg.value = err.response?.data?.message ?? 'No se pudo cancelar la cita.'
+  } finally {
+    isSaving.value = false       // ← AGREGAR
   }
 }
 
@@ -1008,15 +1022,23 @@ async function handleCancelarCitaDentista(idCita: number) {
   if (!isDentist.value) return
   if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return
 
+  isSaving.value = true          // ← AGREGAR
+  errorMsg.value = null
+
   try {
     await citasApi.cancelarCita(idCita)
     successMsg.value = '¡Cita cancelada correctamente!'
     dentistSelectedAppointment.value = null
+    selectedDate.value = null    // ← AGREGAR
     isEditingDentist.value = false
+    fechaEdicionDentista.value = ''  // ← AGREGAR
+    dentistEditTime.value = null
     await loadDentistAppointmentsByMonth()
   } catch (error: unknown) {
     const err = error as { response?: { data?: { message?: string } } }
     errorMsg.value = err.response?.data?.message ?? 'No se pudo cancelar la cita.'
+  } finally {
+    isSaving.value = false       // ← AGREGAR
   }
 }
 
@@ -1414,20 +1436,33 @@ onMounted(async () => {
           </div>
 
             <template v-else>
-              <button
-                class="w-full py-3 flex items-center justify-center gap-2 bg-surface border border-border rounded-2xl text-sm font-bold text-black hover:border-accent/50 hover:bg-accent/5 transition-all"
-                @click="handleStartEdit"
-              >
-                <Pencil class="w-4 h-4 text-accent" />
-                Modificar Horario
-              </button>
 
-              <button
-                class="w-full py-3 bg-red-50 text-red-600 border border-red-200 rounded-2xl text-sm font-bold hover:bg-red-500 hover:text-white transition-all"
-                @click="handleCancelAppointment"
+              <!-- ← AGREGAR: badge informativo cuando la cita está cancelada -->
+              <div
+                v-if="isCitaSeleccionadaCancelada"
+                class="flex items-center gap-2 px-4 py-3 rounded-2xl bg-red-50 border border-red-200"
               >
-                Cancelar Cita
-              </button>
+                <AlertCircle class="w-4 h-4 text-red-500 shrink-0" />
+                <p class="text-sm text-red-600 font-medium">Esta cita fue cancelada</p>
+              </div>
+
+              <!-- ← AGREGAR v-if: solo mostrar acciones si la cita NO está cancelada -->
+              <template v-if="!isCitaSeleccionadaCancelada">
+                <button
+                  class="w-full py-3 flex items-center justify-center gap-2 bg-surface border border-border rounded-2xl text-sm font-bold text-black hover:border-accent/50 hover:bg-accent/5 transition-all"
+                  @click="handleStartEdit"
+                >
+                  <Pencil class="w-4 h-4 text-accent" />
+                  Modificar Horario
+                </button>
+
+                <button
+                  class="w-full py-3 bg-red-50 text-red-600 border border-red-200 rounded-2xl text-sm font-bold hover:bg-red-500 hover:text-white transition-all"
+                  @click="handleCancelAppointment"
+                >
+                  Cancelar Cita
+                </button>
+              </template>
 
               <button
                 class="w-full py-2 text-xs font-bold text-muted hover:text-black transition-colors"

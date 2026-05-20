@@ -4,12 +4,14 @@ import { Minus, NotebookPen } from 'lucide-vue-next'
 
 type Props = {
   label: string
-  modelValue: string
+  modelValue?: string   // ← era: modelValue: string
   disabled?: boolean
   showRemove?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  modelValue: '',       // ← default explícito
+})
 
 const isOpen = ref(Boolean(props.modelValue?.trim()))
 

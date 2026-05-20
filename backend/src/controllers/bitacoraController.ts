@@ -13,7 +13,7 @@ import { AppError } from '../helpers/AppError';
 import { NUMBER } from 'sequelize';
 import { message } from 'telegraf/filters';
 
-const ESTADOS_VALIDOS = ['Pendiente', 'Revisada'];
+const ESTADOS_VALIDOS = ['Pendiente', 'Revisado'];
 export const crearBitacora = async (req: CustomRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.userData) {
