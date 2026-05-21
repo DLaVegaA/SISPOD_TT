@@ -3,6 +3,7 @@
 import 'dotenv/config'
 
 import { connectBD, sequelize } from './config/database'
+import './cron/recordatorioCron'
 import app from './app'
 
 const PORT = process.env.PORT || 3000

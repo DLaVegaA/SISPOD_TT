@@ -5,6 +5,7 @@ import {
   listarCitas,
   editarCita,
   cancelarCita,
+  confirmarCita
 } from '../controllers/citaController';
 import { verificarToken } from '../middleware/authMiddleware';
 import { permitirRoles } from '../middleware/rolesMiddleware';
@@ -15,6 +16,7 @@ router.post('/', verificarToken, permitirRoles(2, 3, 4), crearCita);
 router.get('/disponibilidad', listarDisponibilidad);
 router.get('/', verificarToken, listarCitas);
 router.post('/:id', verificarToken, editarCita);
+router.post('/:id/confirmar',confirmarCita)
 router.post('/:id/cancelar', verificarToken, cancelarCita);
 
 export default router;

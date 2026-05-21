@@ -79,7 +79,7 @@ export const editarCita = async (req: CustomRequest, res: Response) => {
   }
   try {
     const cita = await EditarCitaService(req.body, req.userData, id);
-    return res.json({ message: 'Cita actualizada correctamente', cita });
+    return res.json({ message:'Cita actualizada correctamente', cita});
   } catch (error: any) {
     if (error instanceof AppError) return res.status(error.status).json({ message: error.message });
     return res.status(500).json({ message: 'Error del servidor' });
@@ -143,6 +143,15 @@ export const confirmarCita = async (req: CustomRequest, res: Response) => {
   try {
     const cita = await Cita.findByPk(id_cita);
     if (!cita) return res.status(404).json({ message: 'Cita no encontrada' });
+    if(cita.estado === 'Cancelada') return res.status(400).json({ message: 'La cita está cancelada'});
+    if(cita.estado ==='Confirmada') return res.status(400).json({ message: 'La cita ya está confirmada'});
+    if(!cita.recordatorio_enviado) return res.status(400).json({ message: 'La confirmación aún no esta disponible'});
+    const ahora = new Date();
+    if(cita.fecha_hora_inicio < ahora){
+      return res.status(400).json({
+        message:'La cita ya pasó'
+      });
+    }
     await cita.update({ estado: 'Confirmada' });
     return res.json({ message: 'Cita confirmada' });
   } catch (error) {
