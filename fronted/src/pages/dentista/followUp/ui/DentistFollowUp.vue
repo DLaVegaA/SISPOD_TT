@@ -349,7 +349,7 @@ onMounted(async () => { await Promise.all([fetchSeguimientos(), cargarCatalogos(
               <template v-else><span>→ {{ formatearFecha(item.fecha_fin) }}</span></template>
             </div>
 
-            <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div class="flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
               <!-- Ver: disponible en TODAS las cards -->
               <button class="p-1.5 rounded-lg text-muted hover:text-accent hover:bg-accent/5 transition-colors" title="Ver respuestas" @click="abrirDetalle(item)">
                 <Eye class="w-3.5 h-3.5" />

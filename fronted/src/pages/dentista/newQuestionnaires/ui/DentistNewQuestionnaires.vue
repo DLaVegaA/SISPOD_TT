@@ -164,7 +164,7 @@
             </div>
 
             <!-- Botones: Agregar · Editar · Eliminar (visibles al hover) -->
-            <div class="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2">
+            <div class="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity absolute right-3 top-1/2 -translate-y-1/2">
               <button class="w-7 h-7 rounded-lg bg-surface border border-border text-muted hover:text-accent hover:border-accent/30 flex items-center justify-center transition-all"
                 title="Agregar al cuestionario" @click.stop="addToBuilder(item)">
                 <Plus class="w-3.5 h-3.5" />
