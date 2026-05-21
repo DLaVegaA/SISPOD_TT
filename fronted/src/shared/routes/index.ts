@@ -4,6 +4,7 @@ export const ROUTE_NAMES = {
   RECOVER_PASSWORD: 'recover-password',
   RESET_PASSWORD: 'reset-password',
   ACTIVATE_ACCOUNT: 'activate-account',
+  CONFIRM_APPOINTMENT: 'confirm-appointment',
   ADMIN_HOME: 'admin-home',
   ADMIN_USERS: 'admin-users',
   ADMIN_ROLES: 'admin-roles',
@@ -46,6 +47,7 @@ export const ROUTE_PATHS = {
   RECOVER_PASSWORD: '/recuperar-contrasena',
   RESET_PASSWORD: '/restablecer-contrasena/:token',
   ACTIVATE_ACCOUNT: '/activar-cuenta/:token',
+  CONFIRM_APPOINTMENT: '/confirmar-cita/:id',
 
   ADMIN_HOME: '/admin/:id/home',
   ADMIN_USERS: '/admin/:id/users',
