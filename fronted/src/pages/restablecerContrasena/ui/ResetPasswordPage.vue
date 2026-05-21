@@ -11,6 +11,8 @@ const token = route.params.token as string
 
 const password = ref('')
 const confirmPassword = ref('')
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-={}[\]|;:,.<>?]).{12,}$/
+const passwordError = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 
@@ -42,12 +44,16 @@ async function handleSubmit() {
   successMsg.value = null
   
   // 1. Validaciones locales primero
-  if (password.value.length < 8) {
-    errorMsg.value = 'La contraseña debe tener al menos 8 caracteres'
+  if (password.value.length < 12) {
+    errorMsg.value = 'La contraseña debe tener al menos 12 caracteres'
     return
   }
   if (password.value !== confirmPassword.value) {
     errorMsg.value = 'Las contraseñas no coinciden'
+    return
+  }
+  if (!passwordRegex.test(password.value)) {
+    passwordError.value = 'La contraseña no cumple los requisitos de seguridad.'
     return
   }
 
@@ -130,7 +136,7 @@ async function handleSubmit() {
               <input 
                 :type="showPassword ? 'text' : 'password'" 
                 v-model="password"
-                placeholder="Mínimo 8 caracteres"
+                placeholder="Mínimo 12 caracteres"
                 class="w-full pl-11 pr-12 py-3.5 bg-white/10 border border-white/20 text-white placeholder-white/50 rounded-2xl focus:ring-2 focus:ring-white/50 focus:border-white/50 outline-none transition-all backdrop-blur-sm"
                 required
               />
@@ -144,6 +150,30 @@ async function handleSubmit() {
               </button>
             </div>
           </div>
+
+          <div class="mt-2 p-3 bg-white/10 rounded-xl border border-white/20 space-y-1">
+            <p class="text-xs font-semibold text-white/80 mb-1.5">La contraseña debe contener:</p>
+            <div class="grid grid-cols-2 gap-1">
+              <span :class="['text-[11px] flex items-center gap-1', /[A-Z]/.test(password) ? 'text-green-300' : 'text-white/50']">
+                <span>{{ /[A-Z]/.test(password) ? '✓' : '○' }}</span> Una mayúscula
+              </span>
+              <span :class="['text-[11px] flex items-center gap-1', /[a-z]/.test(password) ? 'text-green-300' : 'text-white/50']">
+                <span>{{ /[a-z]/.test(password) ? '✓' : '○' }}</span> Una minúscula
+              </span>
+              <span :class="['text-[11px] flex items-center gap-1', /\d/.test(password) ? 'text-green-300' : 'text-white/50']">
+                <span>{{ /\d/.test(password) ? '✓' : '○' }}</span> Un número
+              </span>
+              <span :class="['text-[11px] flex items-center gap-1', /[!@#$%^&*()_\-={}[\]|;:,.<>?]/.test(password) ? 'text-green-300' : 'text-white/50']">
+                <span>{{ /[!@#$%^&*()_\-={}[\]|;:,.<>?]/.test(password) ? '✓' : '○' }}</span> Un símbolo
+              </span>
+              <span :class="['text-[11px] flex items-center gap-1 col-span-2', password.length >= 12 ? 'text-green-300' : 'text-white/50']">
+                <span>{{ password.length >= 12 ? '✓' : '○' }}</span> Mínimo 12 caracteres
+              </span>
+            </div>
+          </div>
+
+          <!-- Error de validación -->
+          <p v-if="passwordError" class="text-red-300 text-xs mt-1.5 ml-1">{{ passwordError }}</p>
 
           <div class="space-y-2">
             <label class="text-sm font-bold text-white ml-1">Confirmar Contraseña</label>
