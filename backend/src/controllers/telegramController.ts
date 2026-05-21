@@ -21,7 +21,7 @@ export const generarTokenVinculacion =async(req:CustomRequest, res:Response) =>{
         await Telegram.upsert({
             id_paciente,
             token, 
-            chat_id:null
+            id_chat: null
         });
 
         return res.status(200).json({

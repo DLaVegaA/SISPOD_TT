@@ -136,7 +136,7 @@ export const enviarRecordatorioTelegram =async(id_chat:string,mensaje:string)=>{
 export const configurarBot = () =>{
     //ctx (contexto) es un objeto que envuelve toda la informacion del que escribe 
     bot.start(async(ctx) =>{
-        const [, token] = ctx.message.text.split(' ');
+        const token = ctx.startPayload?.trim() || ctx.message.text.split(' ')[1]?.trim()
         // console.log('TEXT:', ctx.message.text);
         // console.log('PAYLOAD:', ctx.startPayload);
 
