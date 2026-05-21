@@ -1,8 +1,10 @@
-import dotenv from 'dotenv'
+// ✅ PRIMER import — garantiza que .env esté cargado
+// antes de que cualquier otro módulo lo necesite
+import 'dotenv/config'
+
 import { connectBD, sequelize } from './config/database'
 import app from './app'
 
-dotenv.config()
 const PORT = process.env.PORT || 3000
 
 async function startServer() {
@@ -12,10 +14,10 @@ async function startServer() {
     console.log('Base de datos sincronizada')
 
     app.listen(PORT, () => {
-      console.log(`Servidor corriendo en http://localhost:${PORT}`)
+      console.log(`Servidor en http://localhost:${PORT}`)
     })
   } catch (error) {
-    console.error('Error al iniciar el servidor:', error)
+    console.error(' Error al iniciar el servidor:', error)
     process.exit(1)
   }
 }

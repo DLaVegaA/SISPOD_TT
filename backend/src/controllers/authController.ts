@@ -365,13 +365,13 @@ export const resetPassword = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'La contraseña es obligatoria' });
     }
 
-    /* // RN16: Validación estricta de la nueva contraseña en la recuperación
+    // RN16: Validación estricta de la nueva contraseña en la recuperación
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-={}[\]|;:,.<>?]).{12,}$/;
     if (!passwordRegex.test(contrasena)) {
       return res.status(400).json({ 
         message: 'La contraseña debe tener al menos 12 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos especiales.' 
       });
-    } */
+    }
 
     const usuario = await Usuario.findByPk(tokenBD.id_usuario);
 
