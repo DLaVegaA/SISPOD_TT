@@ -1,19 +1,24 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, computed } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
 import { useSessionStore } from '@/entities/session'
 import { normalizeRole } from '@/shared/routes'
 import { UiInput } from '@/shared/ui/UiInput'
 import {
   Save, Loader2, MapPin, CheckCircle2, AlertCircle,
   Stethoscope, UserRound, Phone, Mail, Lock,
+  Send, LinkIcon, Unlink, ExternalLink,
 } from 'lucide-vue-next'
 
 import { pacienteApi }  from '@/entities/perfilPaciente/api/perfilPacienteApi'
 import { dentistaApi }  from '@/entities/dentista/api/dentistaApi'
 import { asistenteApi } from '@/entities/asistente/api/asistenteApi'
 
+// ── Session ───────────────────────────────────────────────────────────────────
+
 const sessionStore = useSessionStore()
 const role = computed(() => normalizeRole(sessionStore.role))
+
+// ── Estado general del perfil ─────────────────────────────────────────────────
 
 const isLoading  = ref(false)
 const successMsg = ref<string | null>(null)
@@ -82,9 +87,9 @@ const cargarPerfil = async () => {
       formData.fecha_nacimiento = new Date(data.fecha_nacimiento).toISOString().split('T')[0] ?? ''
     const dir = data.direccion ?? data.Direccion
     if (dir) {
-      formData.calle = dir.calle ?? ''; formData.num_ext = dir.num_ext ?? ''
-      formData.num_int = dir.num_int ?? ''; formData.colonia = dir.colonia ?? ''
-      formData.municipio = dir.municipio ?? ''; formData.estado = dir.estado ?? ''
+      formData.calle         = dir.calle ?? ''; formData.num_ext = dir.num_ext ?? ''
+      formData.num_int       = dir.num_int ?? ''; formData.colonia = dir.colonia ?? ''
+      formData.municipio     = dir.municipio ?? ''; formData.estado = dir.estado ?? ''
       formData.codigo_postal = dir.codigo_postal ?? ''
     }
     if (sessionStore.user)
@@ -124,9 +129,113 @@ const handleUpdate = async () => {
   }
 }
 
+// ── Telegram ──────────────────────────────────────────────────────────────────
+
+/** Estado de la vinculación */
+type TgPhase = 'idle' | 'loading' | 'linked' | 'pending' | 'unlinking' | 'error'
+
+const tgPhase        = ref<TgPhase>('idle')
+const tgErrorMsg     = ref<string | null>(null)
+const tgPollingTimer = ref<ReturnType<typeof setInterval> | null>(null)
+const POLLING_MS     = 3000
+const POLLING_MAX    = 20   // 20 × 3s = 60s máximo
+
+let pollingCount = 0
+
+/** Consulta el estado y actualiza `tgPhase`. */
+const consultarEstadoTelegram = async (): Promise<boolean> => {
+  try {
+    const res = await pacienteApi.telegramEstado() as any
+    const vinculado: boolean = res?.vinculado ?? res?.data?.vinculado ?? false
+    tgPhase.value = vinculado ? 'linked' : 'idle'
+    return vinculado
+  } catch {
+    tgPhase.value = 'error'
+    tgErrorMsg.value = 'No se pudo verificar el estado de Telegram.'
+    return false
+  }
+}
+
+/** Detiene el polling si está activo. */
+const detenerPolling = () => {
+  if (tgPollingTimer.value !== null) {
+    clearInterval(tgPollingTimer.value)
+    tgPollingTimer.value = null
+    pollingCount = 0
+  }
+}
+
+/**
+ * Inicia el polling periódico que detecta cuándo el paciente completa
+ * la vinculación desde el bot de Telegram.
+ */
+const iniciarPolling = () => {
+  detenerPolling()
+  pollingCount = 0
+  tgPollingTimer.value = setInterval(async () => {
+    pollingCount++
+    const vinculado = await consultarEstadoTelegram()
+    if (vinculado || pollingCount >= POLLING_MAX) {
+      detenerPolling()
+      if (!vinculado && pollingCount >= POLLING_MAX) {
+        // Tiempo agotado sin vincular: volvemos a idle para que pueda reintentar
+        tgPhase.value = 'idle'
+      }
+    }
+  }, POLLING_MS)
+}
+
+/** Genera el token y abre el deep-link al bot. */
+const handleVincular = async () => {
+  tgPhase.value   = 'loading'
+  tgErrorMsg.value = null
+  try {
+    const res = await pacienteApi.telegramGenerarToken() as any
+    const link: string = res?.link ?? res?.data?.link ?? ''
+
+    if (!link) throw new Error('El servidor no devolvió el link de vinculación.')
+
+    // Abre el bot de Telegram en nueva pestaña
+    window.open(link, '_blank', 'noopener,noreferrer')
+
+    tgPhase.value = 'pending'
+    iniciarPolling()
+  } catch (error: any) {
+    tgPhase.value    = 'error'
+    tgErrorMsg.value = error?.response?.data?.message ?? 'No se pudo generar el enlace de vinculación.'
+  }
+}
+
+/** Solicita la desvinculación al backend. */
+const handleDesvincular = async () => {
+  tgPhase.value    = 'unlinking'
+  tgErrorMsg.value = null
+  try {
+    await pacienteApi.telegramDesvincular()
+    tgPhase.value = 'idle'
+  } catch (error: any) {
+    tgPhase.value    = 'error'
+    tgErrorMsg.value = error?.response?.data?.message ?? 'No se pudo desvincular la cuenta de Telegram.'
+  }
+}
+
+/** Permite al paciente verificar manualmente si ya vinculó. */
+const handleReverificar = async () => {
+  detenerPolling()
+  tgPhase.value = 'loading'
+  await consultarEstadoTelegram()
+}
+
+// ── Lifecycle ─────────────────────────────────────────────────────────────────
+
 onMounted(async () => {
   if (sessionStore.status === 'unknown') await sessionStore.bootstrap()
   await cargarPerfil()
+  if (role.value === 'patient') await consultarEstadoTelegram()
+})
+
+onUnmounted(() => {
+  detenerPolling()
 })
 </script>
 
@@ -147,185 +256,285 @@ onMounted(async () => {
 
     <!-- ── Hero card ─────────────────────────────────────────────────────── -->
     <div class="bg-card border border-border rounded-3xl p-8 mb-6 shadow-sm flex flex-col items-center text-center gap-4">
-
-      <!-- Avatar grande -->
       <div class="w-24 h-24 rounded-full bg-accent flex items-center justify-center shadow-sm shrink-0">
         <span class="text-3xl font-bold text-white font-display tracking-wide select-none">
           {{ initials }}
         </span>
       </div>
-
-      <!-- Nombre + badge -->
       <div class="flex flex-col items-center gap-2">
         <div class="flex items-center gap-2 flex-wrap justify-center">
           <h2 class="font-display text-xl font-bold text-black leading-tight">
             {{ fullName || '—' }}
           </h2>
-          <span
-            :class="['text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border', currentMeta?.bg, currentMeta?.color]"
-          >
-            {{ currentMeta?.label }}
+          <span :class="['text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border', currentMeta.bg, currentMeta.color]">
+            {{ currentMeta.label }}
           </span>
         </div>
-
-        <!-- Contacto -->
-        <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 mt-1">
-          <span class="flex items-center gap-1.5 text-xs text-muted/70">
-            <Mail class="w-3.5 h-3.5 shrink-0" />
-            {{ formData.correo || '—' }}
-          </span>
-          <span v-if="formData.telefono" class="flex items-center gap-1.5 text-xs text-muted/70">
-            <Phone class="w-3.5 h-3.5 shrink-0" />
-            {{ formData.telefono }}
-          </span>
-        </div>
+        <p class="text-sm text-muted">{{ formData.correo || '—' }}</p>
       </div>
     </div>
 
-    <!-- Skeleton mientras carga -->
-    <div v-if="isLoading && !formData.nombre" class="space-y-4 animate-pulse">
-      <div class="h-48 bg-surface rounded-2xl" />
-      <div class="h-24 bg-surface rounded-2xl" />
+    <!-- ── Alertas globales ───────────────────────────────────────────────── -->
+    <div v-if="successMsg"
+      class="flex items-center gap-3 mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-800">
+      <CheckCircle2 class="w-4 h-4 shrink-0" />
+      <span>{{ successMsg }}</span>
+    </div>
+    <div v-if="errorMsg"
+      class="flex items-center gap-3 mb-5 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+      <AlertCircle class="w-4 h-4 shrink-0" />
+      <span>{{ errorMsg }}</span>
     </div>
 
-    <form v-else @submit.prevent="handleUpdate" class="space-y-5">
+    <!-- ── Datos personales ───────────────────────────────────────────────── -->
+    <div class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm mb-5">
+      <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-border bg-surface/60">
+        <div class="w-7 h-7 rounded-lg bg-accent-dim flex items-center justify-center shrink-0">
+          <UserRound class="w-3.5 h-3.5 text-accent" />
+        </div>
+        <h2 class="text-sm font-semibold text-black">Datos personales</h2>
+      </div>
+      <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <!-- ── Datos personales ──────────────────────────────────────────── -->
-      <div class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-        <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-border bg-surface/60">
-          <div class="w-7 h-7 rounded-lg bg-accent-dim flex items-center justify-center shrink-0">
-            <UserRound class="w-3.5 h-3.5 text-accent" />
-          </div>
-          <h2 class="text-sm font-semibold text-black">Datos personales</h2>
+        <UiInput v-model="formData.nombre"
+          label="Nombre *" placeholder="Nombre(s)"
+          :disabled="!puedeEditar('nombre')" />
+
+        <UiInput v-model="formData.apellido_paterno"
+          label="Apellido paterno *" placeholder="Apellido paterno"
+          :disabled="!puedeEditar('apellido_paterno')" />
+
+        <div class="relative">
+          <UiInput v-model="formData.apellido_materno"
+            label="Apellido materno" placeholder="Apellido materno (opcional)"
+            :disabled="!puedeEditar('apellido_materno')" />
+          <span class="absolute top-0 right-0 text-[10px] font-semibold text-muted/40 uppercase tracking-wider">
+            opcional
+          </span>
         </div>
 
-        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UiInput v-model="formData.telefono"
+          label="Teléfono *" placeholder="10 dígitos" type="tel"
+          :disabled="!puedeEditar('telefono')" />
 
-          <UiInput v-model="formData.nombre"
-            label="Nombre *" placeholder="Nombre(s)"
-            :disabled="!puedeEditar('nombre')" />
-
-          <UiInput v-model="formData.apellido_paterno"
-            label="Apellido paterno *" placeholder="Apellido paterno"
-            :disabled="!puedeEditar('apellido_paterno')" />
-
-          <div class="relative">
-            <UiInput v-model="formData.apellido_materno"
-              label="Apellido materno" placeholder="Apellido materno (opcional)"
-              :disabled="!puedeEditar('apellido_materno')" />
-            <span class="absolute top-0 right-0 text-[10px] font-semibold text-muted/40 uppercase tracking-wider">
-              opcional
-            </span>
-          </div>
-
-          <UiInput v-model="formData.telefono"
-            label="Teléfono *" placeholder="10 dígitos" type="tel"
-            :disabled="!puedeEditar('telefono')" />
-
-          <div class="relative">
-            <UiInput v-model="formData.correo"
-              label="Correo electrónico" placeholder="correo@ejemplo.com" type="email"
-              :disabled="!puedeEditar('correo')" />
-            <Lock v-if="!puedeEditar('correo')"
-              class="absolute right-3 bottom-3 w-3.5 h-3.5 text-muted/40" />
-          </div>
-
-          <UiInput v-model="formData.fecha_nacimiento"
-            label="Fecha de nacimiento" type="date"
-            :disabled="!puedeEditar('fecha_nacimiento')" />
-
-          <div v-if="role === 'patient' || role === 'dentist'" class="relative">
-            <UiInput v-model="formData.curp"
-              label="CURP" placeholder="18 caracteres" :disabled="true" />
-            <Lock class="absolute right-3 bottom-3 w-3.5 h-3.5 text-muted/40" />
-          </div>
-
-          <div v-if="role === 'patient'">
-            <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-              Género
-            </label>
-            <select v-model="formData.genero"
-              class="w-full border border-border rounded-xl py-2.5 px-3 text-sm text-black bg-surface focus:outline-none focus:border-accent transition-colors">
-              <option value="">Seleccionar...</option>
-              <option value="Masculino">Masculino</option>
-              <option value="Femenino">Femenino</option>
-              <option value="No especificado">Prefiero no decir</option>
-            </select>
-          </div>
-
+        <div class="relative">
+          <UiInput v-model="formData.correo"
+            label="Correo electrónico" placeholder="correo@ejemplo.com" type="email"
+            :disabled="!puedeEditar('correo')" />
+          <Lock v-if="!puedeEditar('correo')"
+            class="absolute right-3 bottom-3 w-3.5 h-3.5 text-muted/40" />
         </div>
+
+        <UiInput v-model="formData.fecha_nacimiento"
+          label="Fecha de nacimiento" type="date"
+          :disabled="!puedeEditar('fecha_nacimiento')" />
+
+        <div v-if="role === 'patient' || role === 'dentist'" class="relative">
+          <UiInput v-model="formData.curp"
+            label="CURP" placeholder="18 caracteres" :disabled="true" />
+          <Lock class="absolute right-3 bottom-3 w-3.5 h-3.5 text-muted/40" />
+        </div>
+
+        <div v-if="role === 'patient'">
+          <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">
+            Género
+          </label>
+          <select v-model="formData.genero"
+            class="w-full border border-border rounded-xl py-2.5 px-3 text-sm text-black bg-surface focus:outline-none focus:border-accent transition-colors">
+            <option value="">Seleccionar...</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Femenino">Femenino</option>
+            <option value="No especificado">Prefiero no decir</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Datos profesionales — dentista ───────────────────────────── -->
+    <div v-if="role === 'dentist'"
+      class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm mb-5">
+      <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-border bg-surface/60">
+        <div class="w-7 h-7 rounded-lg bg-accent-dim flex items-center justify-center shrink-0">
+          <Stethoscope class="w-3.5 h-3.5 text-accent" />
+        </div>
+        <h2 class="text-sm font-semibold text-black">Datos profesionales</h2>
+      </div>
+      <div class="p-5">
+        <UiInput v-model="formData.cedula"
+          label="Cédula profesional *" placeholder="No. de cédula" />
+      </div>
+    </div>
+
+    <!-- ── Dirección — paciente ──────────────────────────────────────────── -->
+    <div v-if="role === 'patient'"
+      class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm mb-5">
+      <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-border bg-surface/60">
+        <div class="w-7 h-7 rounded-lg bg-accent-dim flex items-center justify-center shrink-0">
+          <MapPin class="w-3.5 h-3.5 text-accent" />
+        </div>
+        <h2 class="text-sm font-semibold text-black">Dirección</h2>
+      </div>
+      <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UiInput v-model="formData.calle"         label="Calle *"           placeholder="Nombre de la calle" />
+        <UiInput v-model="formData.num_ext"        label="Núm. exterior *"   placeholder="Ej. 42" />
+        <div class="relative">
+          <UiInput v-model="formData.num_int"      label="Núm. interior"     placeholder="Ej. B" />
+          <span class="absolute top-0 right-0 text-[10px] font-semibold text-muted/40 uppercase tracking-wider">
+            opcional
+          </span>
+        </div>
+        <UiInput v-model="formData.colonia"        label="Colonia *"         placeholder="Nombre de la colonia" />
+        <UiInput v-model="formData.municipio"      label="Municipio *"       placeholder="Municipio o alcaldía" />
+        <UiInput v-model="formData.estado"         label="Estado *"          placeholder="Estado de la república" />
+        <UiInput v-model="formData.codigo_postal"  label="Código postal *"   placeholder="5 dígitos" />
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         ── Telegram — solo paciente ────────────────────────────────────────
+         ══════════════════════════════════════════════════════════════════════ -->
+    <div v-if="role === 'patient'"
+      class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm mb-5">
+
+      <!-- Encabezado -->
+      <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-border bg-surface/60">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+          style="background-color: #e8f4fd;">
+          <Send class="w-3.5 h-3.5" style="color: #2AABEE;" />
+        </div>
+        <h2 class="text-sm font-semibold text-black">Notificaciones vía Telegram</h2>
       </div>
 
-      <!-- ── Datos profesionales — dentista ───────────────────────────── -->
-      <div v-if="role === 'dentist'"
-        class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-        <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-border bg-surface/60">
-          <div class="w-7 h-7 rounded-lg bg-accent-dim flex items-center justify-center shrink-0">
-            <Stethoscope class="w-3.5 h-3.5 text-accent" />
+      <div class="p-5">
+
+        <!-- ── Cargando estado inicial ─── -->
+        <div v-if="tgPhase === 'idle' && isLoading"
+          class="flex items-center gap-3 text-sm text-muted">
+          <Loader2 class="w-4 h-4 animate-spin" />
+          <span>Verificando estado...</span>
+        </div>
+
+        <!-- ── Vinculado ──────────────────────────────────────────────── -->
+        <div v-else-if="tgPhase === 'linked'" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+              <CheckCircle2 class="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-black">Cuenta vinculada</p>
+              <p class="text-xs text-muted mt-0.5">
+                Recibirás recordatorios de citas y seguimientos postoperatorios en Telegram.
+              </p>
+            </div>
           </div>
-          <h2 class="text-sm font-semibold text-black">Datos profesionales</h2>
+          <button
+            @click="handleDesvincular"
+            :disabled="tgPhase === 'unlinking'"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
+            <Loader2 v-if="tgPhase === 'unlinking'" class="w-3.5 h-3.5 animate-spin" />
+            <Unlink v-else class="w-3.5 h-3.5" />
+            Desvincular
+          </button>
         </div>
-        <div class="p-5">
-          <UiInput v-model="formData.cedula"
-            label="Cédula profesional *" placeholder="No. de cédula" />
-        </div>
-      </div>
 
-      <!-- ── Dirección — paciente ──────────────────────────────────────── -->
-      <div v-if="role === 'patient'"
-        class="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-        <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-border bg-surface/60">
-          <div class="w-7 h-7 rounded-lg bg-accent-dim flex items-center justify-center shrink-0">
-            <MapPin class="w-3.5 h-3.5 text-accent" />
+        <!-- ── Desvinculando ──────────────────────────────────────────── -->
+        <div v-else-if="tgPhase === 'unlinking'"
+          class="flex items-center gap-3 text-sm text-muted">
+          <Loader2 class="w-4 h-4 animate-spin" />
+          <span>Desvinculando cuenta...</span>
+        </div>
+
+        <!-- ── Pendiente (link abierto, esperando al paciente) ────────── -->
+        <div v-else-if="tgPhase === 'pending'" class="flex flex-col gap-4">
+          <div class="flex items-start gap-3 p-4 bg-sky-50 border border-sky-200 rounded-xl">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+              style="background-color: #d1edf9;">
+              <Loader2 class="w-4 h-4 animate-spin" style="color: #2AABEE;" />
+            </div>
+            <div>
+              <p class="text-sm font-semibold" style="color: #0e6fa8;">Esperando vinculación en Telegram</p>
+              <p class="text-xs text-muted mt-1 leading-relaxed">
+                Se abrió el bot <strong>@ConsultorioGonzalez_bot</strong> en una nueva pestaña.
+                Presiona <strong>INICIAR</strong> dentro de Telegram para completar la vinculación.
+              </p>
+            </div>
           </div>
-          <h2 class="text-sm font-semibold text-black">Dirección</h2>
-        </div>
-        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput v-model="formData.calle"        label="Calle *"                placeholder="Nombre de la calle" />
-          <UiInput v-model="formData.num_ext"       label="Núm. exterior *"        placeholder="Ej. 42" />
-          <div class="relative">
-            <UiInput v-model="formData.num_int"     label="Núm. interior"          placeholder="Ej. 3B" />
-            <span class="absolute top-0 right-0 text-[10px] font-semibold text-muted/40 uppercase tracking-wider">opcional</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              @click="handleReverificar"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-surface text-xs font-semibold text-black hover:bg-accent-dim transition-colors">
+              <CheckCircle2 class="w-3.5 h-3.5" />
+              Ya vinculé mi cuenta
+            </button>
+            <button
+              @click="handleVincular"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-surface text-xs font-semibold text-muted hover:bg-accent-dim transition-colors">
+              <ExternalLink class="w-3.5 h-3.5" />
+              Abrir bot de nuevo
+            </button>
           </div>
-          <UiInput v-model="formData.colonia"       label="Colonia *"              placeholder="Colonia" />
-          <UiInput v-model="formData.municipio"     label="Municipio / Alcaldía *" placeholder="Municipio" />
-          <UiInput v-model="formData.estado"        label="Estado *"               placeholder="Estado" />
-          <UiInput v-model="formData.codigo_postal" label="Código postal *"        placeholder="5 dígitos" />
         </div>
-      </div>
 
-      <!-- ── Alertas ───────────────────────────────────────────────────── -->
-      <div v-if="successMsg"
-        class="flex items-center gap-2.5 text-sm font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl">
-        <CheckCircle2 class="w-4 h-4 shrink-0 text-emerald-600" />
-        {{ successMsg }}
-      </div>
-      <div v-if="errorMsg"
-        class="flex items-center gap-2.5 text-sm font-medium text-red-800 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">
-        <AlertCircle class="w-4 h-4 shrink-0 text-red-600" />
-        {{ errorMsg }}
-      </div>
+        <!-- ── Cargando (generando token) ─────────────────────────────── -->
+        <div v-else-if="tgPhase === 'loading'"
+          class="flex items-center gap-3 text-sm text-muted">
+          <Loader2 class="w-4 h-4 animate-spin" />
+          <span>Generando enlace de vinculación...</span>
+        </div>
 
-      <!-- ── Footer ────────────────────────────────────────────────────── -->
-      <div class="flex items-center justify-between pt-1">
-        <p class="text-xs text-muted/50">Los campos con * son obligatorios</p>
-        <button type="submit" :disabled="isLoading"
-          class="flex items-center gap-2 bg-ink/65 hover:bg-ink/80 text-text-secondary px-5 py-2.5 rounded-2xl text-sm font-medium transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none shadow-sm">
-          <Loader2 v-if="isLoading" class="w-4 h-4 animate-spin" />
-          <Save v-else class="w-4 h-4" />
-          {{ isLoading ? 'Guardando...' : 'Guardar cambios' }}
-        </button>
-      </div>
-    </form>
+        <!-- ── Error ──────────────────────────────────────────────────── -->
+        <div v-else-if="tgPhase === 'error'" class="flex flex-col gap-3">
+          <div class="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+            <AlertCircle class="w-4 h-4 shrink-0" />
+            <span>{{ tgErrorMsg }}</span>
+          </div>
+          <button
+            @click="handleVincular"
+            class="self-start inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-surface text-xs font-semibold text-black hover:bg-accent-dim transition-colors">
+            <LinkIcon class="w-3.5 h-3.5" />
+            Reintentar
+          </button>
+        </div>
 
-    </div><!-- /max-w-3xl -->
+        <!-- ── Idle — no vinculado ────────────────────────────────────── -->
+        <div v-else class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center shrink-0 mt-0.5">
+              <Send class="w-4 h-4 text-muted/60" />
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-black">Telegram no vinculado</p>
+              <p class="text-xs text-muted mt-0.5">
+                Vincula tu cuenta para recibir recordatorios de citas y cuestionarios postoperatorios directamente en Telegram.
+              </p>
+            </div>
+          </div>
+          <button
+            @click="handleVincular"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white transition-colors shrink-0 hover:opacity-90 active:scale-95"
+            style="background-color: #2AABEE;">
+            <LinkIcon class="w-3.5 h-3.5" />
+            Vincular con Telegram
+          </button>
+        </div>
+
+      </div>
+    </div>
+    <!-- ══ fin Telegram ═══════════════════════════════════════════════════════ -->
+
+    <!-- ── Guardar ────────────────────────────────────────────────────────── -->
+    <div class="flex justify-end">
+      <button
+        @click="handleUpdate"
+        :disabled="isLoading"
+        class="inline-flex items-center gap-2 px-6 py-2.5 bg-accent text-white text-sm font-semibold rounded-xl hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+        <Loader2 v-if="isLoading" class="w-4 h-4 animate-spin" />
+        <Save v-else class="w-4 h-4" />
+        Guardar cambios
+      </button>
+    </div>
+
+    </div>
   </div>
 </template>
-
-<style scoped>
-.fade-in { animation: fadeIn 0.25s ease; }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-</style>
