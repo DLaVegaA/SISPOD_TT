@@ -9,6 +9,7 @@ export class Cita extends Model{
     declare fecha_hora_fin:Date;
     declare id_tipocita:number;
     declare estado:string;
+    declare recordatorio_enviado:boolean;
 }
 
 Cita.init(
