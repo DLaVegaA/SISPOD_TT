@@ -22,7 +22,7 @@ import preguntaBaseRoutes           from './routes/preguntaBaseRoutes'
 import asistenteRoutes              from './routes/asistenteRoutes'
 import { errorHandler }             from './middleware/errorMiddleware'
 
-const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173']
+const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://sispod.duckdns.org',]
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {

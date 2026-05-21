@@ -16,9 +16,9 @@ export const seedDentista = async () => {
             try {
                 // Crear Usuario (Rol 2 = Dentista)
                 const nuevoUsuario = await Usuario.create({
-                    nombre: "Doctor",
-                    apellido_paterno: "Sistema",
-                    apellido_materno: "SISPOD",
+                    nombre: "Manuel",
+                    apellido_paterno: "González",
+                    apellido_materno: "Gassos",
                     correo: correoDentista,
                     contrasena: "Password123", // El hook beforeCreate lo encriptará
                     telefono: "5599887766",
@@ -53,7 +53,7 @@ export const seedDentista = async () => {
 // =====================================================================
 // 2. SEED PARA CREAR MÚLTIPLES PACIENTES
 // =====================================================================
-const generarCurpUnica = (indice: number): string => {
+/* const generarCurpUnica = (indice: number): string => {
     const homoclave = indice.toString().padStart(2, '0');
     return `SISP900515HDFRRS${homoclave}`;
 };
@@ -141,4 +141,4 @@ export const seedPacientes = async () => {
     } catch (error) {
         console.error('Error general en el seed de pacientes:', error);
     }
-};
+}; */
