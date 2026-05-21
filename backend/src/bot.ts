@@ -17,7 +17,8 @@ process.on('unhandledRejection', (reason) => {
 process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
 });
-const startBot = async()=>{
+
+export const startBot = async()=>{
     try{
         configurarBot()
         await bot.telegram.getMe();
@@ -30,6 +31,6 @@ const startBot = async()=>{
     }
 }
 
-startBot()
+//startBot()
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
