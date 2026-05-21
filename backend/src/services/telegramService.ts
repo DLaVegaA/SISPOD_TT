@@ -86,7 +86,7 @@ const procesarVinculacion = async(ctx:any, token:string) =>{
         registroTelegram.token = null;
         await registroTelegram.save();
 
-        return ctx.reply(`Perfecto ${nombrePaciente}, tu cuenta ha sido vinculada`);
+        return ctx.reply(`Perfecto ${nombrePaciente}, tu cuenta ha sido vinculada\nUsa Ayuda para conocer más`);
 
     } catch (error) {
         console.log('Error al vincular Telegram: ', error);
