@@ -24,6 +24,7 @@ const isLoading  = ref(false)
 const successMsg = ref<string | null>(null)
 const errorMsg   = ref<string | null>(null)
 const idEntidad  = ref<number | null>(null)
+const tgLink = ref<string>('')
 
 const roleMeta: Record<string, { label: string; color: string; bg: string }> = {
   patient:   { label: 'Paciente',      color: 'text-emerald-800', bg: 'bg-emerald-100 border-emerald-200' },
@@ -190,15 +191,13 @@ const iniciarPolling = () => {
 const handleVincular = async () => {
   tgPhase.value   = 'loading'
   tgErrorMsg.value = null
+  tgLink.value     = ''
   try {
     const res = await pacienteApi.telegramGenerarToken() as any
     const link: string = res?.link ?? res?.data?.link ?? ''
-
     if (!link) throw new Error('El servidor no devolvió el link de vinculación.')
 
-    // Abre el bot de Telegram en nueva pestaña
-    window.open(link, '_blank', 'noopener,noreferrer')
-
+    tgLink.value  = link   // ← guarda el link
     tgPhase.value = 'pending'
     iniciarPolling()
   } catch (error: any) {
@@ -456,8 +455,8 @@ onUnmounted(() => {
             <div>
               <p class="text-sm font-semibold" style="color: #0e6fa8;">Esperando vinculación en Telegram</p>
               <p class="text-xs text-muted mt-1 leading-relaxed">
-                Se abrió el bot <strong>@ConsultorioGonzalez_bot</strong> en una nueva pestaña.
-                Presiona <strong>INICIAR</strong> dentro de Telegram para completar la vinculación.
+                Toca el botón para abrir el bot <strong>@ConsultorioGonzalez_bot</strong> en Telegram
+                y presiona <strong>INICIAR</strong> para completar la vinculación.
               </p>
             </div>
           </div>
@@ -468,12 +467,14 @@ onUnmounted(() => {
               <CheckCircle2 class="w-3.5 h-3.5" />
               Ya vinculé mi cuenta
             </button>
-            <button
-              @click="handleVincular"
+            <a
+              :href="tgLink"
+              target="_blank"
+              rel="noopener noreferrer"
               class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-surface text-xs font-semibold text-muted hover:bg-accent-dim transition-colors">
               <ExternalLink class="w-3.5 h-3.5" />
-              Abrir bot de nuevo
-            </button>
+              Abrir Telegram
+            </a>
           </div>
         </div>
 
