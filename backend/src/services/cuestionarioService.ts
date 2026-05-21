@@ -26,22 +26,37 @@ export const listarCuestionariosService = async (
     const where: any = {};
     if (id_procedimiento) where.id_procedimiento = id_procedimiento;
     if (tipo) where.tipo_cuestionario = tipo;
- 
+
     // Por defecto solo muestra activos (para el selector de seguimiento).
     // La biblioteca del dentista pasa incluirInactivos = true.
     if (!incluirInactivos) where.activo = true;
- 
+
     const cuestionarios = await Cuestionario.findAll({
         where,
-        include: [{
-            model: Catalogo_Procedimientos,
-            as: 'procedimiento_asociado',  // ← alias real del modelo
-            attributes: ['nombre_procedimiento']
-        }],
+        include: [
+            {
+                model: Catalogo_Procedimientos,
+                as: 'procedimiento_asociado',
+                attributes: ['nombre_procedimiento']
+            },
+            // 👇 NUEVO INCLUDE PARA SABER CUÁNTAS PREGUNTAS TIENE 👇
+            {
+                model: CuestionarioPregunta,
+                as: 'cuestionario_preguntas',
+                attributes: ['id_pregunta_base'] // Solo traemos el ID para que sea súper rápido
+            }
+        ],
         order: [['id_cuestionario', 'DESC']]
     });
- 
-    return cuestionarios;
+
+    // 👇 ADAPTAMOS LA RESPUESTA PARA QUE VUE ENCUENTRE "preguntas.length" 👇
+    return cuestionarios.map(c => {
+        const data = c.toJSON();
+        // Pasamos los IDs al arreglo "preguntas" que espera tu frontend
+        data.preguntas = data.cuestionario_preguntas || [];
+        delete data.cuestionario_preguntas; // Limpiamos para mantener tu estándar
+        return data;
+    });
 };
 
 // ─── Helpers internos de aplanado ─────────────────────────────────────────────

@@ -124,7 +124,7 @@ watch(() => props.modelValue, async (isOpen) => {
       const data: any = await httpClient.get('/citas', {
         params: {
           limit: 100,
-          estado: 'Pendiente',
+          estado: 'Confirmada',
           sin_bitacora: true,   // ← excluye las que ya tienen bitácora
         },
       })

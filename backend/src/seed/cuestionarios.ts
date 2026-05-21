@@ -12,7 +12,7 @@ const PREGUNTAS_24H = [
         texto_pregunta: 'En una escala del 1 al 10, ¿cómo calificaría su dolor?',
         tipo_control:   'escala_1_10',
         opciones:       null,
-        valor_alerta:   null,   // RN13 no lo lista explícitamente como trigger
+        valor_alerta:   null,
         aplica_24h:     true,
         aplica_72h:     false,
         activa:         true,
@@ -27,8 +27,9 @@ const PREGUNTAS_24H = [
         activa:         true,
     },
     {
-        texto_pregunta: '¿Tiene alguna pregunta sobre su procedimiento postoperatorio?',
-        tipo_control:   'booleano_si_no',
+        texto_pregunta: '¿Tiene alguna duda o pregunta sobre su recuperación? (Escríbala aquí o deje en blanco si no tiene)',
+        // Asegúrate de usar el tipo de control de texto que soporte tu frontend ('texto', 'texto_corto', etc.)
+        tipo_control:   'texto_libre', 
         opciones:       null,
         valor_alerta:   null,
         aplica_24h:     true,
@@ -45,7 +46,7 @@ const PREGUNTAS_24H = [
         activa:         true,
     },
     {
-        texto_pregunta: '¿Ha evitado moverse o hacer alguna actividad?',
+        texto_pregunta: '¿Ha evitado hacer esfuerzo físico intenso o cargar cosas pesadas?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
         valor_alerta:   null,
@@ -54,7 +55,7 @@ const PREGUNTAS_24H = [
         activa:         true,
     },
     {
-        texto_pregunta: '¿Ha evitado enjuagarse?',
+        texto_pregunta: '¿Ha evitado enjuagarse fuertemente la boca?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
         valor_alerta:   null,
@@ -83,7 +84,6 @@ const PREGUNTAS_24H = [
 
     // ── Con alerta crítica (RN13) ───────────────────────────────────────────
     {
-        // RN13: alerta crítica si responde SÍ
         texto_pregunta: '¿Todavía experimenta un sangrado activo que deje la gasa empapada?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
@@ -93,8 +93,7 @@ const PREGUNTAS_24H = [
         activa:         true,
     },
     {
-        // RN13: alerta crítica si responde SÍ
-        texto_pregunta: '¿Ha presentado alguna reacción alérgica u otras reacciones como náuseas, vómitos, sarpullidos u otros efectos con la medicación dada?',
+        texto_pregunta: '¿Ha presentado alguna reacción alérgica (náuseas, vómitos, sarpullidos) con la medicación dada?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
         valor_alerta:   { valor: 'true' },
@@ -103,8 +102,7 @@ const PREGUNTAS_24H = [
         activa:         true,
     },
     {
-        // RN13: alerta crítica si responde SÍ
-        texto_pregunta: '¿Tiene alguna dificultad para respirar o tragar?',
+        texto_pregunta: '¿Tiene alguna dificultad grave para respirar o tragar?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
         valor_alerta:   { valor: 'true' },
@@ -113,20 +111,16 @@ const PREGUNTAS_24H = [
         activa:         true,
     },
     {
-        // RN13: alerta crítica si responde SÍ (cualquier opción seleccionada indica una reacción adversa)
-        // Nota: la estructura actual de valor_alerta solo permite verificar una opción a la vez.
-        // Se usa 'Náuseas' como valor primario. Si se necesita alertar por cualquier opción,
-        // actualizar evaluarAlertasRN13 para soportar { incluyeAlguno: string[] }.
-        texto_pregunta: '¿Qué tipo de reacción ha experimentado?',
+        texto_pregunta: 'En caso de haber presentado reacciones, ¿cuál fue?',
         tipo_control:   'opcion_multiple',
-        opciones:       ['Náuseas', 'Vómitos', 'Sarpullidos', 'Otro'],
-        valor_alerta:   { incluye: 'Náuseas' },
+        // ¡Se agregó 'Ninguna'!
+        opciones:       ['Ninguna', 'Náuseas', 'Vómitos', 'Sarpullidos', 'Otro'],
+        valor_alerta:   { incluye: 'Náuseas' }, 
         aplica_24h:     true,
         aplica_72h:     false,
         activa:         true,
     },
     {
-        // RN13: alerta crítica si responde NO (valor 'false')
         texto_pregunta: '¿Ha evitado tomar alcohol o fumar?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
@@ -140,18 +134,6 @@ const PREGUNTAS_24H = [
 const PREGUNTAS_72H = [
     // ── Sin alerta ─────────────────────────────────────────────────────────
     {
-        // Pregunta de evolución comparativa (Empeorado / Mejorado / Igual)
-        // RN13 no lista esta pregunta como trigger de alerta; la pregunta de Sí/No
-        // sobre disminución es la que sí aparece en RN13.
-        texto_pregunta: 'Comparado con los primeros días después de la cirugía, ¿tu dolor e hinchazón han...?',
-        tipo_control:   'opcion_multiple',
-        opciones:       ['Empeorado', 'Mejorado', 'Se ha mantenido igual'],
-        valor_alerta:   null,
-        aplica_24h:     false,
-        aplica_72h:     true,
-        activa:         true,
-    },
-    {
         texto_pregunta: '¿Ha mejorado tu capacidad para abrir la boca desde la cirugía?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
@@ -161,7 +143,8 @@ const PREGUNTAS_72H = [
         activa:         true,
     },
     {
-        texto_pregunta: '¿Has podido reanudar gradualmente una dieta más blanda?',
+        // Esta es la buena de la dieta
+        texto_pregunta: '¿Ha podido retomar gradualmente una dieta normal (sólida)?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
         valor_alerta:   null,
@@ -170,7 +153,7 @@ const PREGUNTAS_72H = [
         activa:         true,
     },
     {
-        texto_pregunta: '¿Ha evitado la actividad física intensa durante los primeros 3 días?',
+        texto_pregunta: '¿Ha evitado la actividad física intensa durante estos primeros 3 días?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
         valor_alerta:   null,
@@ -188,7 +171,7 @@ const PREGUNTAS_72H = [
         activa:         true,
     },
     {
-        texto_pregunta: '¿Ha evitado el uso de popotes?',
+        texto_pregunta: '¿Ha evitado el uso de popotes (pajillas)?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
         valor_alerta:   null,
@@ -206,7 +189,7 @@ const PREGUNTAS_72H = [
         activa:         true,
     },
     {
-        texto_pregunta: '¿Ha tenido algún problema con sus suturas, como que se hayan salido antes de tiempo o que se sientan irritantes?',
+        texto_pregunta: '¿Ha tenido algún problema con sus suturas (se salieron antes de tiempo o están irritando)?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
         valor_alerta:   null,
@@ -215,25 +198,7 @@ const PREGUNTAS_72H = [
         activa:         true,
     },
     {
-        texto_pregunta: 'En una escala del 1 al 10, ¿qué tan satisfecho está con su cuidado postoperatorio?',
-        tipo_control:   'escala_1_10',
-        opciones:       null,
-        valor_alerta:   null,
-        aplica_24h:     false,
-        aplica_72h:     true,
-        activa:         true,
-    },
-    {
-        texto_pregunta: '¿Ha podido retomar una dieta normal?',
-        tipo_control:   'booleano_si_no',
-        opciones:       null,
-        valor_alerta:   null,
-        aplica_24h:     false,
-        aplica_72h:     true,
-        activa:         true,
-    },
-    {
-        texto_pregunta: 'En una escala del 1 al 10, ¿qué tan satisfecho está con el resultado de la operación?',
+        texto_pregunta: 'En una escala del 1 al 10, ¿qué tan satisfecho está con la atención postoperatoria recibida?',
         tipo_control:   'escala_1_10',
         opciones:       null,
         valor_alerta:   null,
@@ -244,21 +209,17 @@ const PREGUNTAS_72H = [
 
     // ── Con alerta alta (RN13) ──────────────────────────────────────────────
     {
-        // RN13: alerta alta si selecciona Pus (signo clínico de infección activa)
-        // Nota: Mal sabor y Mal olor también son señales de alerta según RN13.
-        // Para cubrir todas las opciones, actualizar evaluarAlertasRN13 para soportar
-        // { incluyeAlguno: ['Mal sabor', 'Mal olor', 'Pus', 'Otro'] }.
-        texto_pregunta: '¿Has notado alguno de los siguientes síntomas en donde se hizo la cirugía?',
+        texto_pregunta: '¿Has notado alguno de los siguientes síntomas extraños donde se hizo la cirugía?',
         tipo_control:   'opcion_multiple',
-        opciones:       ['Mal sabor', 'Mal olor', 'Pus', 'Otro'],
+        // ¡Se agregó 'Ninguno'!
+        opciones:       ['Ninguno', 'Mal sabor', 'Mal olor', 'Pus', 'Otro'],
         valor_alerta:   { incluye: 'Pus' },
         aplica_24h:     false,
         aplica_72h:     true,
         activa:         true,
     },
     {
-        // RN13: alerta alta si responde SÍ
-        texto_pregunta: '¿Has tenido fiebre?',
+        texto_pregunta: '¿Has tenido fiebre en las últimas horas?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
         valor_alerta:   { valor: 'true' },
@@ -267,7 +228,6 @@ const PREGUNTAS_72H = [
         activa:         true,
     },
     {
-        // RN13: alerta alta si responde SÍ
         texto_pregunta: '¿Has tenido escalofríos?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
@@ -277,8 +237,7 @@ const PREGUNTAS_72H = [
         activa:         true,
     },
     {
-        // RN13: alerta alta si responde NO (valor 'false')
-        texto_pregunta: '¿Su dolor e hinchazón han estado disminuyendo en comparación a los primeros días?',
+        texto_pregunta: '¿Su dolor e hinchazón han estado disminuyendo en comparación al día de la cirugía?',
         tipo_control:   'booleano_si_no',
         opciones:       null,
         valor_alerta:   { valor: 'false' },

@@ -30,13 +30,23 @@ const formatearFechaHBS = (fecha: Date | string, compacta: boolean = false) => {
   return f.charAt(0).toUpperCase() + f.slice(1);
 };
 
-export const recordatorioProximaCita= async(cita:any, usuario:any)=>{
+export const recordatorioProximaCita = async (
+  cita: any,
+  usuario: any,
+  id_cita: number,           // ← NUEVO parámetro
+) => {
   const fechaBonita = formatearFechaHBS(cita.fecha_hora_inicio);
-  await enviarCorreoBase(usuario, 'Próxima cita','recordatorioCita',{
-    nombre: `${usuario.nombre}`,
-    fecha:fechaBonita
+ 
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const linkConfirmacion = `${frontendUrl}/confirmar-cita/${id_cita}`;
+ 
+  await enviarCorreoBase(usuario, 'Recordatorio de tu cita', 'recordatorioCita', {
+    nombre:            usuario.nombre,
+    fecha:             fechaBonita,
+    linkConfirmacion,  // ← NUEVO: se pasa al template
   });
-}
+};
+
 export const notificarNuevaCita = async (cita: any, usuario: any, rol: number) => {
   const titulo = rol === 2 ? 'Dr. ' : '';
   const nombreServicio = cita.tipo?.nombre_corto || 'Consulta General';

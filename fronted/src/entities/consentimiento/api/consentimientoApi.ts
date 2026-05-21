@@ -111,7 +111,13 @@ export const consentimientoApi = {
 
   async getCitasDisponibles(): Promise<CitaOpcion[]> {
     // 1. Hacemos la petición (asegúrate que la ruta sea '/citas' según tu router[cite: 10])
-    const response = await httpClient.get('/citas'); 
+    // 1. Hacemos la petición filtrando por estado 'Confirmada'
+    const response = await httpClient.get('/citas', {
+      params: {
+        limit: 100,
+        estado: 'Confirmada'
+      }
+    });
     
     // 2. Extraemos el objeto de respuesta. 
     // Si usas un interceptor que ya extrae el .data, usa 'response'. Si no, 'response.data'.

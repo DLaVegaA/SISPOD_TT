@@ -183,6 +183,10 @@ function appointmentBadgeClass(status: string): string {
     return 'bg-red-500 text-white'
   }
 
+  if (status === 'Pendiente') {
+    return 'bg-amber-500 text-white'
+  }
+
   return 'bg-accent text-white'
 }
 
@@ -896,6 +900,7 @@ async function cargarCitasDelCalendario() {
           typeId: cita.tipo_cita ?? cita.tipo?.id_tipocita,
           typeLabel: cita.tipo?.nombre ?? cita.tipo?.nombre_corto,
           typeDuration: cita.tipo?.duracion,
+          badgeClass: appointmentBadgeClass(cita.estado),
         })
       })
     }
@@ -1503,7 +1508,8 @@ onMounted(async () => {
               <label class="text-[10px] font-bold text-muted uppercase px-1">Tipo de cita</label>
               <select
                 v-model="appointmentTypeModel"
-                class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:border-accent transition-colors"
+                :disabled="isPatient"
+                class="w-full bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none focus:border-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option
                   v-for="option in appointmentTypeOptions"
