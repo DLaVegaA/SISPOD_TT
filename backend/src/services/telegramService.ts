@@ -148,16 +148,6 @@ export const configurarBot = () =>{
         await procesarVinculacion(ctx, token);
     });
 
-    bot.command('vincular', async(ctx) =>{
-        const [, token] = ctx.message.text.split(' ')
-
-        if(!token){
-            return ctx.reply('Por favor, envía tu código de vinculación. Ejemplo: /vincular AB123');
-        }
-    
-        await procesarVinculacion(ctx, token);
-    
-    });
     bot.command('desvincular',async(ctx)=>{
         try {
             await desvincularTelegramChat(ctx.chat.id);
@@ -181,7 +171,6 @@ export const configurarBot = () =>{
             'Menú principal:\n\nSelecciona una opción \n\n(Si no ves los botones revisa el icono en la barra inferior)',
             Markup.keyboard([
                 ['Próxima cita'],
-                ['Vincular cuenta'],
                 ['Ayuda'],
                 ['Desvincular cuenta']
             ])
@@ -226,7 +215,6 @@ export const configurarBot = () =>{
             'Puedo ayudarte con:\n\n'+
             'Ver tu próxima cita\n'+
             'Recordatorios\n'+
-            'Vincular tu cuenta\n'+
             'Desvincular (Usa el botón del menú o escribe /desvincular)\n'+
             'Usa /menu para ver opciones'
         );
