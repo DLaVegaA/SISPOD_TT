@@ -14,6 +14,7 @@ const LoginPage = () => import('@/pages/login/ui/LoginPage.vue')
 const RecoverPasswordPage = () => import('@/pages/recuperarContrasena/ui/RecoverPasswordPage.vue')
 const ResetPasswordPage = () => import('@/pages/restablecerContrasena/ui/ResetPasswordPage.vue')
 const ActivateAccountPage = () => import('@/pages/activarCuenta/ui/ActivateAccountPage.vue')
+const ConfirmAppointmentPage = () => import('@/pages/confirmarCita/ui/ConfirmAppointmentPage.vue')
 const UsersPage = () => import('@/pages/users')
 const RolesPage = () => import('@/pages/roles/ui/RolesPage.vue')
 const StatsPage = () => import('@/pages/stats/ui/StatsPage.vue')
@@ -76,6 +77,12 @@ const router = createRouter({
       name: ROUTE_NAMES.ACTIVATE_ACCOUNT,
       component: ActivateAccountPage,
       meta: { title: 'Activar Cuenta', guestOnly: true },
+    },
+    {
+      path: ROUTE_PATHS.CONFIRM_APPOINTMENT,
+      name: ROUTE_NAMES.CONFIRM_APPOINTMENT,
+      component: ConfirmAppointmentPage,
+      meta: { title: 'Confirmar Cita', requiresAuth: true, allowedRoles: ['dentist'] },
     },
     {
       path: ROUTE_PATHS.ADMIN_HOME,
