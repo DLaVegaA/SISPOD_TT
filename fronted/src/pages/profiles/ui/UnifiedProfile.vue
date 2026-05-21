@@ -139,6 +139,7 @@ const tgErrorMsg     = ref<string | null>(null)
 const tgPollingTimer = ref<ReturnType<typeof setInterval> | null>(null)
 const POLLING_MS     = 3000
 const POLLING_MAX    = 20   // 20 × 3s = 60s máximo
+const tgIsUnlinking = computed(() => tgPhase.value === 'unlinking')
 
 let pollingCount = 0
 
@@ -430,9 +431,9 @@ onUnmounted(() => {
           </div>
           <button
             @click="handleDesvincular"
-            :disabled="tgPhase === 'unlinking'"
+            :disabled="tgIsUnlinking"
             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
-            <Loader2 v-if="tgPhase === 'unlinking'" class="w-3.5 h-3.5 animate-spin" />
+            <Loader2 v-if="tgIsUnlinking" class="w-3.5 h-3.5 animate-spin" />
             <Unlink v-else class="w-3.5 h-3.5" />
             Desvincular
           </button>
