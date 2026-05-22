@@ -5,6 +5,7 @@ import 'dotenv/config'
 import { connectBD, sequelize } from './config/database'
 import './cron/recordatorioCron'
 import app from './app'
+import { startBot } from './bot' 
 
 const PORT = process.env.PORT || 3000
 
@@ -17,6 +18,8 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`Servidor en http://localhost:${PORT}`)
     })
+
+    await startBot()
   } catch (error) {
     console.error(' Error al iniciar el servidor:', error)
     process.exit(1)

@@ -86,7 +86,7 @@ const procesarVinculacion = async(ctx:any, token:string) =>{
         registroTelegram.token = null;
         await registroTelegram.save();
 
-        return ctx.reply(`Perfecto ${nombrePaciente}, tu cuenta ha sido vinculada`);
+        return ctx.reply(`Perfecto ${nombrePaciente}, tu cuenta ha sido vinculada\nUsa Ayuda para conocer más`);
 
     } catch (error) {
         console.log('Error al vincular Telegram: ', error);
@@ -136,7 +136,7 @@ export const enviarRecordatorioTelegram =async(id_chat:string,mensaje:string)=>{
 export const configurarBot = () =>{
     //ctx (contexto) es un objeto que envuelve toda la informacion del que escribe 
     bot.start(async(ctx) =>{
-        const [, token] = ctx.message.text.split(' ');
+        const token = ctx.startPayload?.trim() || ctx.message.text.split(' ')[1]?.trim()
         // console.log('TEXT:', ctx.message.text);
         // console.log('PAYLOAD:', ctx.startPayload);
 
@@ -148,16 +148,6 @@ export const configurarBot = () =>{
         await procesarVinculacion(ctx, token);
     });
 
-    bot.command('vincular', async(ctx) =>{
-        const [, token] = ctx.message.text.split(' ')
-
-        if(!token){
-            return ctx.reply('Por favor, envía tu código de vinculación. Ejemplo: /vincular AB123');
-        }
-    
-        await procesarVinculacion(ctx, token);
-    
-    });
     bot.command('desvincular',async(ctx)=>{
         try {
             await desvincularTelegramChat(ctx.chat.id);
@@ -181,7 +171,6 @@ export const configurarBot = () =>{
             'Menú principal:\n\nSelecciona una opción \n\n(Si no ves los botones revisa el icono en la barra inferior)',
             Markup.keyboard([
                 ['Próxima cita'],
-                ['Vincular cuenta'],
                 ['Ayuda'],
                 ['Desvincular cuenta']
             ])
@@ -226,7 +215,6 @@ export const configurarBot = () =>{
             'Puedo ayudarte con:\n\n'+
             'Ver tu próxima cita\n'+
             'Recordatorios\n'+
-            'Vincular tu cuenta\n'+
             'Desvincular (Usa el botón del menú o escribe /desvincular)\n'+
             'Usa /menu para ver opciones'
         );
