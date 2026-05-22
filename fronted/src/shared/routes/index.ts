@@ -27,6 +27,8 @@ export const ROUTE_NAMES = {
   PATIENT_FOLLOW_UP: 'patient-follow-up',
   ASSISTANT_HOME: 'assistant-home',
   ASSISTANT_PROFILE: 'assistant-profile',
+  ASSISTANT_CALENDAR: 'assistant-calendar',
+  ASSISTANT_PATIENTS: 'assistant-patients',
   ASSISTANT_BINNACLE: 'assistant-binnacle',
 } as const
 
@@ -74,6 +76,8 @@ export const ROUTE_PATHS = {
 
   ASSISTANT_HOME: '/asistente/:id/home',
   ASSISTANT_PROFILE: '/asistente/:id/perfil',
+  ASSISTANT_CALENDAR: '/asistente/:id/calendario',
+  ASSISTANT_PATIENTS: '/asistente/:id/pacientes',
   ASSISTANT_BINNACLE: '/asistente/:id/bitacora',
 } as const
 
