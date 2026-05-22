@@ -229,6 +229,18 @@ const router = createRouter({
       meta: { title: 'Perfil del Asistente', requiresAuth: true, allowedRoles: ['assistant'] },
     },
     {
+      path: ROUTE_PATHS.ASSISTANT_CALENDAR,
+      name: ROUTE_NAMES.ASSISTANT_CALENDAR,
+      component: UnifiedAppointments,
+      meta: { title: 'Calendario del Asistente', requiresAuth: true, allowedRoles: ['assistant'] },
+    },
+    {
+      path: ROUTE_PATHS.ASSISTANT_PATIENTS,
+      name: ROUTE_NAMES.ASSISTANT_PATIENTS,
+      component: DentistPatients,
+      meta: { title: 'Pacientes del Asistente', requiresAuth: true, allowedRoles: ['assistant'] },
+    },
+    {
       path: ROUTE_PATHS.ASSISTANT_BINNACLE,
       name: ROUTE_NAMES.ASSISTANT_BINNACLE,
       component: AssistantBinnacle,

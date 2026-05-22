@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '@/entities/session'
 import type { SessionUser } from '@/entities/session/model/types'
 import { normalizeUserId, ROUTE_NAMES } from '@/shared/routes'
@@ -15,6 +15,7 @@ import { showToast } from '@/shared/ui/UiToast/toast'
 
 const sessionStore = useSessionStore()
 const route = useRoute()
+const router = useRouter()
 
 const patientId = computed(() => route.params.patientId as string | undefined)
 const sessionUser = computed<SessionUser | null>(() => sessionStore.user)
@@ -30,6 +31,9 @@ const expedienteId = computed(() => {
 })
 const isReadOnly = computed(() => route.query.mode === 'view')
 const modeLabel = computed(() => (isReadOnly.value ? 'Modo vista' : 'Modo edicion'))
+const saveButtonLabel = computed(() =>
+  expedienteId.value ? 'Guardar expediente' : 'Crear expediente',
+)
 
 type PacientePerfil = {
   id_paciente: number
@@ -74,6 +78,14 @@ type ExpedienteDetalle = {
   }>
 }
 
+type OdontogramaItem = {
+  num: number
+  surfaces: Record<'top' | 'bottom' | 'left' | 'right' | 'center', string | null>
+  condition: string | null
+}
+
+type OdontogramaPayload = OdontogramaItem[]
+
 const getTodayDate = () => {
   return new Date().toISOString().slice(0, 10)
 }
@@ -109,11 +121,13 @@ const padecimientosHeredofamiliares = ref<PadecimientoCatalogo[]>([])
 const padecimientosPatologicos = ref<PadecimientoCatalogo[]>([])
 const padecimientosNoPatologicos = ref<PadecimientoCatalogo[]>([])
 const antecedentesHeredofamiliares = ref<{ [id: number]: string }>({})
-const antecedentesPatologicos      = ref<{ [id: number]: string }>({})
-const antecedentesNoPatologicos    = ref<{ [id: number]: string }>({})
+const antecedentesPatologicos = ref<{ [id: number]: string }>({})
+const antecedentesNoPatologicos = ref<{ [id: number]: string }>({})
 const expedienteErrors = ref<Record<string, string>>({})
 const isSavingExpediente = ref(false)
 const expedienteLoaded = ref(false)
+const odontogramaData = ref<OdontogramaPayload | null>(null)
+const odontogramaUpdatedAt = ref<string | undefined>(undefined)
 const selectedHeredoByCategory = ref<Record<string, string>>({})
 const selectedPatologicosByCategory = ref<Record<string, string>>({})
 const selectedNoPatologicosByCategory = ref<Record<string, string>>({})
@@ -433,6 +447,10 @@ const handleCrearExpediente = async () => {
       }
       await httpClient.put(`/expediente/${expedienteId.value}`, updatePayload)
       showToast('Expediente actualizado correctamente', 'success')
+      await router.push({
+        name: ROUTE_NAMES.DENTIST_CLINICAL_HISTORY,
+        params: { id: routeParams.value.id },
+      })
       return
     }
 
@@ -444,7 +462,21 @@ const handleCrearExpediente = async () => {
         padecimientos: padecimientosPayload,
       })
     }
+    if (newExpedienteId) {
+      try {
+        await httpClient.post('/odontograma', {
+          id_expediente: newExpedienteId,
+          datos_odontograma: [],
+        })
+      } catch (error) {
+        console.error('Error al crear odontograma', error)
+      }
+    }
     showToast('Expediente creado correctamente', 'success')
+    await router.push({
+      name: ROUTE_NAMES.DENTIST_CLINICAL_HISTORY,
+      params: { id: routeParams.value.id },
+    })
   } catch (error: any) {
     const message = error?.response?.data?.message
     expedienteErrors.value = { general: message || 'No se pudo crear el expediente' }
@@ -481,10 +513,39 @@ const loadExpediente = async (id?: number | null) => {
   }
 }
 
+const loadOdontograma = async (id?: number | null) => {
+  if (!id) {
+    odontogramaData.value = null
+    odontogramaUpdatedAt.value = undefined
+    return
+  }
+  try {
+    const data: any = await httpClient.get(`/odontograma/expediente/${id}`)
+    const odontograma = data?.odontograma ?? data
+    const datos = odontograma?.datos_odontograma
+    odontogramaData.value = Array.isArray(datos) ? datos : null
+
+    const rawFecha = odontograma?.fecha_actualizacion
+    if (rawFecha) {
+      const fecha = new Date(rawFecha)
+      odontogramaUpdatedAt.value = Number.isNaN(fecha.getTime())
+        ? String(rawFecha)
+        : fecha.toISOString().slice(0, 10)
+    } else {
+      odontogramaUpdatedAt.value = undefined
+    }
+  } catch (error) {
+    console.error('Error al cargar odontograma', error)
+    odontogramaData.value = null
+    odontogramaUpdatedAt.value = undefined
+  }
+}
+
 onMounted(() => {
   loadPerfilPaciente(patientId.value)
   loadCatalogoPadecimientos()
   loadExpediente(expedienteId.value)
+  loadOdontograma(expedienteId.value)
 })
 
 watch(patientId, (value) => {
@@ -494,6 +555,7 @@ watch(patientId, (value) => {
 watch(expedienteId, (value) => {
   expedienteLoaded.value = false
   loadExpediente(value)
+  loadOdontograma(value)
 })
 </script>
 
@@ -523,7 +585,7 @@ watch(expedienteId, (value) => {
             :disabled="isSavingExpediente"
             @click="handleCrearExpediente"
           >
-            {{ isSavingExpediente ? 'Guardando...' : 'Guardar expediente' }}
+            {{ isSavingExpediente ? 'Guardando...' : saveButtonLabel }}
           </button>
           <RouterLink
             :to="{
@@ -532,7 +594,10 @@ watch(expedienteId, (value) => {
                 id: userId, // propaga { id: userId }
                 patientId: patientId, // añade el patientId
               },
-              query: { mode: isReadOnly ? 'view' : 'edit' },
+              query: {
+                mode: isReadOnly ? 'view' : 'edit',
+                expedienteId: expedienteId ?? undefined,
+              },
             }"
             class="inline-flex items-center gap-2 px-4 py-2 bg-accent text-white text-sm font-semibold rounded-xl shadow-sm hover:bg-accent-light transition-colors"
           >
@@ -728,7 +793,11 @@ watch(expedienteId, (value) => {
         </section>
 
         <section class="space-y-4 pt-6">
-          <OdontogramPreview updatedAt="04 / may / 2026" :patientId="patientId" />
+          <OdontogramPreview
+            :updated-at="odontogramaUpdatedAt"
+            :patient-id="patientId"
+            :data="odontogramaData"
+          />
         </section>
       </div>
 

@@ -1,21 +1,35 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 interface Props {
   preview?: boolean
   patientId?: string | number
+  initialData?: unknown
 }
 
 const props = withDefaults(defineProps<Props>(), {
   preview: false,
   patientId: undefined,
+  initialData: undefined,
 })
+
+const emit = defineEmits<{
+  (event: 'save', payload: OdontogramaPayload): void
+}>()
 
 type Surf = 'top' | 'bottom' | 'left' | 'right' | 'center'
 type ToothState = {
   surfaces: Record<Surf, string | null>
   condition: string | null
 }
+
+type OdontogramaItem = {
+  num: number
+  surfaces: Record<Surf, string | null>
+  condition: string | null
+}
+
+type OdontogramaPayload = OdontogramaItem[]
 
 const SURFS: Surf[] = ['top', 'bottom', 'left', 'right', 'center']
 
@@ -100,6 +114,7 @@ const upperRight = [18, 17, 16, 15, 14, 13, 12, 11]
 const upperLeft = [21, 22, 23, 24, 25, 26, 27, 28]
 const lowerRight = [48, 47, 46, 45, 44, 43, 42, 41]
 const lowerLeft = [31, 32, 33, 34, 35, 36, 37, 38]
+const allTeeth = [...upperRight, ...upperLeft, ...lowerRight, ...lowerLeft]
 const mobileLabels = ['SUP. DERECHO', 'SUP. IZQUIERDO', 'INF. IZQUIERDO', 'INF. DERECHO']
 
 const teeth = computed(() => {
@@ -149,7 +164,7 @@ const dividerLines = [
 // --- LÓGICA DE ESTADO ---
 function buildEmptyState(): Record<number, ToothState> {
   const next: Record<number, ToothState> = {}
-  ;[...upperRight, ...upperLeft, ...lowerRight, ...lowerLeft].forEach((num) => {
+  allTeeth.forEach((num) => {
     next[num] = {
       surfaces: { top: null, bottom: null, left: null, right: null, center: null },
       condition: null,
@@ -162,6 +177,67 @@ function initState() {
   state.value = buildEmptyState()
 }
 initState()
+
+function buildPayload(): OdontogramaPayload {
+  return allTeeth.map((num) => ({
+    num,
+    surfaces: {
+      top: state.value[num]?.surfaces.top ?? null,
+      bottom: state.value[num]?.surfaces.bottom ?? null,
+      left: state.value[num]?.surfaces.left ?? null,
+      right: state.value[num]?.surfaces.right ?? null,
+      center: state.value[num]?.surfaces.center ?? null,
+    },
+    condition: state.value[num]?.condition ?? null,
+  }))
+}
+
+function applyInitialData(data: unknown) {
+  if (!data) return false
+  const nextState = buildEmptyState()
+
+  if (Array.isArray(data)) {
+    data.forEach((item) => {
+      if (!item || typeof item !== 'object') return
+      const num = Number((item as OdontogramaItem).num)
+      if (!nextState[num]) return
+      const surfaces = (item as OdontogramaItem).surfaces
+      nextState[num] = {
+        surfaces: {
+          top: surfaces?.top ?? null,
+          bottom: surfaces?.bottom ?? null,
+          left: surfaces?.left ?? null,
+          right: surfaces?.right ?? null,
+          center: surfaces?.center ?? null,
+        },
+        condition: (item as OdontogramaItem).condition ?? null,
+      }
+    })
+    state.value = nextState
+    return true
+  }
+
+  if (typeof data === 'object') {
+    Object.entries(data as Record<string, ToothState>).forEach(([key, value]) => {
+      const num = Number(key)
+      if (!nextState[num] || typeof value !== 'object' || value === null) return
+      nextState[num] = {
+        surfaces: {
+          top: value.surfaces?.top ?? null,
+          bottom: value.surfaces?.bottom ?? null,
+          left: value.surfaces?.left ?? null,
+          right: value.surfaces?.right ?? null,
+          center: value.surfaces?.center ?? null,
+        },
+        condition: value.condition ?? null,
+      }
+    })
+    state.value = nextState
+    return true
+  }
+
+  return false
+}
 
 function setTool(toolKey: string) {
   if (!props.preview) activeTool.value = toolKey
@@ -272,11 +348,19 @@ function loadDraft() {
   }
 }
 
+function handleSave() {
+  if (props.preview) return
+  emit('save', buildPayload())
+  saveDraft()
+}
+
 // En onMounted y onUnmounted igual, pero loadDraft ahora respeta preview y patientId
 onMounted(() => {
   updateLayout()
   window.addEventListener('resize', updateLayout)
-  loadDraft() // ya tiene las condiciones internas
+  if (!applyInitialData(props.initialData)) {
+    loadDraft() // ya tiene las condiciones internas
+  }
 })
 
 onUnmounted(() => {
@@ -285,6 +369,16 @@ onUnmounted(() => {
     window.clearTimeout(saveTimeout)
   }
 })
+
+watch(
+  () => props.initialData,
+  (value) => {
+    if (!applyInitialData(value)) return
+    if (!props.preview && props.patientId) {
+      saveDraft()
+    }
+  },
+)
 
 const selectedState = computed(() =>
   selectedTooth.value ? state.value[selectedTooth.value] : null,
@@ -380,7 +474,7 @@ const activeToolStyle = computed(() => (toolKey: string) => {
         </button>
         <button
           class="text-[10px] text-gray-400 px-2 py-1 border border-gray-200 rounded-lg bg-white hover:bg-gray-100 cursor-pointer"
-          @click="saveDraft"
+          @click="handleSave"
         >
           Guardar
         </button>

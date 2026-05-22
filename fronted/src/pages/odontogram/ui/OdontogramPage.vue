@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSessionStore } from '@/entities/session'
 import type { SessionUser } from '@/entities/session/model/types'
 import { normalizeUserId, ROUTE_NAMES } from '@/shared/routes'
 import { OdontogramChart } from '@/entities/odontogram'
+import { httpClient } from '@/shared/api/http'
+import { showToast } from '@/shared/ui/UiToast/toast'
 
 const sessionStore = useSessionStore()
 const route = useRoute()
@@ -16,6 +18,80 @@ const userId = computed(
 const patientId = computed(() => route.params.patientId as string | undefined)
 const routeParams = computed(() => ({ id: userId.value }))
 const isReadOnly = computed(() => route.query.mode === 'view')
+const expedienteId = computed(() => {
+  const raw = route.query.expedienteId
+  const id = Number(raw)
+  return Number.isFinite(id) && id > 0 ? id : null
+})
+
+type OdontogramaItem = {
+  num: number
+  surfaces: Record<'top' | 'bottom' | 'left' | 'right' | 'center', string | null>
+  condition: string | null
+}
+
+type OdontogramaPayload = OdontogramaItem[]
+
+const odontogramaId = ref<number | null>(null)
+const odontogramaData = ref<OdontogramaPayload | null>(null)
+const isSaving = ref(false)
+
+const loadOdontograma = async (id?: number | null) => {
+  if (!id) {
+    odontogramaId.value = null
+    odontogramaData.value = null
+    return
+  }
+  try {
+    const data: any = await httpClient.get(`/odontograma/expediente/${id}`)
+    const odontograma = data?.odontograma ?? data
+    odontogramaId.value = odontograma?.id_odontograma ?? null
+    odontogramaData.value = Array.isArray(odontograma?.datos_odontograma)
+      ? odontograma.datos_odontograma
+      : null
+  } catch (error) {
+    console.error('Error al cargar odontograma', error)
+    odontogramaId.value = null
+    odontogramaData.value = null
+  }
+}
+
+const handleSave = async (payload: OdontogramaPayload) => {
+  if (isReadOnly.value || isSaving.value) return
+  if (!expedienteId.value) {
+    showToast('No se encontro el expediente para guardar el odontograma', 'error')
+    return
+  }
+
+  isSaving.value = true
+  try {
+    if (odontogramaId.value) {
+      await httpClient.put(`/odontograma/${odontogramaId.value}`, {
+        datos_odontograma: payload,
+      })
+    } else {
+      const response: any = await httpClient.post('/odontograma', {
+        id_expediente: expedienteId.value,
+        datos_odontograma: payload,
+      })
+      odontogramaId.value = response?.odontograma?.id_odontograma ?? null
+    }
+    showToast('Odontograma guardado correctamente', 'success')
+  } catch (error) {
+    console.error('Error al guardar odontograma', error)
+    showToast('No se pudo guardar el odontograma', 'error')
+  } finally {
+    isSaving.value = false
+  }
+}
+
+onMounted(() => {
+  loadOdontograma(expedienteId.value)
+})
+
+watch(expedienteId, (value) => {
+  loadOdontograma(value)
+})
 </script>
 
 <template>
@@ -40,7 +116,12 @@ const isReadOnly = computed(() => route.query.mode === 'view')
     </div>
 
     <section class="bg-card border border-border rounded-2xl p-5 shadow-sm">
-      <OdontogramChart :preview="isReadOnly" :patient-id="patientId" />
+      <OdontogramChart
+        :preview="isReadOnly"
+        :patient-id="patientId"
+        :initial-data="odontogramaData"
+        @save="handleSave"
+      />
     </section>
   </div>
 </template>
