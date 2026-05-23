@@ -47,6 +47,17 @@ export const recordatorioProximaCita = async (
   });
 };
 
+export const enviarCuestionario24h = async(usuario:any) => {
+  await enviarCorreoBase(usuario, 'Cuestionario de seguimiento 24 horas', 'cuestionario24h',{
+    nombre:`${usuario.nombre}`
+  });
+}
+export const enviarCuestionario72h = async(usuario:any) => {
+  await enviarCorreoBase(usuario, 'Cuestionario de seguimiento 72 horas', 'cuestionario72h',{
+    nombre:`${usuario.nombre}`
+  });
+}
+
 export const notificarNuevaCita = async (cita: any, usuario: any, rol: number) => {
   const titulo = rol === 2 ? 'Dr. ' : '';
   const nombreServicio = cita.tipo?.nombre_corto || 'Consulta General';

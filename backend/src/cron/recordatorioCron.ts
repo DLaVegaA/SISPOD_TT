@@ -1,13 +1,14 @@
 import cron from 'node-cron';
 import { Op } from 'sequelize';
-import { Cita, Telegram, Paciente, Usuario } from '../models/index';
+import { Cita, Telegram, Paciente, Usuario} from '../models/index';
 import { enviarRecordatorioTelegram } from '../services/telegramService';
-import { recordatorioProximaCita } from '../services/emailService';
+import { recordatorioProximaCita} from '../services/emailService';
 
 console.log('Cron de recordatorios cargado');
-
+//Cron para confirmar cita (corre todos los dias a las 8 8am)
 cron.schedule('0 8 * * *', async () => {
   try {
+    
     const inicio = new Date();
     inicio.setDate(inicio.getDate() + 1);
     inicio.setHours(0, 0, 0, 0);
@@ -50,10 +51,13 @@ cron.schedule('0 8 * * *', async () => {
 
       // ── Telegram ─────────────────────────────────────────────────────────
       if (id_chat) {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const linkConfirmacion = `${frontendUrl}/confirmar-cita/${cita.id_cita}`;
         const mensajeTelegram =
           `Hola 👋\n\n` +
           `Te recordamos que tienes una cita mañana.\n\n` +
           `📅 ${fechaFormateada}\n\n` +
+          `Confirma tu asistencia ${linkConfirmacion}`+
           `Te esperamos.`;
 
         await enviarRecordatorioTelegram(id_chat, mensajeTelegram);
