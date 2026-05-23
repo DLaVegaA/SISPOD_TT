@@ -80,6 +80,7 @@
             <input
               v-model="createForm.fechaNacimiento"
               type="date"
+              :max="maxDate"
               :class="inputCls(!!(errors as CreateUserErrors).fechaNacimiento)"
             />
             <p
@@ -293,6 +294,7 @@ import { ROLES_LIST } from '@/entities/role'
 import { UiModal } from '@/shared/ui/UiModal'
 
 const iconMap: Record<string, unknown> = { Shield, Stethoscope, Headset, User }
+const maxDate = new Date().toISOString().split('T')[0];
 
 interface Props {
   modelValue: boolean
