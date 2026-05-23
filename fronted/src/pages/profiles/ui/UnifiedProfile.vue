@@ -141,6 +141,7 @@ const tgPollingTimer = ref<ReturnType<typeof setInterval> | null>(null)
 const POLLING_MS     = 3000
 const POLLING_MAX    = 20   // 20 × 3s = 60s máximo
 const tgIsUnlinking = computed(() => tgPhase.value === 'unlinking')
+const maxDate = new Date().toISOString().split('T')[0];
 
 let pollingCount = 0
 
@@ -326,7 +327,9 @@ onUnmounted(() => {
         </div>
 
         <UiInput v-model="formData.fecha_nacimiento"
-          label="Fecha de nacimiento" type="date"
+          label="Fecha de nacimiento" 
+          type="date"
+          :max="maxDate"
           :disabled="!puedeEditar('fecha_nacimiento')" />
 
         <div v-if="role === 'patient' || role === 'dentist'" class="relative">

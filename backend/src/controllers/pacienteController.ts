@@ -207,6 +207,13 @@ export const registrarPaciente = async (req: Request, res: Response) => {
       .json({ message: 'La CURP debe tener exactamente 18 caracteres alfanuméricos en mayúscula' });
   }
 
+  // --- NUEVA VALIDACIÓN DE FECHA ---
+  const fechaNacIngresada = new Date(fecha_nacimiento);
+  const hoy = new Date();
+  if (fechaNacIngresada > hoy) {
+    return res.status(400).json({ message: 'La fecha de nacimiento no puede ser una fecha futura' });
+  }
+
   const t = await sequelize.transaction();
   let committed = false;
   try {
@@ -400,7 +407,7 @@ export const actualizarPaciente = async (req: CustomRequest, res: Response) => {
     return res.status(400).json({ message: 'ID inválido' });
   }
   //if (!nombre || !apellido_materno || !apellido_paterno || !correo || !telefono) {
-  if (!nombre || !apellido_materno || !apellido_paterno || !fecha_nacimiento || !telefono) {
+  if (!nombre || !apellido_paterno || !fecha_nacimiento || !telefono) {
     return res.status(400).json({
       message: 'Faltan datos obligatorios',
     });
@@ -423,6 +430,13 @@ export const actualizarPaciente = async (req: CustomRequest, res: Response) => {
     return res.status(400).json({
       message: 'El télefono debe tener 10 dígitos',
     });
+  }
+
+  // --- NUEVA VALIDACIÓN DE FECHA ---
+  const fechaNacIngresada = new Date(fecha_nacimiento);
+  const hoy = new Date();
+  if (fechaNacIngresada > hoy) {
+    return res.status(400).json({ message: 'La fecha de nacimiento no puede ser una fecha futura' });
   }
 
   const t = await sequelize.transaction();
