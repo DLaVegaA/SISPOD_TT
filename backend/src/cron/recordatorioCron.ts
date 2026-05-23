@@ -1,11 +1,11 @@
 import cron from 'node-cron';
 import { Op } from 'sequelize';
-import { Cita, Telegram, Paciente, Usuario } from '../models/index';
+import { Cita, Telegram, Paciente, Usuario} from '../models/index';
 import { enviarRecordatorioTelegram } from '../services/telegramService';
-import { recordatorioProximaCita } from '../services/emailService';
+import { recordatorioProximaCita} from '../services/emailService';
 
 console.log('Cron de recordatorios cargado');
-
+//Cron para confirmar cita (corre todos los dias a las 8 8am)
 cron.schedule('0 8 * * *', async () => {
   try {
     
