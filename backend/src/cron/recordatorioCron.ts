@@ -8,6 +8,7 @@ console.log('Cron de recordatorios cargado');
 
 cron.schedule('0 8 * * *', async () => {
   try {
+    
     const inicio = new Date();
     inicio.setDate(inicio.getDate() + 1);
     inicio.setHours(0, 0, 0, 0);
@@ -50,10 +51,13 @@ cron.schedule('0 8 * * *', async () => {
 
       // ── Telegram ─────────────────────────────────────────────────────────
       if (id_chat) {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const linkConfirmacion = `${frontendUrl}/confirmar-cita/${cita.id_cita}`;
         const mensajeTelegram =
           `Hola 👋\n\n` +
           `Te recordamos que tienes una cita mañana.\n\n` +
           `📅 ${fechaFormateada}\n\n` +
+          `Confirma tu asistencia ${linkConfirmacion}`+
           `Te esperamos.`;
 
         await enviarRecordatorioTelegram(id_chat, mensajeTelegram);
