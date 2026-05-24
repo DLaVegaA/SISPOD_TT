@@ -256,6 +256,30 @@ const selectPaciente = (pacienteId: number) => {
   openClinicalHistory(pacienteId, 'edit')
 }
 
+const descargarExpedientePdf = async (record: ExpedienteCard) => {
+  const expedienteId = Number(record.id_expediente ?? record.id)
+  if (!Number.isFinite(expedienteId) || expedienteId <= 0) {
+    console.error('Expediente invalido para descargar', record)
+    return
+  }
+
+  try {
+    const blob = await httpClient.get<Blob>(`/expediente/${expedienteId}/pdf`, {
+      responseType: 'blob',
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `expediente_${expedienteId}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error al descargar expediente', error)
+  }
+}
+
 function openClinicalHistory(recordId: number, mode: 'edit' | 'view', expedienteId?: number) {
   const query: Record<string, string> = { mode }
   if (expedienteId) {
@@ -270,7 +294,7 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view', expediente
 </script>
 
 <template>
-  <div class="fade-in max-w-7xl">
+  <div class="fade-in">
     <!-- ── Header ───────────────────────────────────────────────────── -->
     <div class="mb-8">
       <div class="flex items-center gap-2 text-sm text-muted/60 mb-3">
@@ -474,6 +498,7 @@ function openClinicalHistory(recordId: number, mode: 'edit' | 'view', expediente
             <button
               class="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted/70 hover:text-accent hover:bg-card transition-colors"
               type="button"
+              @click="descargarExpedientePdf(record)"
             >
               <Download class="w-3.5 h-3.5" />
               Descargar

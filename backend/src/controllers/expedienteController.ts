@@ -2,6 +2,19 @@ import { NextFunction, Request, Response } from 'express';
 import { CustomRequest } from '../middleware/authMiddleware';
 import { AppError } from '../helpers/AppError';
 import {
+  Bitacora,
+  Cita,
+  Consentimiento,
+  Dentista,
+  Direccion,
+  Expediente,
+  Expediente_Padecimientos,
+  Odontograma,
+  Paciente,
+  Padecimiento,
+  Usuario,
+} from '../models/index';
+import {
   crearExpedienteService,
   agregarPadecimientoService,
   actualizarExpedienteService,
@@ -10,6 +23,7 @@ import {
   eliminarPadecimientoService,
   listarExpedientesService,
 } from '../services/expedienteService';
+import { generarExpedientePDF } from '../utils/generarPdf';
 
 export const crearExpediente = async (req: CustomRequest, res: Response, next: NextFunction) => {
   try {
@@ -204,6 +218,32 @@ export const listarExpedientes = async (req: Request, res: Response, next: NextF
       total: result.total,
       totalPaginas: result.totalPaginas,
       limit: result.limitResponse,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const generarPDF = async (req: Request, res: Response, next: NextFunction) => {
+  const id_expediente = Number(req.params.id_expediente);
+
+  try {
+    if (!id_expediente || Number.isNaN(id_expediente)) {
+      throw new AppError('Expediente invalido', 400);
+    }
+
+    await generarExpedientePDF(id_expediente, res, {
+      Expediente,
+      Paciente,
+      Usuario,
+      Dentista,
+      Direccion,
+      ExpedientePadecimiento: Expediente_Padecimientos,
+      Padecimiento,
+      Odontograma,
+      Bitacora,
+      Cita,
+      Consentimiento,
     });
   } catch (error) {
     next(error);

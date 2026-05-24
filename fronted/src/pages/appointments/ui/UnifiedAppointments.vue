@@ -907,9 +907,7 @@ async function cargarCitasDelCalendario() {
     // RN17 — detectar si el paciente ya tiene alguna cita activa futura
     const ahora = new Date()
     pacienteTieneCitaActiva.value = (res?.citas ?? []).some(
-      (c) =>
-        c.estado === 'Pendiente' &&
-        new Date(c.fecha_hora_inicio) > ahora,
+      (c) => c.estado === 'Pendiente' && new Date(c.fecha_hora_inicio) > ahora,
     )
   } catch (error) {
     console.error('Error al recargar citas:', error)
@@ -1158,7 +1156,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="fade-in max-w-7xl mx-auto">
+  <div class="fade-in mx-auto">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       <div>
         <div class="flex items-center gap-1.5 text-xs text-muted font-medium my-2">
@@ -1210,8 +1208,8 @@ onMounted(async () => {
       <div>
         <p class="font-bold text-sm">Ya tienes una cita activa</p>
         <p class="text-xs text-amber-700 mt-0.5">
-          Solo puedes tener una cita pendiente a la vez.
-          Si necesitas cambiar el horario, usa la opción <strong>Modificar Horario</strong>
+          Solo puedes tener una cita pendiente a la vez. Si necesitas cambiar el horario, usa la
+          opción <strong>Modificar Horario</strong>
           en tu cita existente.
         </p>
       </div>
