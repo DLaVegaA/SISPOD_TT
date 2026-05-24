@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import {
   Plus, Search, X, Pencil, CheckCircle2, AlertCircle,
   Clock, Loader2, HeartPulse, ChevronDown,
-  CalendarDays, Stethoscope, Eye, AlertTriangle,
+  CalendarDays, Stethoscope, Eye, AlertTriangle, ShieldCheck,
 } from 'lucide-vue-next'
 import { httpClient } from '@/shared/api/http'
 
@@ -220,6 +220,26 @@ async function terminarSeguimiento(id: number) {
     await httpClient.patch(`/seguimiento/${id}/finalizar`)
     successMsg.value = 'Seguimiento finalizado correctamente.'; setTimeout(() => { successMsg.value = null }, 3500); await fetchSeguimientos()
   } catch (error: any) { errorMsg.value = error?.response?.data?.message ?? 'No se pudo finalizar el seguimiento.'; setTimeout(() => { errorMsg.value = null }, 4000) }
+}
+
+const isResolvingAlerta = ref(false)
+
+async function resolverAlerta(id: number) {
+  if (!confirm('¿Marcar la alerta como atendida? El seguimiento volverá a "en curso".')) return
+  isResolvingAlerta.value = true
+  try {
+    await httpClient.patch(`/seguimiento/${id}/resolver-alerta`)
+    successMsg.value = 'Alerta resuelta. El seguimiento está en curso nuevamente.'
+    setTimeout(() => { successMsg.value = null }, 3500)
+    seguimientoDetalle.value = null
+    cerrarDetalle()
+    await fetchSeguimientos()
+  } catch (error: any) {
+    errorMsg.value = error?.response?.data?.message ?? 'No se pudo resolver la alerta.'
+    setTimeout(() => { errorMsg.value = null }, 4000)
+  } finally {
+    isResolvingAlerta.value = false
+  }
 }
 
 // ─── Detalle ──────────────────────────────────────────────────────────────────
@@ -600,7 +620,17 @@ onMounted(async () => { await Promise.all([fetchSeguimientos(), cargarCatalogos(
             <!-- Footer -->
             <div class="px-6 py-4 border-t border-border shrink-0 flex justify-between items-center">
               <p class="text-xs text-muted">Inicio: {{ formatearFecha(seguimientoDetalle?.fecha_inicio ?? '') }}</p>
-              <button class="px-4 py-2 rounded-2xl border border-border text-sm font-bold text-muted hover:text-black hover:bg-surface transition-all" @click="cerrarDetalle">Cerrar</button>
+              <div class="flex items-center gap-2">
+                <button
+                  v-if="seguimientoDetalle?.estado_seguimiento === 'alerta'"
+                  :disabled="isResolvingAlerta"
+                  class="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-amber-500/10 border border-amber-400/30 text-amber-700 text-sm font-bold hover:bg-amber-500/20 transition-all disabled:opacity-60"
+                  @click="resolverAlerta(seguimientoDetalle!.id_seguimiento)">
+                  <ShieldCheck class="w-4 h-4" />
+                  {{ isResolvingAlerta ? 'Resolviendo...' : 'Marcar como atendida' }}
+                </button>
+                <button class="px-4 py-2 rounded-2xl border border-border text-sm font-bold text-muted hover:text-black hover:bg-surface transition-all" @click="cerrarDetalle">Cerrar</button>
+              </div>
             </div>
           </div>
         </div>

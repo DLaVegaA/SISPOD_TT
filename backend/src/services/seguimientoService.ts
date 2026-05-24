@@ -475,3 +475,13 @@ async function evaluarAlertasRN13(respuestas: RespuestaInput[]): Promise<boolean
 
     return false;
 }
+
+export const resolverAlertaService = async (id_seguimiento: number) => {
+  const seguimiento = await Seguimiento.findByPk(id_seguimiento);
+  if (!seguimiento) throw new AppError('No se encontró el seguimiento', 404);
+  if (seguimiento.estado_seguimiento !== 'alerta') {
+    throw new AppError('El seguimiento no tiene una alerta activa', 409);
+  }
+  await seguimiento.update({ estado_seguimiento: 'en curso' });
+  return seguimiento;
+};
