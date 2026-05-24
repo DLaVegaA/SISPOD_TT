@@ -111,4 +111,7 @@ export const seguimientoApi = {
             payload
         ) as Promise<{ message: string }>
     },
+
+    resolverAlerta: (id_seguimiento: number) =>
+  httpClient.patch(`/seguimiento/${id_seguimiento}/resolver-alerta`),
 }

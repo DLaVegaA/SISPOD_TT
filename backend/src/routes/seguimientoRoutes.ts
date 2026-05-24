@@ -10,7 +10,8 @@ import {
     finalizarSeguimiento,
     obtenerCuestionarioSeguimiento,
     guardarRespuestas,
-    obtenerRespuestasSeguimiento
+    obtenerRespuestasSeguimiento,
+    resolverAlerta
 } from '../controllers/seguimientoController';
 
 const router = Router();
@@ -29,4 +30,6 @@ router.patch('/:id_seguimiento/finalizar', verificarToken, permitirRoles(2), fin
 router.get('/:id_seguimiento/cuestionario/:tipo_cuestionario', verificarToken, obtenerCuestionarioSeguimiento);
 router.post('/:id_seguimiento/respuestas', verificarToken, guardarRespuestas);
 router.get('/:id_seguimiento/respuestas', verificarToken, permitirRoles(2), obtenerRespuestasSeguimiento);
+router.patch('/:id_seguimiento/resolver-alerta', verificarToken, permitirRoles(2), resolverAlerta);
+
 export default router;
