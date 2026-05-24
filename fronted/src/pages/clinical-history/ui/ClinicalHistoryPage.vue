@@ -92,7 +92,7 @@ const getTodayDate = () => {
 
 const generalInfo = ref({
   consultorio: 'Consultorio Gonzalez',
-  odontologo: 'Dra. Laura Gonzalez',
+  odontologo: 'Dr. Gonzalez',
   fechaElaboracion: getTodayDate(),
   estadoExpediente: 'En tratamiento',
 })
