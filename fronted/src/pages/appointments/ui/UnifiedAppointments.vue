@@ -908,7 +908,7 @@ async function cargarCitasDelCalendario() {
     const ahora = new Date()
     pacienteTieneCitaActiva.value = (res?.citas ?? []).some(
       (c) =>
-        (c.estado === 'Pendiente' || c.estado === 'Confirmada') &&
+        c.estado === 'Pendiente' &&
         new Date(c.fecha_hora_inicio) > ahora,
     )
   } catch (error) {
@@ -1210,8 +1210,8 @@ onMounted(async () => {
       <div>
         <p class="font-bold text-sm">Ya tienes una cita activa</p>
         <p class="text-xs text-amber-700 mt-0.5">
-          Solo puedes tener una cita pendiente o confirmada a la vez. Si necesitas cambiar el
-          horario, usa la opción <strong>Modificar Horario</strong>
+          Solo puedes tener una cita pendiente a la vez.
+          Si necesitas cambiar el horario, usa la opción <strong>Modificar Horario</strong>
           en tu cita existente.
         </p>
       </div>
