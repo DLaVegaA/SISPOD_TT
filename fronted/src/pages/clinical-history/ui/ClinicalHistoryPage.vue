@@ -98,16 +98,16 @@ const generalInfo = ref({
 })
 
 const patientInfo = ref({
-  nombre: 'Jorge Angeles Perez',
-  fechaNacimiento: '1992-08-13',
-  edad: '33',
-  sexo: 'Masculino',
-  curp: 'AEPJ920813HJCLRS09',
-  estadoCivil: 'Soltero',
+  nombre: '-',
+  fechaNacimiento: '-',
+  edad: '-',
+  sexo: '-',
+  curp: '-',
+  estadoCivil: '-',
   ocupacion: '-',
-  domicilio: 'Av. Patria 123, Guadalajara',
-  correo: 'jorgeap@email.com',
-  telefono: '33 5555 0000',
+  domicilio: '-',
+  correo: '-',
+  telefono: '-',
   tipoSangre: '-',
   estatura: '-',
   peso: '-',
@@ -560,7 +560,7 @@ watch(expedienteId, (value) => {
 </script>
 
 <template>
-  <div class="fade-in max-w-7xl">
+  <div class="fade-in">
     <div class="mb-8">
       <div class="flex items-center gap-2 text-xs text-muted mb-2">
         <span>🏠</span>

@@ -2,8 +2,17 @@
 import { useRoute } from 'vue-router'
 import { ref, computed, onMounted } from 'vue'
 import {
-  Search, X, FileText, ExternalLink, Loader2,
-  FileBadge, CalendarDays, ShieldCheck, UploadCloud, File as FileIcon, Trash2
+  Search,
+  X,
+  FileText,
+  ExternalLink,
+  Loader2,
+  FileBadge,
+  CalendarDays,
+  ShieldCheck,
+  UploadCloud,
+  File as FileIcon,
+  Trash2,
 } from 'lucide-vue-next'
 import { consentimientoApi } from '@/entities/consentimiento' // Ajusta tu alias
 import type { ConsentimientoVista, CitaOpcion } from '@/entities/consentimiento'
@@ -23,7 +32,7 @@ const isUploading = ref(false)
 const selectedFile = ref<File | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
-const citasDisponibles = ref<CitaOpcion[]>([]);
+const citasDisponibles = ref<CitaOpcion[]>([])
 
 // ── Computed ──────────────────────────────────────────────────────────────
 const filteredConsentimientos = computed(() => {
@@ -43,27 +52,64 @@ const filteredConsentimientos = computed(() => {
 // ── Helpers Vista ─────────────────────────────────────────────────────────
 function formatearFechaLarga(fechaStr: string): string {
   if (!fechaStr) return ''
-  return new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(fechaStr))
+  return new Intl.DateTimeFormat('es-MX', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(fechaStr))
 }
 
 function formatearHora(fechaStr: string): string {
   if (!fechaStr) return ''
-  return new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(fechaStr))
+  return new Intl.DateTimeFormat('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date(fechaStr))
 }
 
 function getInitials(name: string): string {
   if (!name) return ''
-  return name.split(' ').slice(0, 2).map((n) => n.charAt(0)).join('').toUpperCase()
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map((n) => n.charAt(0))
+    .join('')
+    .toUpperCase()
 }
 
 const CARD_ACCENTS = [
-  { dot: 'bg-accent', ring: 'ring-accent/20', avatar: 'bg-accent/10 text-accent border-accent/20', tag: 'bg-accent/10 text-accent' },
-  { dot: 'bg-indigo-400', ring: 'ring-indigo-400/20', avatar: 'bg-indigo-500/10 text-indigo-600 border-indigo-400/20', tag: 'bg-indigo-500/10 text-indigo-600' },
-  { dot: 'bg-emerald-400', ring: 'ring-emerald-400/20', avatar: 'bg-emerald-500/10 text-emerald-600 border-emerald-400/20', tag: 'bg-emerald-500/10 text-emerald-600' },
-  { dot: 'bg-amber-400', ring: 'ring-amber-400/20', avatar: 'bg-amber-500/10 text-amber-600 border-amber-400/20', tag: 'bg-amber-500/10 text-amber-600' },
+  {
+    dot: 'bg-accent',
+    ring: 'ring-accent/20',
+    avatar: 'bg-accent/10 text-accent border-accent/20',
+    tag: 'bg-accent/10 text-accent',
+  },
+  {
+    dot: 'bg-indigo-400',
+    ring: 'ring-indigo-400/20',
+    avatar: 'bg-indigo-500/10 text-indigo-600 border-indigo-400/20',
+    tag: 'bg-indigo-500/10 text-indigo-600',
+  },
+  {
+    dot: 'bg-emerald-400',
+    ring: 'ring-emerald-400/20',
+    avatar: 'bg-emerald-500/10 text-emerald-600 border-emerald-400/20',
+    tag: 'bg-emerald-500/10 text-emerald-600',
+  },
+  {
+    dot: 'bg-amber-400',
+    ring: 'ring-amber-400/20',
+    avatar: 'bg-amber-500/10 text-amber-600 border-amber-400/20',
+    tag: 'bg-amber-500/10 text-amber-600',
+  },
 ]
-function accentFor(index: number) { return CARD_ACCENTS[index % CARD_ACCENTS.length]! }
-function clearSearch() { searchQuery.value = '' }
+function accentFor(index: number) {
+  return CARD_ACCENTS[index % CARD_ACCENTS.length]!
+}
+function clearSearch() {
+  searchQuery.value = ''
+}
 
 // ── API Calls ─────────────────────────────────────────────────────────────
 async function fetchConsentimientos() {
@@ -80,16 +126,16 @@ async function fetchConsentimientos() {
 async function fetchCitasDisponibles() {
   try {
     // Llamamos a la API de forma limpia
-    citasDisponibles.value = await consentimientoApi.getCitasDisponibles();
+    citasDisponibles.value = await consentimientoApi.getCitasDisponibles()
   } catch (error) {
-    console.error('Error al cargar citas disponibles:', error);
+    console.error('Error al cargar citas disponibles:', error)
   }
 }
 
 // ── Dropzone Logic ────────────────────────────────────────────────────────
-function openModal() { 
-  isUploadModalOpen.value = true 
-  fetchCitasDisponibles();
+function openModal() {
+  isUploadModalOpen.value = true
+  fetchCitasDisponibles()
 }
 function closeModal() {
   isUploadModalOpen.value = false
@@ -97,22 +143,24 @@ function closeModal() {
   isDragging.value = false
 }
 
-function triggerFileInput() { fileInputRef.value?.click() }
+function triggerFileInput() {
+  fileInputRef.value?.click()
+}
 
 function handleFileSelect(event: Event) {
   const target = event.target as HTMLInputElement
-  const fileManual = target.files?.[0];
+  const fileManual = target.files?.[0]
   if (fileManual) {
-    validateAndSetFile(fileManual);
+    validateAndSetFile(fileManual)
   }
 }
 
 function handleDrop(event: DragEvent) {
   isDragging.value = false
   const files = event.dataTransfer?.files
-  const fileDrop = files?.[0];
+  const fileDrop = files?.[0]
   if (fileDrop) {
-    validateAndSetFile(fileDrop);
+    validateAndSetFile(fileDrop)
   }
 }
 
@@ -121,14 +169,17 @@ function validateAndSetFile(file: File) {
     alert('Por favor, selecciona un archivo PDF.')
     return
   }
-  if (file.size > 5 * 1024 * 1024) { // Límite de 5MB
+  if (file.size > 5 * 1024 * 1024) {
+    // Límite de 5MB
     alert('El archivo es demasiado grande. Máximo 5MB.')
     return
   }
   selectedFile.value = file
 }
 
-function removeFile() { selectedFile.value = null }
+function removeFile() {
+  selectedFile.value = null
+}
 
 async function submitFile() {
   if (!selectedFile.value) return
@@ -141,11 +192,11 @@ async function submitFile() {
   try {
     // Mandamos el archivo y el id_cita exacto que seleccionó el dentista
     await consentimientoApi.upload(selectedFile.value, citaSeleccionada.value)
-    
+
     closeModal()
     // Limpiamos el selector para la próxima vez
     citaSeleccionada.value = ''
-    await fetchConsentimientos() 
+    await fetchConsentimientos()
   } catch (error) {
     console.error('Error al subir:', error)
     alert('Hubo un error al subir el archivo.')
@@ -155,42 +206,43 @@ async function submitFile() {
 }
 
 async function abrirDocumento(idCita: number) {
-  if (!idCita) return;
-  
+  if (!idCita) return
+
   try {
     // Pedimos la URL temporal al backend
-    const urlTemporal = await consentimientoApi.getUrlDocumento(idCita);
-    
+    const urlTemporal = await consentimientoApi.getUrlDocumento(idCita)
+
     if (urlTemporal) {
       // Abrimos la URL en una nueva pestaña
-      window.open(urlTemporal, '_blank');
+      window.open(urlTemporal, '_blank')
     } else {
-      alert('No se recibió la URL del documento.');
+      alert('No se recibió la URL del documento.')
     }
   } catch (error) {
-    console.error('Error al abrir el documento:', error);
-    alert('No se pudo generar el enlace del documento.');
+    console.error('Error al abrir el documento:', error)
+    alert('No se pudo generar el enlace del documento.')
   }
 }
 
 async function eliminarDocumento(idCita: number) {
-  if (!idCita) return;
+  if (!idCita) return
 
   // Pedimos confirmación al usuario
-  const confirmado = confirm('¿Estás seguro de que deseas eliminar este consentimiento? Esta acción no se puede deshacer.');
-  
-  if (!confirmado) return;
+  const confirmado = confirm(
+    '¿Estás seguro de que deseas eliminar este consentimiento? Esta acción no se puede deshacer.',
+  )
+
+  if (!confirmado) return
 
   try {
     // Llamamos a la API para eliminar
-    await consentimientoApi.delete(idCita);
-    
+    await consentimientoApi.delete(idCita)
+
     // Recargamos la lista para que desaparezca la tarjeta
-    await fetchConsentimientos();
-    
+    await fetchConsentimientos()
   } catch (error) {
-    console.error('Error al eliminar:', error);
-    alert('Hubo un error al eliminar el documento.');
+    console.error('Error al eliminar:', error)
+    alert('Hubo un error al eliminar el documento.')
   }
 }
 
@@ -198,8 +250,7 @@ onMounted(fetchConsentimientos)
 </script>
 
 <template>
-  <div class="fade-in max-w-7xl mx-auto pb-10">
-
+  <div class="fade-in mx-auto pb-10">
     <!-- ── Header ─────────────────────────────────────────────────────── -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
       <div>
@@ -209,7 +260,9 @@ onMounted(fetchConsentimientos)
           <span class="bg-card border border-border px-2 py-0.5 rounded-lg">Consentimientos</span>
         </div>
         <h1 class="font-display text-4xl font-semibold text-black">Consentimientos Informados</h1>
-        <p class="text-sm text-muted mt-1">Documentos firmados por los pacientes antes de cada procedimiento.</p>
+        <p class="text-sm text-muted mt-1">
+          Documentos firmados por los pacientes antes de cada procedimiento.
+        </p>
       </div>
 
       <button
@@ -241,12 +294,17 @@ onMounted(fetchConsentimientos)
       </div>
 
       <div class="flex items-center gap-3 shrink-0">
-        <div class="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-2xl shadow-sm">
+        <div
+          class="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-2xl shadow-sm"
+        >
           <ShieldCheck class="w-4 h-4 text-accent" />
           <span class="text-sm font-bold text-black">{{ consentimientos.length }}</span>
           <span class="text-xs text-muted">documentos</span>
         </div>
-        <div v-if="searchQuery" class="flex items-center gap-2 px-4 py-2 bg-accent/5 border border-accent/20 rounded-2xl">
+        <div
+          v-if="searchQuery"
+          class="flex items-center gap-2 px-4 py-2 bg-accent/5 border border-accent/20 rounded-2xl"
+        >
           <span class="text-sm font-bold text-accent">{{ filteredConsentimientos.length }}</span>
           <span class="text-xs text-accent/70">resultados</span>
         </div>
@@ -254,7 +312,10 @@ onMounted(fetchConsentimientos)
     </div>
 
     <!-- ── Loading ────────────────────────────────────────────────────── -->
-    <div v-if="isLoading" class="flex flex-col items-center justify-center py-32 gap-3 text-muted/50">
+    <div
+      v-if="isLoading"
+      class="flex flex-col items-center justify-center py-32 gap-3 text-muted/50"
+    >
       <Loader2 class="w-10 h-10 animate-spin text-accent/50" />
       <p class="text-sm font-medium">Cargando consentimientos...</p>
     </div>
@@ -271,44 +332,59 @@ onMounted(fetchConsentimientos)
 
     <!-- ── Document grid ──────────────────────────────────────────────── -->
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-
       <div
         v-for="(item, index) in filteredConsentimientos"
         :key="item.id"
         class="group bg-card border border-border rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col"
       >
         <!-- Document preview area -->
-        <div class="relative bg-surface/60 px-6 pt-7 pb-5 border-b border-border flex items-end gap-4">
-
+        <div
+          class="relative bg-surface/60 px-6 pt-7 pb-5 border-b border-border flex items-end gap-4"
+        >
           <!-- Colored dot accent -->
           <div :class="['absolute top-4 right-4 w-2 h-2 rounded-full', accentFor(index).dot]" />
 
           <!-- PDF icon mock -->
           <div class="relative shrink-0">
-            <div class="w-14 h-16 bg-card border border-border rounded-xl flex items-center justify-center shadow-sm">
+            <div
+              class="w-14 h-16 bg-card border border-border rounded-xl flex items-center justify-center shadow-sm"
+            >
               <FileText class="w-7 h-7 text-muted/40" />
             </div>
             <!-- PDF badge -->
-            <span class="absolute -bottom-2 -right-2 text-[8px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded-md tracking-wider">PDF</span>
+            <span
+              class="absolute -bottom-2 -right-2 text-[8px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded-md tracking-wider"
+              >PDF</span
+            >
           </div>
 
           <!-- Patient info -->
           <div class="min-w-0 pb-1">
-            <div :class="['w-8 h-8 rounded-xl border flex items-center justify-center font-bold text-xs mb-2', accentFor(index).avatar]">
+            <div
+              :class="[
+                'w-8 h-8 rounded-xl border flex items-center justify-center font-bold text-xs mb-2',
+                accentFor(index).avatar,
+              ]"
+            >
               {{ getInitials(item.pacienteNombre) }}
             </div>
-            <p class="text-sm font-bold text-black leading-tight truncate">{{ item.pacienteNombre }}</p>
+            <p class="text-sm font-bold text-black leading-tight truncate">
+              {{ item.pacienteNombre }}
+            </p>
             <p class="text-[10px] text-muted font-mono mt-0.5">{{ item.pacienteExpediente }}</p>
           </div>
         </div>
 
         <!-- Card body -->
         <div class="px-5 py-4 flex flex-col gap-3 flex-1">
-
           <!-- Procedure -->
           <div>
-            <p class="text-[10px] font-bold text-muted uppercase tracking-wider mb-1.5">Procedimiento</p>
-            <p class="text-sm font-semibold text-black leading-snug">{{ item.citaProcedimiento }}</p>
+            <p class="text-[10px] font-bold text-muted uppercase tracking-wider mb-1.5">
+              Procedimiento
+            </p>
+            <p class="text-sm font-semibold text-black leading-snug">
+              {{ item.citaProcedimiento }}
+            </p>
           </div>
 
           <!-- Date + time row -->
@@ -343,66 +419,73 @@ onMounted(fetchConsentimientos)
           </button>
         </div>
       </div>
-
     </div>
   </div>
 
   <Teleport to="body">
-    <div v-if="isUploadModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm fade-in">
-      <div class="bg-card w-full max-w-lg rounded-3xl shadow-xl border border-border overflow-hidden flex flex-col">
-          
+    <div
+      v-if="isUploadModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm fade-in"
+    >
+      <div
+        class="bg-card w-full max-w-lg rounded-3xl shadow-xl border border-border overflow-hidden flex flex-col"
+      >
         <!-- Header Modal -->
-        <div class="px-6 py-4 border-b border-border flex items-center justify-between bg-surface/40">
+        <div
+          class="px-6 py-4 border-b border-border flex items-center justify-between bg-surface/40"
+        >
           <h2 class="text-lg font-bold text-black">Subir Consentimiento</h2>
-          <button @click="closeModal" class="p-2 rounded-xl text-muted hover:bg-black/5 transition-colors">
+          <button
+            @click="closeModal"
+            class="p-2 rounded-xl text-muted hover:bg-black/5 transition-colors"
+          >
             <X class="w-5 h-5" />
           </button>
         </div>
 
         <!-- Body Modal -->
         <div class="p-6 flex flex-col gap-4">
-            
           <!-- Selector de Cita -->
           <div class="flex flex-col gap-1.5">
             <label class="text-sm font-bold text-black">Seleccionar Cita</label>
-            <select 
+            <select
               v-model="citaSeleccionada"
               class="w-full py-2.5 px-3 bg-card border border-border rounded-xl text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             >
               <option value="" disabled>Selecciona la cita del paciente...</option>
-              
+
               <!-- ESTE ES EL CICLO QUE CONSTRUYE LAS CITAS REALES -->
-              <option 
-                v-for="cita in citasDisponibles" 
-                :key="cita.id_cita" 
-                :value="cita.id_cita"
-              >
-                Cita #{{ cita.id_cita }} - {{ cita.pacienteNombre }} ({{ cita.procedimiento }} - {{ cita.fecha }})
+              <option v-for="cita in citasDisponibles" :key="cita.id_cita" :value="cita.id_cita">
+                Cita #{{ cita.id_cita }} - {{ cita.pacienteNombre }} ({{ cita.procedimiento }} -
+                {{ cita.fecha }})
               </option>
-              
             </select>
           </div>
 
           <!-- Zona Drag & Drop -->
-          <div 
+          <div
             @dragover.prevent="isDragging = true"
             @dragleave.prevent="isDragging = false"
             @drop.prevent="handleDrop"
             @click="!selectedFile && triggerFileInput()"
             :class="[
               'relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-2xl transition-all duration-200',
-              selectedFile ? 'border-border bg-surface/30 cursor-default' : 'cursor-pointer hover:bg-accent/5 hover:border-accent/50',
-              isDragging ? 'border-accent bg-accent/10 scale-[1.02]' : 'border-border bg-surface/50'
+              selectedFile
+                ? 'border-border bg-surface/30 cursor-default'
+                : 'cursor-pointer hover:bg-accent/5 hover:border-accent/50',
+              isDragging
+                ? 'border-accent bg-accent/10 scale-[1.02]'
+                : 'border-border bg-surface/50',
             ]"
           >
-            <input 
-              type="file" 
-              ref="fileInputRef" 
-              class="hidden" 
+            <input
+              type="file"
+              ref="fileInputRef"
+              class="hidden"
               accept="application/pdf"
               @change="handleFileSelect"
             />
-              <!-- Estado 1: Sin archivo -->
+            <!-- Estado 1: Sin archivo -->
             <template v-if="!selectedFile">
               <div class="p-4 bg-card rounded-full shadow-sm mb-3 text-accent">
                 <UploadCloud class="w-8 h-8" />
@@ -413,16 +496,23 @@ onMounted(fetchConsentimientos)
 
             <!-- Estado 2: Archivo seleccionado -->
             <template v-else>
-                <div class="absolute inset-0 p-4 flex flex-col">                  <div class="flex-1 flex items-center justify-center gap-3">
-                  <div class="w-12 h-14 bg-red-500/10 rounded-lg flex items-center justify-center border border-red-500/20 text-red-500">
+              <div class="absolute inset-0 p-4 flex flex-col">
+                <div class="flex-1 flex items-center justify-center gap-3">
+                  <div
+                    class="w-12 h-14 bg-red-500/10 rounded-lg flex items-center justify-center border border-red-500/20 text-red-500"
+                  >
                     <FileIcon class="w-6 h-6" />
                   </div>
                   <div class="flex flex-col min-w-0">
-                    <span class="text-sm font-bold text-black truncate pr-4">{{ selectedFile.name }}</span>
-                    <span class="text-xs text-muted">{{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB</span>
+                    <span class="text-sm font-bold text-black truncate pr-4">{{
+                      selectedFile.name
+                    }}</span>
+                    <span class="text-xs text-muted"
+                      >{{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB</span
+                    >
                   </div>
                 </div>
-                <button 
+                <button
                   @click.stop="removeFile"
                   class="mx-auto mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors"
                 >
@@ -435,13 +525,13 @@ onMounted(fetchConsentimientos)
 
         <!-- Footer Modal -->
         <div class="px-6 py-4 border-t border-border bg-surface/40 flex justify-end gap-3">
-          <button 
-            @click="closeModal" 
+          <button
+            @click="closeModal"
             class="px-5 py-2.5 rounded-xl text-sm font-bold text-muted hover:text-black hover:bg-black/5 transition-colors"
           >
             Cancelar
           </button>
-          <button 
+          <button
             @click="submitFile"
             :disabled="!selectedFile || isUploading"
             class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-accent text-white hover:bg-accent/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -450,16 +540,23 @@ onMounted(fetchConsentimientos)
             {{ isUploading ? 'Subiendo...' : 'Subir Documento' }}
           </button>
         </div>
-
       </div>
     </div>
   </Teleport>
 </template>
 
 <style scoped>
-.fade-in { animation: fadeIn 0.25s ease; }
+.fade-in {
+  animation: fadeIn 0.25s ease;
+}
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
