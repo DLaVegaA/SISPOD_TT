@@ -82,7 +82,7 @@ const router = createRouter({
       path: ROUTE_PATHS.CONFIRM_APPOINTMENT,
       name: ROUTE_NAMES.CONFIRM_APPOINTMENT,
       component: ConfirmAppointmentPage,
-      meta: { title: 'Confirmar Cita', requiresAuth: true, allowedRoles: ['dentist'] },
+      meta: { title: 'Confirmar Cita', guestOnly: true },
     },
     {
       path: ROUTE_PATHS.ADMIN_HOME,

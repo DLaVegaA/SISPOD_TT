@@ -87,6 +87,13 @@ export const registrarUsuario = async (req: Request, res: Response) => {
       ? fecha_nacimiento
       : '2000-01-01';
 
+  // --- NUEVA VALIDACIÓN DE FECHA ---
+  const fechaNacIngresada = new Date(fechaNacimientoSanitizada);
+  const hoy = new Date();
+  if (fechaNacIngresada > hoy) {
+    return res.status(400).json({ message: 'La fecha de nacimiento no puede ser una fecha futura' });
+  }
+
   const payloadUsuario = {
     id_rol: idRolNumber,
     nombre: nombreSanitizado,
