@@ -518,169 +518,29 @@ function buildExpedienteHTML(
 }
 
 // ─── Función principal con Puppeteer (versión corregida) ────────────────
-export async function generarExpedientePDF(
-  expedienteId: number | string,
-  res: Response,
-  models: Models,
-): Promise<void> {
-  const {
-    Expediente,
-    Paciente,
-    Usuario,
-    Dentista,
-    Direccion,
-    ExpedientePadecimiento,
-    Padecimiento,
-    Odontograma,
-    Bitacora,
-    Cita,
-    Consentimiento,
-  } = models;
+export async function generarExpedientePDF(htmlContent: string) {
+  const browserlessToken = process.env.BROWSERLESS_TOKEN;
 
-  // 1. Obtener datos del expediente
-  const expediente = (await Expediente.findByPk(expedienteId, {
-    include: [
-      {
-        model: Paciente,
-        as: 'paciente',
-        include: [
-          { model: Usuario, as: 'usuario' },
-          { model: Direccion, as: 'direccion' },
-        ],
-      },
-      { model: Dentista, as: 'dentista', include: [{ model: Usuario, as: 'usuario' }] },
-    ],
-  })) as Expediente | null;
-
-  if (!expediente) {
-    res.status(404).json({ message: 'Expediente no encontrado' });
-    return;
+  if (!browserlessToken) {
+      throw new Error("El BROWSERLESS_TOKEN no está definido en las variables de entorno");
   }
 
-  const antecedentes = (await ExpedientePadecimiento.findAll({
-    where: { id_expediente: expedienteId },
-    include: [{ model: Padecimiento, as: 'padecimiento' }],
-    order: [['tipo_antecedente', 'ASC']],
-  })) as ExpedientePadecimiento[];
+  // Azure ya no abre el navegador local. Se conecta al servicio en la nube por WebSocket.
+  const browser = await puppeteer.connect({
+    browserWSEndpoint: `wss://chrome.browserless.io?token=${browserlessToken}`
+  });
 
-  const odontograma = (await Odontograma.findOne({
-    where: { id_expediente: expedienteId },
-    order: [['fecha_actualizacion', 'DESC']],
-  })) as Odontograma | null;
-
-  const bitacoras = (await Bitacora.findAll({
-    where: { '$cita.id_paciente$': expediente.id_paciente },
-    include: [{ model: Cita, as: 'cita', attributes: ['fecha_hora_inicio', 'id_paciente'] }],
-    order: [['fecha_creacion', 'DESC']],
-    limit: 50,
-  })) as Bitacora[];
-
-  const citasDelPaciente = (await Cita.findAll({
-    where: { id_paciente: expediente.id_paciente },
-    attributes: ['id_cita'],
-  })) as Pick<Cita, 'id_cita'>[];
-  const idCitas = citasDelPaciente.map((c) => c.id_cita);
-  const consentimientos =
-    idCitas.length > 0
-      ? ((await Consentimiento.findAll({
-          where: { id_cita: { [Op.in]: idCitas } },
-          order: [['fecha_consentimiento', 'ASC']],
-        })) as Consentimiento[])
-      : [];
-
-  const pacUsuario = expediente.paciente?.usuario || ({} as Usuario);
-  const dentUsuario = expediente.dentista?.usuario || ({} as Usuario);
-  const direccion = expediente.paciente?.direccion;
-
-  const patientInfo = {
-    nombre:
-      [pacUsuario.nombre, pacUsuario.apellido_paterno, pacUsuario.apellido_materno]
-        .filter(Boolean)
-        .join(' ') || '-',
-    fechaNacimiento: fmtFecha(pacUsuario.fecha_nacimiento),
-    edad: calcularEdad(pacUsuario.fecha_nacimiento),
-    sexo: pacUsuario.genero || '-',
-    curp: pacUsuario.curp || '-',
-    correo: pacUsuario.correo || '-',
-    telefono: pacUsuario.telefono || '-',
-    domicilio: buildDomicilio(direccion),
-    tipoSangre: expediente.tipo_sangre || '-',
-    estatura: expediente.estatura ? `${expediente.estatura} cm` : '-',
-    peso: expediente.peso ? `${expediente.peso} kg` : '-',
-    ocupacion: expediente.ocupacion || '-',
-  };
-
-  const generalInfo = {
-    consultorio: 'Consultorio Dental',
-    odontologo: `${dentUsuario.nombre || ''} ${dentUsuario.apellido_paterno || ''}`.trim() || '-',
-    cedulaProfesional: expediente.dentista?.no_cedula || '-',
-    fechaElaboracion: fmtFecha(expediente.fecha_creacion),
-    fechaImpresion: fmtFecha(new Date()),
-    estadoExpediente: 'En tratamiento',
-  };
-
-  const groupAntecedentes = (tipo: string) =>
-    antecedentes
-      .filter((a) => a.tipo_antecedente === tipo)
-      .map((a) => ({ nombre: a.padecimiento?.nombre_padecimiento || '-', nota: a.nota || '' }));
-  const heredofamiliares = groupAntecedentes('heredofamiliar');
-  const patologicos = groupAntecedentes('patologico_personal');
-  const noPatologicos = groupAntecedentes('no_patologico');
-  const ginecoObstetrico = groupAntecedentes('gineco_obstetrico');
-
-  const odontogramaData = odontograma?.datos_odontograma || [];
-
-  const htmlContent = buildExpedienteHTML(
-    expediente,
-    patientInfo,
-    generalInfo,
-    { heredofamiliares, patologicos, noPatologicos, ginecoObstetrico },
-    odontogramaData,
-    odontograma?.fecha_actualizacion || null,
-    bitacoras,
-    consentimientos,
-  );
-
-  // 2. Generar PDF con Puppeteer (usando chromium optimizado)
-  let browser;
-  try {
-    browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-      ],
-      executablePath: await chromium.executablePath(),
-      headless: true,
-      defaultViewport: null,
-    });
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'load' });
-    const expedienteBuffer = await page.pdf({
-      format: 'Letter',
-      printBackground: true,
-      margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' },
-    });
-
-    const pdfFinal =
-      consentimientos.length > 0
-        ? await fusionarConConsentimientos(Buffer.from(expedienteBuffer), consentimientos)
-        : Buffer.from(expedienteBuffer);
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Length', pdfFinal.length);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="expediente_${expedienteId}_${Date.now()}.pdf"`,
-    );
-    res.end(pdfFinal);
-  } catch (error) {
-    console.error('Error generando PDF:', error);
-    res.status(500).json({ message: 'Error al generar el expediente PDF' });
-  } finally {
-    if (browser) await browser.close();
-  }
+  const page = await browser.newPage();
+  
+  // Cargamos tu HTML
+  await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+  
+  // Generamos el PDF
+  const pdf = await page.pdf({ 
+    format: 'A4',
+    printBackground: true 
+  });
+  
+  await browser.close();
+  return pdf;
 }
