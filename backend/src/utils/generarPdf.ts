@@ -706,7 +706,7 @@ export async function generarExpedientePDF(
     builder.text(
       'EXPEDIENTE CLÍNICO',
       MARGIN + COL_W / 2 - 60,
-      PAGE_H - MARGIN - 8,
+      PAGE_H - MARGIN - 20,
       14,
       C_HEADER_TEXT,
       true,
@@ -714,9 +714,9 @@ export async function generarExpedientePDF(
     builder.moveDown(38);
 
     // — BARRA INFO —
-    builder.needsSpace(50);
-    builder.drawRect(MARGIN, builder.curY - 44, COL_W, 48, C_INFO_BAR);
-    builder.drawRect(MARGIN, builder.curY - 44, 3, 48, C_TH_BG); // borde izq azul
+    builder.needsSpace(40);
+    builder.drawRect(MARGIN, builder.curY - 34, COL_W, 38, C_INFO_BAR);
+    builder.drawRect(MARGIN, builder.curY - 34, 3, 38, C_TH_BG); // borde izq azul
     const iy = builder.curY - 10;
     builder.text('Consultorio Dental', MARGIN + 8, iy, 9, C_BLACK, true);
     builder.text(`Odontólogo: ${nombreDentista}`, MARGIN + 8, iy - 12, 8, C_BLACK);
@@ -730,8 +730,7 @@ export async function generarExpedientePDF(
     const col2x = MARGIN + COL_W / 2;
     builder.text(`Fecha apertura: ${fmtFecha(expediente.fecha_creacion)}`, col2x, iy, 8, C_BLACK);
     builder.text(`Impresión: ${fmtFecha(new Date())}`, col2x, iy - 12, 8, C_BLACK);
-    builder.text('Estado: En tratamiento', col2x, iy - 23, 8, rgb(0.118, 0.518, 0.275), true);
-    builder.moveDown(52);
+    builder.moveDown(42);
 
     // ── SECCIÓN 1: Datos del Paciente ──────────────────────────────────
     builder.sectionHeader('1. Datos Generales del Paciente');
@@ -1039,8 +1038,17 @@ export async function generarExpedientePDF(
       `attachment; filename="expediente_${expedienteId}_${Date.now()}.pdf"`,
     );
     res.end(pdfFinal);
+    // } catch (error) {
+    //   console.error('Error generando PDF:', error);
+    //   res.status(500).json({ message: 'Error al generar el expediente PDF' });
+    // }
   } catch (error) {
     console.error('Error generando PDF:', error);
-    res.status(500).json({ message: 'Error al generar el expediente PDF' });
+    // Agrega esto para verlo en Azure App Service logs:
+    res.status(500).json({
+      message: 'Error al generar el expediente PDF',
+      detail: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
   }
 }
