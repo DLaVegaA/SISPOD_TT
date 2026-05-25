@@ -3,7 +3,6 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   AlertTriangle,
-  Bell,
   CalendarCheck,
   ClipboardList,
   FileText,
@@ -12,11 +11,8 @@ import {
   NotebookText,
   CheckCircle2,
   Clock,
-  Send,
   AlertCircle,
   Calendar,
-  FilePlus,
-  TrendingUp,
 } from 'lucide-vue-next'
 import { useSessionStore } from '@/entities/session'
 import { ROUTE_NAMES } from '@/shared/routes'
@@ -206,7 +202,7 @@ function goToCalendar() {
   router.push({ name: ROUTE_NAMES.DENTIST_CALENDAR, params: { id: currentUserId.value } })
 }
 
-function goToClinicalHistory(patientName?: string) {
+function goToClinicalHistory() {
   router.push({ name: ROUTE_NAMES.DENTIST_CLINICAL_HISTORY, params: { id: currentUserId.value } })
 }
 
