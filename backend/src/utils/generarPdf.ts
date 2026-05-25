@@ -627,10 +627,11 @@ export async function generarExpedientePDF(
     return;
   }
 
-  // Azure ya no abre el navegador local. Se conecta al servicio en la nube por WebSocket.
-  const browser = await puppeteer.connect({
-    browserWSEndpoint: `wss://chrome.browserless.io?token=${browserlessToken}`
-  });
+  const antecedentes = (await ExpedientePadecimiento.findAll({
+    where: { id_expediente: expedienteId },
+    include: [{ model: Padecimiento, as: 'padecimiento' }],
+    order: [['tipo_antecedente', 'ASC']],
+  })) as ExpedientePadecimiento[];
 
   const odontograma = (await Odontograma.findOne({
     where: { id_expediente: expedienteId },
