@@ -1,8 +1,7 @@
 import { Response } from 'express';
 import { Op } from 'sequelize';
-import puppeteer from 'puppeteer-core'; // ← cambiar a puppeteer-core
-import chromium from '@sparticuz/chromium'; // ← nuevo import
-import { PDFDocument as LibPDF, PDFPage } from 'pdf-lib';
+import { Resvg } from '@resvg/resvg-js';
+import { PDFDocument, PDFPage, PDFFont, StandardFonts, rgb, RGB, degrees } from 'pdf-lib';
 import {
   BlobServiceClient,
   generateBlobSASQueryParameters,
@@ -12,7 +11,7 @@ import {
 import https from 'https';
 import http from 'http';
 
-// ─── Tipos de datos y modelos (sin cambios) ─────────────────────────────
+// ─── Tipos de datos ──────────────────────────────────────────────────────
 interface Usuario {
   nombre: string;
   apellido_paterno: string;
@@ -67,15 +66,15 @@ interface ExpedientePadecimiento {
   padecimiento?: Padecimiento;
 }
 
-interface Odontograma {
-  fecha_actualizacion: Date;
-  datos_odontograma?: OdontogramaDiente[];
-}
-
 interface OdontogramaDiente {
   num: number;
   condition?: string;
   surfaces?: Record<string, string>;
+}
+
+interface Odontograma {
+  fecha_actualizacion: Date;
+  datos_odontograma?: OdontogramaDiente[];
 }
 
 interface Cita {
@@ -113,7 +112,7 @@ export interface Models {
   Consentimiento: any;
 }
 
-// ─── Azure Blob Storage (sin cambios) ─────────────────────────────────────
+// ─── Azure Blob Storage ───────────────────────────────────────────────────
 const _azureConnectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const _azureContainer = process.env.AZURE_STORAGE_CONTAINER;
 
@@ -159,7 +158,7 @@ async function fusionarConConsentimientos(
   expedienteBuffer: Buffer,
   consentimientos: Pick<Consentimiento, 'nombre_archivo'>[],
 ): Promise<Buffer> {
-  const docFinal = await LibPDF.load(expedienteBuffer);
+  const docFinal = await PDFDocument.load(expedienteBuffer);
   for (const consent of consentimientos) {
     let blobBuffer: Buffer;
     try {
@@ -172,7 +171,7 @@ async function fusionarConConsentimientos(
       continue;
     }
     try {
-      const consentPdf = await LibPDF.load(blobBuffer);
+      const consentPdf = await PDFDocument.load(blobBuffer);
       const pageCount = consentPdf.getPageCount();
       const copiedPages = await docFinal.copyPages(
         consentPdf,
@@ -189,7 +188,7 @@ async function fusionarConConsentimientos(
   return Buffer.from(await docFinal.save());
 }
 
-// ─── Helpers de formato ─────────────────────────────────────────────────
+// ─── Helpers de formato ───────────────────────────────────────────────────
 function calcularEdad(fechaNacimiento?: Date | string): string {
   if (!fechaNacimiento) return '-';
   const hoy = new Date();
@@ -234,7 +233,7 @@ function buildDomicilio(direccion?: Direccion): string {
   return partes.join(', ') || '-';
 }
 
-// ─── Renderizado del odontograma en SVG (estático) ──────────────────────
+// ─── Renderizado SVG del odontograma (sin cambios) ────────────────────────
 function renderOdontogramaSVG(odontogramaData: OdontogramaDiente[]): string {
   const S = 36;
   const OFF = 10;
@@ -283,241 +282,312 @@ function renderOdontogramaSVG(odontogramaData: OdontogramaDiente[]): string {
     { x1: S - 1, y1: S - 1, x2: S - OFF, y2: S - OFF },
   ];
 
-  const getSurfaceClass = (tooth: OdontogramaDiente | undefined, surf: string) => {
-    const val = tooth?.surfaces?.[surf];
-    return val ? `surf-${val}` : 'surf-healthy';
+  const SURF_FILL: Record<string, string> = {
+    caries: '#ef4444',
+    restoration: '#10b981',
+    sealant: '#3b82f6',
+    fracture: '#fbbf24',
   };
 
-  let svg = `<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="background: white; border-radius: 8px; margin-top: 8px;">`;
-  svg += `<line x1="0" y1="${H / 2}" x2="${W}" y2="${H / 2}" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3 3" />`;
-  svg += `<line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3 3" />`;
-  svg += `<text x="10" y="12" font-size="8" fill="#9ca3af">SUP. DERECHO</text>`;
-  svg += `<text x="${W - 80}" y="12" font-size="8" fill="#9ca3af">SUP. IZQUIERDO</text>`;
-  svg += `<text x="10" y="${H - 8}" font-size="8" fill="#9ca3af">INF. DERECHO</text>`;
-  svg += `<text x="${W - 80}" y="${H - 8}" font-size="8" fill="#9ca3af">INF. IZQUIERDO</text>`;
+  const getSurfaceFill = (tooth: OdontogramaDiente | undefined, surf: string): string => {
+    const val = tooth?.surfaces?.[surf];
+    return val ? SURF_FILL[val] || 'transparent' : 'transparent';
+  };
+
+  let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="background:white;">`;
+  svg += `<rect width="${W}" height="${H}" fill="white"/>`;
+  svg += `<line x1="0" y1="${H / 2}" x2="${W}" y2="${H / 2}" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3 3"/>`;
+  svg += `<line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="#e5e7eb" stroke-width="0.5" stroke-dasharray="3 3"/>`;
+  svg += `<text x="10" y="12" font-size="8" fill="#9ca3af" font-family="Arial,sans-serif">SUP. DERECHO</text>`;
+  svg += `<text x="${W - 80}" y="12" font-size="8" fill="#9ca3af" font-family="Arial,sans-serif">SUP. IZQUIERDO</text>`;
+  svg += `<text x="10" y="${H - 8}" font-size="8" fill="#9ca3af" font-family="Arial,sans-serif">INF. DERECHO</text>`;
+  svg += `<text x="${W - 80}" y="${H - 8}" font-size="8" fill="#9ca3af" font-family="Arial,sans-serif">INF. IZQUIERDO</text>`;
 
   for (const t of teethPos) {
     const tooth = toothMap[t.num];
     svg += `<g transform="translate(${t.x},${t.y})">`;
-    svg += `<rect x="1" y="1" width="${S - 2}" height="${S - 2}" rx="4" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5" />`;
+    svg += `<rect x="1" y="1" width="${S - 2}" height="${S - 2}" rx="4" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5"/>`;
     for (const surf of ['top', 'bottom', 'left', 'right'] as const) {
-      svg += `<polygon points="${surfacePoints[surf]}" class="${getSurfaceClass(tooth, surf)}" />`;
+      svg += `<polygon points="${surfacePoints[surf]}" fill="${getSurfaceFill(tooth, surf)}" stroke="none"/>`;
     }
-    svg += `<rect x="${centerRect.x}" y="${centerRect.y}" width="${centerRect.w}" height="${centerRect.h}" class="${getSurfaceClass(tooth, 'center')}" />`;
+    svg += `<rect x="${centerRect.x}" y="${centerRect.y}" width="${centerRect.w}" height="${centerRect.h}" fill="${getSurfaceFill(tooth, 'center')}" stroke="none"/>`;
     for (const line of dividerLines) {
-      svg += `<line x1="${line.x1}" y1="${line.y1}" x2="${line.x2}" y2="${line.y2}" stroke="#c0bfba" stroke-width="0.8" pointer-events="none" />`;
+      svg += `<line x1="${line.x1}" y1="${line.y1}" x2="${line.x2}" y2="${line.y2}" stroke="#c0bfba" stroke-width="0.8"/>`;
     }
     if (tooth?.condition === 'extracted') {
-      svg += `<line x1="5" y1="5" x2="${S - 5}" y2="${S - 5}" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" />`;
-      svg += `<line x1="${S - 5}" y1="5" x2="5" y2="${S - 5}" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" />`;
+      svg += `<line x1="5" y1="5" x2="${S - 5}" y2="${S - 5}" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>`;
+      svg += `<line x1="${S - 5}" y1="5" x2="5" y2="${S - 5}" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>`;
     } else if (tooth?.condition === 'crown') {
-      svg += `<rect x="3" y="3" width="${S - 6}" height="${S - 6}" rx="3" fill="none" stroke="#a78bfa" stroke-width="2.5" />`;
+      svg += `<rect x="3" y="3" width="${S - 6}" height="${S - 6}" rx="3" fill="none" stroke="#a78bfa" stroke-width="2.5"/>`;
     }
-    svg += `<text x="${S / 2}" y="${S + 10}" text-anchor="middle" font-size="7.5" fill="#9ca3af" font-family="monospace">${t.num}</text>`;
+    svg += `<text x="${S / 2}" y="${S + 10}" text-anchor="middle" font-size="7.5" fill="#9ca3af" font-family="monospace,Arial">${t.num}</text>`;
     svg += `</g>`;
   }
-
-  svg += `<style>
-    .surf-caries { fill: #ef4444; }
-    .surf-restoration { fill: #10b981; }
-    .surf-sealant { fill: #3b82f6; }
-    .surf-fracture { fill: #fbbf24; }
-    .surf-healthy { fill: transparent; }
-  </style>`;
   svg += `</svg>`;
   return svg;
 }
 
-// ─── Generación del HTML responsivo (sin cambios importantes) ──────────
-function buildExpedienteHTML(
-  expediente: Expediente,
-  patientInfo: any,
-  generalInfo: any,
-  antecedentes: {
-    heredofamiliares: any[];
-    patologicos: any[];
-    noPatologicos: any[];
-    ginecoObstetrico: any[];
-  },
-  odontogramaData: OdontogramaDiente[],
-  odontogramaFecha: Date | null,
-  bitacoras: Bitacora[],
-  consentimientos: Consentimiento[],
-): string {
-  const escapeHtml = (str: string) =>
-    String(str || '').replace(/[&<>]/g, (m) => {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    });
+// ─── Constantes de layout del PDF ────────────────────────────────────────
+const PAGE_W = 612; // Letter width en puntos
+const PAGE_H = 792; // Letter height en puntos
+const MARGIN = 36; // 0.5 in
+const COL_W = PAGE_W - MARGIN * 2;
 
-  const renderAntecedentesLista = (titulo: string, lista: any[]) => `
-    <div class="antecedente-group">
-      <h3>${escapeHtml(titulo)}</h3>
-      ${
-        lista.length === 0
-          ? '<p class="empty">Sin antecedentes registrados.</p>'
-          : `
-        <ul>${lista.map((item) => `<li><strong>${escapeHtml(item.nombre)}</strong>${item.nota ? ` <span class="nota">- ${escapeHtml(item.nota)}</span>` : ''}</li>`).join('')}</ul>
-      `
+// Colores
+const C_HEADER_BG = rgb(0.106, 0.31, 0.447); // #1B4F72
+const C_HEADER_TEXT = rgb(1, 1, 1);
+const C_SECTION_BG = rgb(0.839, 0.918, 0.973); // #D6EAF8
+const C_SECTION_FG = rgb(0.106, 0.31, 0.447);
+const C_TH_BG = rgb(0.18, 0.525, 0.757); // #2E86C1
+const C_INFO_BAR = rgb(0.918, 0.957, 0.984); // #EBF5FB
+const C_BORDER = rgb(0.682, 0.718, 0.733); // #AEB6BF
+const C_ROW_EVEN = rgb(0.957, 0.965, 0.969);
+const C_MUTED = rgb(0.498, 0.549, 0.553);
+const C_BLACK = rgb(0.11, 0.157, 0.2); // #1C2833
+
+// ─── Clase helper para dibujo incremental de páginas ─────────────────────
+class PdfBuilder {
+  private doc: PDFDocument;
+  private pages: PDFPage[] = [];
+  private currentPage!: PDFPage;
+  private y = 0;
+  private fontR!: PDFFont;
+  private fontB!: PDFFont;
+  private pageCount = 0;
+
+  constructor(doc: PDFDocument, fontR: PDFFont, fontB: PDFFont) {
+    this.doc = doc;
+    this.fontR = fontR;
+    this.fontB = fontB;
+    this.addPage();
+  }
+
+  addPage() {
+    this.currentPage = this.doc.addPage([PAGE_W, PAGE_H]);
+    this.pages.push(this.currentPage);
+    this.pageCount++;
+    this.y = PAGE_H - MARGIN;
+  }
+
+  get curY() {
+    return this.y;
+  }
+  get page() {
+    return this.currentPage;
+  }
+  get totalPages() {
+    return this.pageCount;
+  }
+  get allPages() {
+    return this.pages;
+  }
+
+  needsSpace(height: number) {
+    if (this.y - height < MARGIN + 30) {
+      this.addPage();
+    }
+  }
+
+  moveDown(pts: number) {
+    this.y -= pts;
+  }
+
+  drawRect(x: number, y: number, w: number, h: number, color: RGB) {
+    this.currentPage.drawRectangle({ x, y, width: w, height: h, color });
+  }
+
+  drawLine(x1: number, y1: number, x2: number, y2: number, color = C_BORDER, thickness = 0.5) {
+    this.currentPage.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness, color });
+  }
+
+  text(
+    str: string,
+    x: number,
+    y: number,
+    size: number,
+    color: RGB = C_BLACK,
+    bold = false,
+    maxWidth?: number,
+  ) {
+    const font = bold ? this.fontB : this.fontR;
+    let display = str;
+    if (maxWidth) {
+      while (display.length > 0 && font.widthOfTextAtSize(display, size) > maxWidth) {
+        display = display.slice(0, -1);
       }
-    </div>
-  `;
+      if (display !== str) display = display.slice(0, -1) + '…';
+    }
+    this.currentPage.drawText(display, { x, y, size, font, color });
+  }
 
-  const odontogramaSVG = renderOdontogramaSVG(odontogramaData);
-  const renderOdontogramaTabla = () => {
-    if (!odontogramaData.length)
-      return '<p class="empty">Sin hallazgos odontológicos registrados.</p>';
-    const SURF_LABELS: Record<string, string> = {
-      top: 'Oclusal',
-      bottom: 'Cervical',
-      left: 'Mesial',
-      right: 'Distal',
-      center: 'Central',
-    };
-    const CONDICION_LABELS: Record<string, string> = {
-      caries: 'Caries',
-      restoration: 'Restauración',
-      sealant: 'Sellador',
-      fracture: 'Fractura',
-      crown: 'Corona',
-      extracted: 'Extraído',
-    };
-    return `<table class="odontograma-table"><thead><tr><th>Diente</th><th>Condición</th><th>Superficies afectadas</th></tr></thead><tbody>
-      ${odontogramaData
-        .map((tooth) => {
-          const surfStr = Object.entries(tooth.surfaces || {})
-            .filter(([, v]) => v)
-            .map(([k, v]) => `${SURF_LABELS[k] || k}: ${CONDICION_LABELS[v] || v}`)
-            .join('  |  ');
-          return `<tr><td>${tooth.num}</td><td>${CONDICION_LABELS[tooth.condition ?? ''] || '-'}</td><td>${surfStr || '-'}</td></tr>`;
-        })
-        .join('')}
-    </tbody></table>`;
-  };
+  // Texto con saltos de línea automáticos. Retorna nueva Y.
+  wrapText(
+    str: string,
+    x: number,
+    startY: number,
+    size: number,
+    maxWidth: number,
+    lineH: number,
+    color: RGB = C_BLACK,
+    bold = false,
+  ): number {
+    const font = bold ? this.fontB : this.fontR;
+    const words = str.split(' ');
+    let line = '';
+    let curY = startY;
+    for (const word of words) {
+      const test = line ? `${line} ${word}` : word;
+      if (font.widthOfTextAtSize(test, size) > maxWidth && line) {
+        if (curY - lineH < MARGIN) {
+          this.addPage();
+          curY = this.y;
+        }
+        this.currentPage.drawText(line, { x, y: curY, size, font, color });
+        curY -= lineH;
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    if (line) {
+      if (curY - lineH < MARGIN) {
+        this.addPage();
+        curY = this.y;
+      }
+      this.currentPage.drawText(line, { x, y: curY, size, font, color });
+      curY -= lineH;
+    }
+    this.y = curY;
+    return curY;
+  }
 
-  const renderBitacorasTabla = () => {
-    if (!bitacoras.length) return '<p class="empty">Sin notas de evolución registradas.</p>';
-    return `<table class="bitacora-table"><thead><tr><th>Fecha</th><th>Acción realizada</th><th>Descripción</th><th>Estado</th></tr></thead><tbody>
-      ${bitacoras
-        .map(
-          (bit) => `<tr>
-        <td>${fmtFechaHora(bit.fecha_creacion)}</td>
-        <td>${escapeHtml(bit.accion_realizada || '-')}</td>
-        <td>${escapeHtml(bit.descripcion || '-')}</td>
-        <td class="estado-${(bit.estado_bitacora || 'pendiente').toLowerCase()}">${escapeHtml(bit.estado_bitacora || 'Pendiente')}</td>
-      </tr>`,
-        )
-        .join('')}
-    </tbody></table>`;
-  };
+  // Cabecera de sección (fondo azul claro)
+  sectionHeader(title: string) {
+    this.needsSpace(22);
+    this.drawRect(MARGIN, this.y - 14, COL_W, 18, C_SECTION_BG);
+    this.text(title, MARGIN + 6, this.y - 11, 9, C_SECTION_FG, true);
+    this.y -= 20;
+  }
 
-  return `<!DOCTYPE html>
-  <html>
-  <head><meta charset="UTF-8"><title>Expediente Clínico - ${escapeHtml(patientInfo.nombre)}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 9pt; line-height: 1.4; margin: 0.5cm; color: #1C2833; }
-    .header { background-color: #1B4F72; color: white; padding: 0.5cm; text-align: center; margin-bottom: 0.5cm; }
-    .header h1 { font-size: 16pt; margin-bottom: 4px; }
-    .info-bar { background-color: #EBF5FB; padding: 0.3cm; display: flex; flex-wrap: wrap; justify-content: space-between; margin-bottom: 0.5cm; border-left: 4px solid #2E86C1; }
-    .info-bar > div { flex: 1; min-width: 200px; }
-    .section { margin-bottom: 0.6cm; page-break-inside: avoid; }
-    .section h2 { background-color: #D6EAF8; padding: 4px 8px; font-size: 10pt; color: #1B4F72; margin-bottom: 6px; }
-    .section h3 { font-size: 9pt; color: #2E86C1; margin-top: 8px; margin-bottom: 4px; }
-    .two-columns { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
-    .col { flex: 1; min-width: 180px; }
-    .data-row { display: flex; margin-bottom: 4px; flex-wrap: wrap; }
-    .data-key { font-weight: bold; color: #7F8C8D; width: 110px; flex-shrink: 0; }
-    .data-value { flex: 1; word-break: break-word; }
-    table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 8pt; }
-    th, td { border: 1px solid #AEB6BF; padding: 5px; text-align: left; vertical-align: top; }
-    th { background-color: #2E86C1; color: white; }
-    tr:nth-child(even) { background-color: #F4F6F7; }
-    .empty { color: #7F8C8D; font-style: italic; margin: 8px 0; }
-    .footer { margin-top: 0.8cm; border-top: 1px solid #AEB6BF; padding-top: 0.2cm; font-size: 6.5pt; color: #7F8C8D; display: flex; justify-content: space-between; flex-wrap: wrap; }
-    .consent-item { margin: 8px 0 0 12px; font-size: 8pt; }
-  </style>
-  </head>
-  <body>
-    <div class="header"><h1>EXPEDIENTE CLÍNICO</h1></div>
-    <div class="info-bar">
-      <div><strong>${escapeHtml(generalInfo.consultorio)}</strong><br>Odontólogo: ${escapeHtml(generalInfo.odontologo)}<br>Cédula: ${escapeHtml(generalInfo.cedulaProfesional)}</div>
-      <div>Fecha apertura: ${generalInfo.fechaElaboracion}<br>Impresión: ${generalInfo.fechaImpresion}<br>Estado: <span style="color:${generalInfo.estadoExpediente === 'En tratamiento' ? '#1E8449' : '#B7950B'}">${generalInfo.estadoExpediente}</span></div>
-    </div>
-    <div class="section">
-      <h2>1. Datos Generales del Paciente</h2>
-      <div class="two-columns">
-        <div class="col">
-          <div class="data-row"><div class="data-key">Nombre completo:</div><div class="data-value">${escapeHtml(patientInfo.nombre)}</div></div>
-          <div class="data-row"><div class="data-key">Fecha nacimiento:</div><div class="data-value">${patientInfo.fechaNacimiento}</div></div>
-          <div class="data-row"><div class="data-key">Edad:</div><div class="data-value">${patientInfo.edad}</div></div>
-          <div class="data-row"><div class="data-key">Sexo:</div><div class="data-value">${escapeHtml(patientInfo.sexo)}</div></div>
-          <div class="data-row"><div class="data-key">CURP:</div><div class="data-value">${escapeHtml(patientInfo.curp)}</div></div>
-          <div class="data-row"><div class="data-key">Ocupación:</div><div class="data-value">${escapeHtml(patientInfo.ocupacion)}</div></div>
-        </div>
-        <div class="col">
-          <div class="data-row"><div class="data-key">Correo:</div><div class="data-value">${escapeHtml(patientInfo.correo)}</div></div>
-          <div class="data-row"><div class="data-key">Teléfono:</div><div class="data-value">${escapeHtml(patientInfo.telefono)}</div></div>
-          <div class="data-row"><div class="data-key">Tipo sangre:</div><div class="data-value">${escapeHtml(patientInfo.tipoSangre)}</div></div>
-          <div class="data-row"><div class="data-key">Estatura:</div><div class="data-value">${patientInfo.estatura}</div></div>
-          <div class="data-row"><div class="data-key">Peso:</div><div class="data-value">${patientInfo.peso}</div></div>
-        </div>
-      </div>
-      <div class="data-row full-width"><div class="data-key">Domicilio:</div><div class="data-value">${escapeHtml(patientInfo.domicilio)}</div></div>
-    </div>
-    <div class="section">
-      <h2>2. Interrogatorio - Antecedentes</h2>
-      ${renderAntecedentesLista('Heredofamiliares', antecedentes.heredofamiliares)}
-      ${renderAntecedentesLista('Personales Patológicos (incluye tabaco, alcohol y sustancias adictivas)', antecedentes.patologicos)}
-      ${renderAntecedentesLista('Personales No Patológicos', antecedentes.noPatologicos)}
-      ${antecedentes.ginecoObstetrico.length ? renderAntecedentesLista('Gineco-Obstétricos', antecedentes.ginecoObstetrico) : ''}
-    </div>
-    <div class="section">
-      <h2>3. Exploración Física</h2>
-      <div class="two-columns">
-        <div class="col"><div class="data-row"><div class="data-key">Tipo sangre:</div><div class="data-value">${escapeHtml(patientInfo.tipoSangre)}</div></div></div>
-        <div class="col"><div class="data-row"><div class="data-key">Peso:</div><div class="data-value">${patientInfo.peso}</div></div></div>
-        <div class="col"><div class="data-row"><div class="data-key">Estatura:</div><div class="data-value">${patientInfo.estatura}</div></div></div>
-      </div>
-      <p class="empty">Nota: Los campos de signos vitales (T/A, FC, FR, Temp.), habitus exterior y exploración de cavidad oral, ATM, encías y estructuras adyacentes deberán completarse en la consulta.</p>
-    </div>
-    <div class="section">
-      <h2>4. Diagnóstico - Observaciones Generales</h2>
-      <p>${escapeHtml(expediente.observaciones_generales || 'Sin observaciones registradas.')}</p>
-    </div>
-    <div class="section">
-      <h2>5. Odontograma - Hallazgos Dentales</h2>
-      ${odontogramaFecha ? `<p class="empty">Última actualización: ${fmtFechaHora(odontogramaFecha)}</p>` : ''}
-      <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; font-size: 7.5pt;">
-        <div style="display: flex; align-items: center; gap: 4px;"><span style="background: #ef4444; width: 12px; height: 12px; border-radius: 2px;"></span> Caries</div>
-        <div style="display: flex; align-items: center; gap: 4px;"><span style="background: #10b981; width: 12px; height: 12px; border-radius: 2px;"></span> Restauración</div>
-        <div style="display: flex; align-items: center; gap: 4px;"><span style="background: #3b82f6; width: 12px; height: 12px; border-radius: 2px;"></span> Sellador</div>
-        <div style="display: flex; align-items: center; gap: 4px;"><span style="background: #fbbf24; width: 12px; height: 12px; border-radius: 2px;"></span> Fractura</div>
-        <div style="display: flex; align-items: center; gap: 4px;"><span style="background: #a78bfa; width: 12px; height: 12px; border-radius: 2px;"></span> Corona (contorno)</div>
-        <div style="display: flex; align-items: center; gap: 4px;"><span style="background: #f97316; width: 12px; height: 12px; border-radius: 2px;"></span> Extraído (aspa)</div>
-      </div>
-      ${odontogramaData.length ? odontogramaSVG : '<p class="empty">Sin hallazgos odontológicos registrados.</p>'}
-      ${renderOdontogramaTabla()}
-    </div>
-    <div class="section">
-      <h2>6. Notas de Evolución (Bitácoras)</h2>
-      ${renderBitacorasTabla()}
-    </div>
-    <div class="section">
-      <h2>7. Carta de Consentimiento Informado</h2>
-      ${consentimientos.length === 0 ? '<p class="empty">No se encontró carta de consentimiento informado registrada para este paciente.</p>' : `<p>Se encontr${consentimientos.length === 1 ? 'o' : 'aron'} ${consentimientos.length} carta${consentimientos.length === 1 ? '' : 's'} de consentimiento informado. El documento${consentimientos.length === 1 ? '' : 's'} original${consentimientos.length === 1 ? '' : 'es'} se adjunta a continuación conforme a la NOM-004-SSA3-2012.</p>${consentimientos.map((c, idx) => `<div class="consent-item">- Consentimiento ${idx + 1}  -  Fecha: ${fmtFecha(c.fecha_consentimiento)}  |  Cita ID: ${c.id_cita}</div>`).join('')}`}
-    </div>
-    <div class="footer">
-      <span>Generado conforme a NOM-004-SSA3-2012 - Expediente Clínico</span>
-      <span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
-    </div>
-  </body>
-  </html>`;
+  // Fila "Clave: Valor"
+  dataRow(key: string, value: string, indent = 0) {
+    this.needsSpace(14);
+    this.text(key, MARGIN + indent, this.y, 8, C_MUTED, true);
+    this.wrapText(
+      value,
+      MARGIN + indent + 100,
+      this.y,
+      8,
+      COL_W - indent - 105,
+      11,
+      C_BLACK,
+      false,
+    );
+    if (this.y > PAGE_H - MARGIN) return; // wrap ya movió y
+    this.y -= 2;
+  }
 }
 
-// ─── Función principal con Puppeteer (versión corregida) ────────────────
+// ─── Tabla genérica ───────────────────────────────────────────────────────
+function drawTable(
+  builder: PdfBuilder,
+  headers: string[],
+  rows: string[][],
+  colWidths: number[],
+  rowH = 16,
+  fontSize = 7,
+) {
+  const startX = MARGIN;
+  const fontR = builder['fontR'] as PDFFont;
+  const fontB = builder['fontB'] as PDFFont;
+
+  // Cabecera
+  builder.needsSpace(rowH + 4);
+  let x = startX;
+  for (let i = 0; i < headers.length; i++) {
+    builder.drawRect(x, builder.curY - rowH + 4, colWidths[i], rowH, C_TH_BG);
+    builder.text(
+      headers[i],
+      x + 3,
+      builder.curY - rowH + 8,
+      fontSize,
+      C_HEADER_TEXT,
+      true,
+      colWidths[i] - 6,
+    );
+    x += colWidths[i];
+  }
+  builder.moveDown(rowH);
+
+  // Filas
+  rows.forEach((row, rowIdx) => {
+    // Calcular la altura de la fila más alta (por wrap)
+    let maxLines = 1;
+    row.forEach((cell, ci) => {
+      const font = fontR;
+      const words = cell.split(' ');
+      let line = '';
+      let lines = 1;
+      for (const word of words) {
+        const test = line ? `${line} ${word}` : word;
+        if (font.widthOfTextAtSize(test, fontSize) > colWidths[ci] - 6 && line) {
+          lines++;
+          line = word;
+        } else {
+          line = test;
+        }
+      }
+      if (lines > maxLines) maxLines = lines;
+    });
+    const fRowH = Math.max(rowH, maxLines * (fontSize + 3) + 4);
+
+    builder.needsSpace(fRowH + 2);
+    x = startX;
+    const bgColor = rowIdx % 2 === 1 ? C_ROW_EVEN : rgb(1, 1, 1);
+
+    for (let i = 0; i < row.length; i++) {
+      builder.drawRect(x, builder.curY - fRowH + 4, colWidths[i], fRowH, bgColor);
+      builder.drawLine(x, builder.curY - fRowH + 4, x + colWidths[i], builder.curY - fRowH + 4);
+      builder.drawLine(x, builder.curY + 4, x + colWidths[i], builder.curY + 4);
+      builder.drawLine(x, builder.curY - fRowH + 4, x, builder.curY + 4);
+      // Wrap manual en celda
+      const words = row[i].split(' ');
+      let line = '';
+      let cellY = builder.curY - fontSize - 1;
+      const maxW = colWidths[i] - 6;
+      for (const word of words) {
+        const test = line ? `${line} ${word}` : word;
+        if (fontR.widthOfTextAtSize(test, fontSize) > maxW && line) {
+          builder.page.drawText(line, {
+            x: x + 3,
+            y: cellY,
+            size: fontSize,
+            font: fontR,
+            color: C_BLACK,
+          });
+          cellY -= fontSize + 3;
+          line = word;
+        } else {
+          line = test;
+        }
+      }
+      if (line)
+        builder.page.drawText(line, {
+          x: x + 3,
+          y: cellY,
+          size: fontSize,
+          font: fontR,
+          color: C_BLACK,
+        });
+      x += colWidths[i];
+    }
+    builder.drawLine(x, builder.curY - fRowH + 4, x, builder.curY + 4); // borde derecho final
+    builder.moveDown(fRowH);
+  });
+  builder.moveDown(4);
+}
+
+// ─── Función principal ─────────────────────────────────────────────────────
 export async function generarExpedientePDF(
   expedienteId: number | string,
   res: Response,
@@ -537,7 +607,7 @@ export async function generarExpedientePDF(
     Consentimiento,
   } = models;
 
-  // 1. Obtener datos del expediente
+  // ── 1. Fetch de datos ──────────────────────────────────────────────────
   const expediente = (await Expediente.findByPk(expedienteId, {
     include: [
       {
@@ -580,7 +650,7 @@ export async function generarExpedientePDF(
     attributes: ['id_cita'],
   })) as Pick<Cita, 'id_cita'>[];
   const idCitas = citasDelPaciente.map((c) => c.id_cita);
-  const consentimientos =
+  const consentimientos: Consentimiento[] =
     idCitas.length > 0
       ? ((await Consentimiento.findAll({
           where: { id_cita: { [Op.in]: idCitas } },
@@ -588,87 +658,379 @@ export async function generarExpedientePDF(
         })) as Consentimiento[])
       : [];
 
+  // ── 2. Preparar info ───────────────────────────────────────────────────
   const pacUsuario = expediente.paciente?.usuario || ({} as Usuario);
   const dentUsuario = expediente.dentista?.usuario || ({} as Usuario);
   const direccion = expediente.paciente?.direccion;
 
-  const patientInfo = {
-    nombre:
-      [pacUsuario.nombre, pacUsuario.apellido_paterno, pacUsuario.apellido_materno]
-        .filter(Boolean)
-        .join(' ') || '-',
-    fechaNacimiento: fmtFecha(pacUsuario.fecha_nacimiento),
-    edad: calcularEdad(pacUsuario.fecha_nacimiento),
-    sexo: pacUsuario.genero || '-',
-    curp: pacUsuario.curp || '-',
-    correo: pacUsuario.correo || '-',
-    telefono: pacUsuario.telefono || '-',
-    domicilio: buildDomicilio(direccion),
-    tipoSangre: expediente.tipo_sangre || '-',
-    estatura: expediente.estatura ? `${expediente.estatura} cm` : '-',
-    peso: expediente.peso ? `${expediente.peso} kg` : '-',
-    ocupacion: expediente.ocupacion || '-',
-  };
+  const nombrePaciente =
+    [pacUsuario.nombre, pacUsuario.apellido_paterno, pacUsuario.apellido_materno]
+      .filter(Boolean)
+      .join(' ') || '-';
 
-  const generalInfo = {
-    consultorio: 'Consultorio Dental',
-    odontologo: `${dentUsuario.nombre || ''} ${dentUsuario.apellido_paterno || ''}`.trim() || '-',
-    cedulaProfesional: expediente.dentista?.no_cedula || '-',
-    fechaElaboracion: fmtFecha(expediente.fecha_creacion),
-    fechaImpresion: fmtFecha(new Date()),
-    estadoExpediente: 'En tratamiento',
-  };
+  const nombreDentista =
+    `${dentUsuario.nombre || ''} ${dentUsuario.apellido_paterno || ''}`.trim() || '-';
 
   const groupAntecedentes = (tipo: string) =>
     antecedentes
       .filter((a) => a.tipo_antecedente === tipo)
-      .map((a) => ({ nombre: a.padecimiento?.nombre_padecimiento || '-', nota: a.nota || '' }));
-  const heredofamiliares = groupAntecedentes('heredofamiliar');
-  const patologicos = groupAntecedentes('patologico_personal');
-  const noPatologicos = groupAntecedentes('no_patologico');
-  const ginecoObstetrico = groupAntecedentes('gineco_obstetrico');
+      .map((a) => ({
+        nombre: a.padecimiento?.nombre_padecimiento || '-',
+        nota: a.nota || '',
+      }));
 
-  const odontogramaData = odontograma?.datos_odontograma || [];
+  const odontogramaData: OdontogramaDiente[] = odontograma?.datos_odontograma || [];
 
-  const htmlContent = buildExpedienteHTML(
-    expediente,
-    patientInfo,
-    generalInfo,
-    { heredofamiliares, patologicos, noPatologicos, ginecoObstetrico },
-    odontogramaData,
-    odontograma?.fecha_actualizacion || null,
-    bitacoras,
-    consentimientos,
-  );
+  // ── 3. Generar PNG del odontograma con @resvg/resvg-js ────────────────
+  let odontogramaPng: Uint8Array | null = null;
+  if (odontogramaData.length > 0) {
+    try {
+      const svgStr = renderOdontogramaSVG(odontogramaData);
+      const resvg = new Resvg(svgStr, { fitTo: { mode: 'width', value: 700 } });
+      odontogramaPng = resvg.render().asPng();
+    } catch (err) {
+      console.warn('[PDF] No se pudo renderizar odontograma SVG:', err);
+    }
+  }
 
-  // 2. Generar PDF con Puppeteer (usando chromium optimizado)
-  let browser;
+  // ── 4. Construir PDF con pdf-lib ───────────────────────────────────────
   try {
-    browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-      ],
-      executablePath: await chromium.executablePath(),
-      headless: true,
-      defaultViewport: null,
-    });
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'load' });
-    const expedienteBuffer = await page.pdf({
-      format: 'Letter',
-      printBackground: true,
-      margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' },
+    const doc = await PDFDocument.create();
+    const fontR = await doc.embedFont(StandardFonts.Helvetica);
+    const fontB = await doc.embedFont(StandardFonts.HelveticaBold);
+
+    const builder = new PdfBuilder(doc, fontR, fontB);
+
+    // — HEADER —
+    builder.drawRect(MARGIN, PAGE_H - MARGIN - 30, COL_W, 32, C_HEADER_BG);
+    builder.text(
+      'EXPEDIENTE CLÍNICO',
+      MARGIN + COL_W / 2 - 60,
+      PAGE_H - MARGIN - 8,
+      14,
+      C_HEADER_TEXT,
+      true,
+    );
+    builder.moveDown(38);
+
+    // — BARRA INFO —
+    builder.needsSpace(50);
+    builder.drawRect(MARGIN, builder.curY - 44, COL_W, 48, C_INFO_BAR);
+    builder.drawRect(MARGIN, builder.curY - 44, 3, 48, C_TH_BG); // borde izq azul
+    const iy = builder.curY - 10;
+    builder.text('Consultorio Dental', MARGIN + 8, iy, 9, C_BLACK, true);
+    builder.text(`Odontólogo: ${nombreDentista}`, MARGIN + 8, iy - 12, 8, C_BLACK);
+    builder.text(
+      `Cédula: ${expediente.dentista?.no_cedula || '-'}`,
+      MARGIN + 8,
+      iy - 23,
+      8,
+      C_BLACK,
+    );
+    const col2x = MARGIN + COL_W / 2;
+    builder.text(`Fecha apertura: ${fmtFecha(expediente.fecha_creacion)}`, col2x, iy, 8, C_BLACK);
+    builder.text(`Impresión: ${fmtFecha(new Date())}`, col2x, iy - 12, 8, C_BLACK);
+    builder.text('Estado: En tratamiento', col2x, iy - 23, 8, rgb(0.118, 0.518, 0.275), true);
+    builder.moveDown(52);
+
+    // ── SECCIÓN 1: Datos del Paciente ──────────────────────────────────
+    builder.sectionHeader('1. Datos Generales del Paciente');
+    builder.moveDown(4);
+
+    const leftCols: [string, string][] = [
+      ['Nombre completo:', nombrePaciente],
+      ['Fecha nacimiento:', fmtFecha(pacUsuario.fecha_nacimiento)],
+      ['Edad:', calcularEdad(pacUsuario.fecha_nacimiento)],
+      ['Sexo:', pacUsuario.genero || '-'],
+      ['CURP:', pacUsuario.curp || '-'],
+      ['Ocupación:', expediente.ocupacion || '-'],
+    ];
+    const rightCols: [string, string][] = [
+      ['Correo:', pacUsuario.correo || '-'],
+      ['Teléfono:', pacUsuario.telefono || '-'],
+      ['Tipo sangre:', expediente.tipo_sangre || '-'],
+      ['Estatura:', expediente.estatura ? `${expediente.estatura} cm` : '-'],
+      ['Peso:', expediente.peso ? `${expediente.peso} kg` : '-'],
+    ];
+
+    const savedY = builder.curY;
+    for (const [k, v] of leftCols) {
+      builder.needsSpace(13);
+      builder.text(k, MARGIN, builder.curY, 8, C_MUTED, true);
+      builder.text(v, MARGIN + 95, builder.curY, 8, C_BLACK, false, COL_W / 2 - 100);
+      builder.moveDown(13);
+    }
+    const afterLeftY = builder.curY;
+
+    // Columna derecha (mismo bloque, volvemos al savedY lógicamente en misma pág)
+    // Sólo si cabe en la misma página; si no, igual es aceptable.
+    let rightY = savedY;
+    for (const [k, v] of rightCols) {
+      builder.page.drawText(k, {
+        x: MARGIN + COL_W / 2,
+        y: rightY,
+        size: 8,
+        font: fontB,
+        color: C_MUTED,
+      });
+      builder.page.drawText(v.slice(0, 35), {
+        x: MARGIN + COL_W / 2 + 80,
+        y: rightY,
+        size: 8,
+        font: fontR,
+        color: C_BLACK,
+      });
+      rightY -= 13;
+    }
+
+    builder['y'] = Math.min(afterLeftY, rightY) - 4;
+    builder.dataRow('Domicilio:', buildDomicilio(direccion));
+    builder.moveDown(8);
+
+    // ── SECCIÓN 2: Antecedentes ────────────────────────────────────────
+    builder.sectionHeader('2. Interrogatorio - Antecedentes');
+    builder.moveDown(4);
+
+    const grupos: { titulo: string; tipo: string }[] = [
+      { titulo: 'Heredofamiliares', tipo: 'heredofamiliar' },
+      { titulo: 'Personales Patológicos', tipo: 'patologico_personal' },
+      { titulo: 'Personales No Patológicos', tipo: 'no_patologico' },
+      { titulo: 'Gineco-Obstétricos', tipo: 'gineco_obstetrico' },
+    ];
+
+    for (const g of grupos) {
+      const lista = groupAntecedentes(g.tipo);
+      if (g.tipo === 'gineco_obstetrico' && lista.length === 0) continue;
+      builder.needsSpace(14);
+      builder.text(g.titulo, MARGIN, builder.curY, 9, C_TH_BG, true);
+      builder.moveDown(12);
+      if (lista.length === 0) {
+        builder.text('Sin antecedentes registrados.', MARGIN + 8, builder.curY, 8, C_MUTED);
+        builder.moveDown(12);
+      } else {
+        for (const item of lista) {
+          builder.needsSpace(12);
+          builder.text('•', MARGIN + 6, builder.curY, 8, C_BLACK);
+          const txt = item.nota ? `${item.nombre}  — ${item.nota}` : item.nombre;
+          builder.wrapText(txt, MARGIN + 16, builder.curY, 8, COL_W - 20, 11);
+          builder.moveDown(2);
+        }
+      }
+      builder.moveDown(4);
+    }
+
+    // ── SECCIÓN 3: Exploración física ─────────────────────────────────
+    builder.sectionHeader('3. Exploración Física');
+    builder.moveDown(4);
+    builder.dataRow('Tipo sangre:', expediente.tipo_sangre || '-');
+    builder.dataRow('Peso:', expediente.peso ? `${expediente.peso} kg` : '-');
+    builder.dataRow('Estatura:', expediente.estatura ? `${expediente.estatura} cm` : '-');
+    builder.moveDown(4);
+    builder.wrapText(
+      'Nota: Los campos de signos vitales (T/A, FC, FR, Temp.), habitus exterior y exploración de cavidad oral, ATM, encías y estructuras adyacentes deberán completarse en la consulta.',
+      MARGIN,
+      builder.curY,
+      7.5,
+      COL_W,
+      11,
+      C_MUTED,
+    );
+    builder.moveDown(10);
+
+    // ── SECCIÓN 4: Diagnóstico ─────────────────────────────────────────
+    builder.sectionHeader('4. Diagnóstico - Observaciones Generales');
+    builder.moveDown(4);
+    builder.wrapText(
+      expediente.observaciones_generales || 'Sin observaciones registradas.',
+      MARGIN,
+      builder.curY,
+      8.5,
+      COL_W,
+      13,
+    );
+    builder.moveDown(10);
+
+    // ── SECCIÓN 5: Odontograma ─────────────────────────────────────────
+    builder.sectionHeader('5. Odontograma - Hallazgos Dentales');
+    builder.moveDown(4);
+
+    if (odontograma?.fecha_actualizacion) {
+      builder.text(
+        `Última actualización: ${fmtFechaHora(odontograma.fecha_actualizacion)}`,
+        MARGIN,
+        builder.curY,
+        8,
+        C_MUTED,
+      );
+      builder.moveDown(12);
+    }
+
+    // Leyenda de colores (texto plano)
+    const leyenda = [
+      { label: 'Caries', color: rgb(0.937, 0.267, 0.267) },
+      { label: 'Restauración', color: rgb(0.063, 0.725, 0.506) },
+      { label: 'Sellador', color: rgb(0.231, 0.51, 0.965) },
+      { label: 'Fractura', color: rgb(0.984, 0.749, 0.141) },
+      { label: 'Corona', color: rgb(0.655, 0.545, 0.98) },
+      { label: 'Extraído', color: rgb(0.976, 0.447, 0.086) },
+    ];
+    let lx = MARGIN;
+    const ly = builder.curY;
+    for (const item of leyenda) {
+      builder.page.drawRectangle({ x: lx, y: ly - 7, width: 10, height: 10, color: item.color });
+      builder.page.drawText(item.label, {
+        x: lx + 13,
+        y: ly - 5,
+        size: 7,
+        font: fontR,
+        color: C_BLACK,
+      });
+      lx += fontR.widthOfTextAtSize(item.label, 7) + 24;
+    }
+    builder.moveDown(18);
+
+    // Imagen PNG del odontograma
+    if (odontogramaPng) {
+      builder.needsSpace(130);
+      const pngImage = await doc.embedPng(odontogramaPng);
+      const imgW = COL_W;
+      const imgH = Math.round((190 / 700) * imgW);
+      builder.page.drawImage(pngImage, {
+        x: MARGIN,
+        y: builder.curY - imgH,
+        width: imgW,
+        height: imgH,
+      });
+      builder.moveDown(imgH + 6);
+    } else {
+      builder.text('Sin hallazgos odontológicos registrados.', MARGIN, builder.curY, 8, C_MUTED);
+      builder.moveDown(12);
+    }
+
+    // Tabla de dientes afectados
+    if (odontogramaData.length > 0) {
+      const SURF_LABELS: Record<string, string> = {
+        top: 'Oclusal',
+        bottom: 'Cervical',
+        left: 'Mesial',
+        right: 'Distal',
+        center: 'Central',
+      };
+      const COND_LABELS: Record<string, string> = {
+        caries: 'Caries',
+        restoration: 'Restauración',
+        sealant: 'Sellador',
+        fracture: 'Fractura',
+        crown: 'Corona',
+        extracted: 'Extraído',
+      };
+      const rows = odontogramaData.map((tooth) => {
+        const surfStr = Object.entries(tooth.surfaces || {})
+          .filter(([, v]) => v)
+          .map(([k, v]) => `${SURF_LABELS[k] || k}: ${COND_LABELS[v] || v}`)
+          .join(' | ');
+        return [String(tooth.num), COND_LABELS[tooth.condition ?? ''] || '-', surfStr || '-'];
+      });
+      drawTable(builder, ['Diente', 'Condición', 'Superficies afectadas'], rows, [
+        50,
+        90,
+        COL_W - 140,
+      ]);
+    }
+    builder.moveDown(6);
+
+    // ── SECCIÓN 6: Bitácoras ───────────────────────────────────────────
+    builder.sectionHeader('6. Notas de Evolución (Bitácoras)');
+    builder.moveDown(4);
+
+    if (bitacoras.length === 0) {
+      builder.text('Sin notas de evolución registradas.', MARGIN, builder.curY, 8, C_MUTED);
+      builder.moveDown(12);
+    } else {
+      const bRows = bitacoras.map((bit) => [
+        fmtFechaHora(bit.fecha_creacion),
+        bit.accion_realizada || '-',
+        bit.descripcion || '-',
+        bit.estado_bitacora || 'Pendiente',
+      ]);
+      drawTable(builder, ['Fecha', 'Acción realizada', 'Descripción', 'Estado'], bRows, [
+        85,
+        110,
+        COL_W - 85 - 110 - 65,
+        65,
+      ]);
+    }
+    builder.moveDown(6);
+
+    // ── SECCIÓN 7: Consentimientos ─────────────────────────────────────
+    builder.sectionHeader('7. Carta de Consentimiento Informado');
+    builder.moveDown(4);
+
+    if (consentimientos.length === 0) {
+      builder.wrapText(
+        'No se encontró carta de consentimiento informado registrada para este paciente.',
+        MARGIN,
+        builder.curY,
+        8,
+        COL_W,
+        12,
+        C_MUTED,
+      );
+      builder.moveDown(12);
+    } else {
+      builder.wrapText(
+        `Se encontr${consentimientos.length === 1 ? 'ó' : 'aron'} ${consentimientos.length} carta${consentimientos.length === 1 ? '' : 's'} de consentimiento informado. El documento${consentimientos.length === 1 ? '' : 's'} original${consentimientos.length === 1 ? '' : 'es'} se adjunta a continuación conforme a la NOM-004-SSA3-2012.`,
+        MARGIN,
+        builder.curY,
+        8,
+        COL_W,
+        12,
+      );
+      builder.moveDown(6);
+      consentimientos.forEach((c, idx) => {
+        builder.needsSpace(12);
+        builder.text(
+          `- Consentimiento ${idx + 1}  |  Fecha: ${fmtFecha(c.fecha_consentimiento)}  |  Cita ID: ${c.id_cita}`,
+          MARGIN + 10,
+          builder.curY,
+          8,
+          C_BLACK,
+        );
+        builder.moveDown(12);
+      });
+    }
+
+    // — Footer en todas las páginas —
+    const totalPgs = builder.totalPages;
+    builder.allPages.forEach((pg, idx) => {
+      pg.drawLine({
+        start: { x: MARGIN, y: MARGIN + 14 },
+        end: { x: PAGE_W - MARGIN, y: MARGIN + 14 },
+        thickness: 0.5,
+        color: C_BORDER,
+      });
+      pg.drawText('Generado conforme a NOM-004-SSA3-2012 - Expediente Clínico', {
+        x: MARGIN,
+        y: MARGIN + 4,
+        size: 6.5,
+        font: fontR,
+        color: C_MUTED,
+      });
+      pg.drawText(`Página ${idx + 1} de ${totalPgs}`, {
+        x: PAGE_W - MARGIN - 60,
+        y: MARGIN + 4,
+        size: 6.5,
+        font: fontR,
+        color: C_MUTED,
+      });
     });
 
+    // ── 5. Serializar y fusionar consentimientos ───────────────────────
+    const expedienteBuffer = Buffer.from(await doc.save());
     const pdfFinal =
       consentimientos.length > 0
-        ? await fusionarConConsentimientos(Buffer.from(expedienteBuffer), consentimientos)
-        : Buffer.from(expedienteBuffer);
+        ? await fusionarConConsentimientos(expedienteBuffer, consentimientos)
+        : expedienteBuffer;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Length', pdfFinal.length);
@@ -680,7 +1042,5 @@ export async function generarExpedientePDF(
   } catch (error) {
     console.error('Error generando PDF:', error);
     res.status(500).json({ message: 'Error al generar el expediente PDF' });
-  } finally {
-    if (browser) await browser.close();
   }
 }
