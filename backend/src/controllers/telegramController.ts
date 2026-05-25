@@ -4,40 +4,39 @@ import { CustomRequest } from "../middleware/authMiddleware";
 import { generarToken } from "../helpers/generarToken";
 import {obtenerEstadoTelegram,desvincularTelegramPaciente} from '../services/telegramService'
 
-export const generarTokenVinculacion =async(req:CustomRequest, res:Response) =>{
-    try{
-        const id_usuario = req.userData?.id;
+export const generarTokenVinculacion = async (req: CustomRequest, res: Response) => {
+  try {
+    const id_usuario = req.userData?.id;
 
-        const paciente = await Paciente.findOne({
-            where:{id_usuario},
-            attributes:{exclude:['contrasena']}
-        });
-        if(!paciente){
-            return res.status(404).json({message:'Paciente no encontrado'});
-        }
-        const id_paciente = paciente.id_paciente;
-        const token= generarToken();
-
-        await Telegram.upsert({
-            id_paciente,
-            token, 
-            id_chat: null
-        });
-
-        return res.status(200).json({
-            token,
-            link:`https://t.me/ConsultorioGonzalez_bot?start=${token}`
-        });
-
-
-    }catch(error){
-        console.log('Error al generar token para vincular: ', error);
-        return res.status(500).json({
-            message:'Error del sservidor'
-        });
+    const paciente = await Paciente.findOne({
+      where: { id_usuario },
+      attributes: { exclude: ['contrasena'] },
+    });
+    if (!paciente) {
+      return res.status(404).json({ message: 'Paciente no encontrado' });
     }
 
-}
+    const id_paciente = paciente.id_paciente;
+    const token = generarToken();
+
+    // ✅ Evita el upsert con doble UNIQUE — busca y actualiza, o crea
+    const registroExistente = await Telegram.findOne({ where: { id_paciente } });
+
+    if (registroExistente) {
+      await registroExistente.update({ token, id_chat: null });
+    } else {
+      await Telegram.create({ id_paciente, token, id_chat: null });
+    }
+
+    return res.status(200).json({
+      token,
+      link: `https://t.me/ConsultorioGonzalez_bot?start=${token}`,
+    });
+  } catch (error) {
+    console.log('Error al generar token para vincular: ', error);
+    return res.status(500).json({ message: 'Error del servidor' });
+  }
+};
 
 export const estadoTelegram = async(req:CustomRequest, res:Response) =>{
     
