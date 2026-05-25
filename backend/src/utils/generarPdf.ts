@@ -651,9 +651,11 @@ export async function generarExpedientePDF(
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
+        '--single-process',
       ],
       executablePath: await chromium.executablePath(),
       headless: true,
+      defaultViewport: null,
     });
     const page = await browser.newPage();
     await page.setContent(htmlContent, { waitUntil: 'load' });
