@@ -832,7 +832,7 @@ export async function generarExpedientePDF(
   // Generar PDF con Puppeteer
   const browser = await puppeteer.launch({
     headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    executablePath: undefined,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
