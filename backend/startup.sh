@@ -1,6 +1,10 @@
 #!/bin/bash
-# Dependencias de sistema para Puppeteer/Chromium en Azure App Service Linux
-apt-get update && apt-get install -y \
+set -e
+
+cd /home/site/wwwroot
+
+# ── Dependencias de sistema para Chromium ──────────────────────────
+apt-get update -qq && apt-get install -y --no-install-recommends \
   libgbm-dev \
   libnss3 \
   libatk-bridge2.0-0 \
@@ -11,7 +15,15 @@ apt-get update && apt-get install -y \
   libxrandr2 \
   libpango-1.0-0 \
   libcairo2 \
-  libasound2 \
-  --no-install-recommends
+  libasound2t64 \
+  && rm -rf /var/lib/apt/lists/*
 
+# ── Instalar dependencias Node si no están ─────────────────────────
+if [ ! -d "node_modules" ]; then
+  echo "Instalando dependencias..."
+  npm install --omit=dev
+fi
+
+# ── Arrancar servidor ──────────────────────────────────────────────
+echo "Iniciando SISPOD backend..."
 node dist/server.js
