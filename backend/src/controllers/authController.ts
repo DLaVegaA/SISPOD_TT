@@ -333,28 +333,24 @@ export const olvidoContrasena = async (req: Request, res: Response) => {
 export const validarTokenReset = async (req: Request, res: Response) => {
   const token = req.params.token as string;
   if (!token) {
-    return res.status(400).json({
-      message: 'Token requerido',
-    });
+    return res.status(400).json({ message: 'Token requerido' });
   }
 
   try {
-    const registro = await verificarTokenReset(token);
-    return res.status(200).json({
-      valido: true,
-    });
+    await verificarTokenReset(token);
+    return res.status(200).json({ valido: true });
   } catch (error: any) {
-    console.log('Error al validar token de contraseña: ', error);
     if (error.message === 'Token_No_existe') {
-      console.log('Error token no existe: ', error);
-      return res.status(400).json({
-        valido: false,
-        message: 'El token no existe',
-      });
+      return res.status(400).json({ valido: false, message: 'El token no existe' });
+    }
+    // ✅ Nuevo caso
+    if (error.message === 'Token_Expirado') {
+      return res.status(400).json({ valido: false, message: 'El enlace ha expirado. Solicita uno nuevo.' });
     }
     return res.status(500).json({ message: 'Error del servidor' });
   }
 };
+
 //Hcaer funcion que valide el token antes de que llegar al formulario
 export const resetPassword = async (req: Request, res: Response) => {
   const tokenBD = (req as any).tokenData;
