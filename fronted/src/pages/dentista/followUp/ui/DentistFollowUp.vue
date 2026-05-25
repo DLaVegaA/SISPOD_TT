@@ -671,16 +671,9 @@ onMounted(async () => {
           >
             <div class="flex items-center gap-1.5 text-[10px] text-muted">
               <CalendarDays class="w-3 h-3 shrink-0" />
-              <span>{{ formatearFecha(item.fecha_inicio) }}</span>
-              <template v-if="!item.fecha_fin"
-                ><span>·</span
-                ><span class="font-semibold text-black"
-                  >{{ diasTranscurridos(item.fecha_inicio) }} días</span
-                ></template
-              >
-              <template v-else
-                ><span>→ {{ formatearFecha(item.fecha_fin) }}</span></template
-              >
+              <span>Inicio: {{ formatearFecha(item.fecha_inicio) }}</span>
+              <span>·</span>
+              <span class="font-semibold text-black">{{ diasTranscurridos(item.fecha_inicio) }} días</span>
             </div>
 
             <div

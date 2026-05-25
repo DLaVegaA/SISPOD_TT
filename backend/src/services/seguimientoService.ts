@@ -330,6 +330,13 @@ export const finalizarSeguimientoService = async (id_seguimiento: number) => {
     if (seguimiento.estado_seguimiento === 'finalizado') {
         throw new AppError('El seguimiento ya está finalizado', 400);
     }
+    if (seguimiento.id_cuestionario_24h && !seguimiento.enviado_24h) {
+       throw new AppError('No se puede finalizar: el cuestionario de 24h aún no ha sido respondido', 400);
+    }
+
+    if (seguimiento.id_cuestionario_72h && !seguimiento.enviado_72h) {
+        throw new AppError('No se puede finalizar: el cuestionario de 72h aún no ha sido respondido', 400);
+    }
 
     await seguimiento.update({
         estado_seguimiento: 'finalizado',
