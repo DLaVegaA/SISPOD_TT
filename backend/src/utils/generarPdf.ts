@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { Op } from 'sequelize';
 import puppeteer from 'puppeteer';
-import { PDFDocument as LibPDF } from 'pdf-lib';
+import { PDFDocument as LibPDF, PDFPage } from 'pdf-lib';
 import {
   BlobServiceClient,
   generateBlobSASQueryParameters,
@@ -177,7 +177,7 @@ async function fusionarConConsentimientos(
         consentPdf,
         Array.from({ length: pageCount }, (_, i) => i),
       );
-      copiedPages.forEach((page) => docFinal.addPage(page));
+      copiedPages.forEach((page: PDFPage) => docFinal.addPage(page));
     } catch (err: any) {
       console.warn(
         `[PDF] No se pudo fusionar consentimiento ${consent.nombre_archivo}:`,
@@ -830,7 +830,16 @@ export async function generarExpedientePDF(
   );
 
   // Generar PDF con Puppeteer
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({
+    headless: true,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',   // crítico en Azure
+      '--disable-gpu',
+    ],
+  });
   const page = await browser.newPage();
   await page.setContent(htmlContent, { waitUntil: 'load' });
   const expedienteBuffer = await page.pdf({
