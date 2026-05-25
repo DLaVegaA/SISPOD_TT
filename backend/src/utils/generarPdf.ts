@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { Op } from 'sequelize';
 import puppeteer from 'puppeteer-core'; // ← cambiar a puppeteer-core
 import chromium from '@sparticuz/chromium'; // ← nuevo import
-import { PDFDocument as LibPDF } from 'pdf-lib';
+import { PDFDocument as LibPDF, PDFPage } from 'pdf-lib';
 import {
   BlobServiceClient,
   generateBlobSASQueryParameters,
