@@ -1,202 +1,328 @@
 <script setup lang="ts">
+/**
+ * @layer  pages / asistente / dashboard / ui
+ * @file   AssistantDashboard.vue
+ */
+
 import { ref } from 'vue'
 import {
   CalendarCheck,
-  UserPlus,
-  XCircle,
-  AlertTriangle,
+  ClipboardX,
   AlertCircle,
   CalendarClock,
   Ban,
+  RefreshCw,
+  FolderOpen,
+  CalendarDays,
+  Loader2,
 } from 'lucide-vue-next'
+import { useAssistantDashboard } from '@/features/assistant-dashboard'
+import type { EstadoCita } from '@/features/assistant-dashboard'
 
-const metricas = ref([
-  {
-    titulo: 'Citas del Día',
-    numero: 12,
-    subtitulo: '3 Por Confirmar',
-    textoBoton: 'Ver Agenda',
-    icon: CalendarCheck,
-    iconClass: 'text-accent',
-    iconBg: 'bg-accent-dim',
-    action: () => console.log('Ir a la agenda'),
-  },
-  {
-    titulo: 'Nuevos Pacientes',
-    numero: 4,
-    subtitulo: 'Registrados Hoy',
-    textoBoton: 'Registrar',
-    icon: UserPlus,
-    iconClass: 'text-emerald-500',
-    iconBg: 'bg-emerald-500/10',
-    action: () => console.log('Abrir modal de registro'),
-  },
-  {
-    titulo: 'Citas Canceladas',
-    numero: 2,
-    subtitulo: 'Requieren atención',
-    textoBoton: 'Revisar',
-    icon: XCircle,
-    iconClass: 'text-amber-500',
-    iconBg: 'bg-amber-500/10',
-    action: () => console.log('Filtrar citas canceladas'),
-  },
-])
+// ── Feature ───────────────────────────────────────────────────────────────────
+const {
+  isLoading,
+  error,
+  nombreAsistente,
+  totalCitasHoy,
+  citasPorConfirmar,
+  citasCanceladas,
+  totalSinExpediente,
+  agendaHoy,
+  irACalendario,
+  irAPacientes,
+  cancelarCita,
+  refetch,
+} = useAssistantDashboard()
 
-const proximasCitas = ref([
-  { id: 1, paciente: 'Juan Pérez García', hora: '10:00 AM', tipo: 'Limpieza'    },
-  { id: 2, paciente: 'Ana Gómez López',   hora: '11:30 AM', tipo: 'Revisión'    },
-  { id: 3, paciente: 'Carlos Ruiz S.',    hora: '01:00 PM', tipo: 'Extracción'  },
-  { id: 4, paciente: 'María Fernández',   hora: '04:00 PM', tipo: 'Primera Vez' },
-])
+// ── Estado UI local ───────────────────────────────────────────────────────────
+type ToastKind = 'success' | 'error'
 
-function handleReprogramar(cita: { paciente: string }) {
-  console.log('Reprogramar cita para', cita.paciente)
-}
-function handleCancelar(cita: { paciente: string }) {
-  console.log('Cancelar cita de', cita.paciente)
+const toastVisible = ref(false)
+const toastMessage = ref('')
+const toastKind    = ref<ToastKind>('success')
+let   toastTimer: ReturnType<typeof setTimeout> | null = null
+
+function showToast(message: string, kind: ToastKind = 'success'): void {
+  if (toastTimer) clearTimeout(toastTimer)
+  toastMessage.value = message
+  toastKind.value    = kind
+  toastVisible.value = true
+  toastTimer = setTimeout(() => { toastVisible.value = false }, 3500)
 }
 
-const alertas = ref([
-  { tipo: 'Llegada tarde',      paciente: 'Carlos Ruiz S.',  hora: 'Hace 10 min',  kind: 'warning' },
-  { tipo: 'Falta confirmación', paciente: 'María Fernández', hora: 'Para 04:00 PM', kind: 'warning' },
-  { tipo: 'Cita cancelada',     paciente: 'Luis Torres',     hora: 'Ayer',          kind: 'error'   },
-])
+const cancellingId = ref<number | null>(null)
 
-function alertClass(kind: string) {
-  return kind === 'error'
-    ? 'bg-red-500/10 border border-red-400/30 text-red-600'
-    : 'bg-amber-400/10 border border-amber-400/30 text-amber-700'
+async function handleCancelar(id: number, paciente: string): Promise<void> {
+  if (cancellingId.value !== null) return
+  cancellingId.value = id
+  try {
+    await cancelarCita(id)
+    showToast(`Cita de ${paciente} cancelada`, 'success')
+  } catch {
+    showToast('No se pudo cancelar la cita. Intenta de nuevo.', 'error')
+  } finally {
+    cancellingId.value = null
+  }
 }
-function alertIcon(kind: string) {
-  return kind === 'error' ? AlertCircle : AlertTriangle
+
+// ── Helpers de estilos ────────────────────────────────────────────────────────
+const ESTADO_BADGE: Record<EstadoCita, string> = {
+  Confirmada: 'bg-emerald-100 text-emerald-700',
+  Pendiente:  'bg-amber-100  text-amber-700',
+  Cancelada:  'bg-red-100    text-red-600',
+  Atendida:   'bg-blue-100   text-blue-700',
+}
+
+function estadoBadgeClass(estado: EstadoCita): string {
+  return ESTADO_BADGE[estado] ?? 'bg-surface text-muted'
 }
 </script>
 
 <template>
   <div class="fade-in">
 
-    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <!-- ── Toast ──────────────────────────────────────────────────────────── -->
+    <Transition name="toast-slide">
+      <div
+        v-if="toastVisible"
+        :class="[
+          'fixed top-5 right-5 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl',
+          'text-sm font-semibold shadow-lg',
+          toastKind === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white',
+        ]"
+      >
+        {{ toastMessage }}
+      </div>
+    </Transition>
+
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
     <div class="mb-8">
       <div class="flex items-center gap-1.5 text-xs text-muted font-medium mb-2">
         <span class="text-muted/60">🏠</span>
         <span class="text-muted/60">&gt;</span>
         <span class="bg-card border border-border px-2 py-0.5 rounded-lg">Panel de Control</span>
       </div>
-      <h1 class="font-display text-2xl font-extrabold text-black">Dashboard Recepción</h1>
-      <p class="text-sm text-muted mt-1">Gestión rápida de agenda y pacientes.</p>
-    </div>
 
-    <!-- ── Metric cards ─────────────────────────────────────────────────── -->
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <div
-        v-for="item in metricas"
-        :key="item.titulo"
-        class="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4"
-      >
-        <div class="flex items-center gap-2">
-          <div :class="['w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0', item.iconBg]">
-            <component :is="item.icon" :class="['w-4 h-4', item.iconClass]" />
-          </div>
-          <p class="text-sm font-semibold text-black">{{ item.titulo }}</p>
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="font-display text-2xl font-extrabold text-black">Dashboard Recepción</h1>
+          <p class="text-sm text-muted mt-1">
+            Bienvenida,
+            <span class="font-semibold text-black">{{ nombreAsistente }}</span>.
+            Gestión rápida de agenda y pacientes.
+          </p>
         </div>
 
+        <button
+          class="p-2 rounded-xl text-muted hover:text-black hover:bg-surface border border-border transition-colors disabled:opacity-50"
+          title="Actualizar datos"
+          :disabled="isLoading"
+          @click="refetch"
+        >
+          <Loader2 v-if="isLoading" class="w-4 h-4 animate-spin" />
+          <RefreshCw v-else class="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Error global ───────────────────────────────────────────────────── -->
+    <div
+      v-if="error"
+      class="mb-6 flex items-center gap-3 bg-red-500/10 border border-red-400/30 text-red-600 rounded-2xl px-5 py-4 text-sm font-medium"
+    >
+      <AlertCircle class="w-4 h-4 flex-shrink-0" />
+      <span>{{ error }}</span>
+      <button class="ml-auto underline text-xs hover:no-underline" @click="refetch">
+        Reintentar
+      </button>
+    </div>
+
+    <!-- ── Metric cards ────────────────────────────────────────────────────── -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+      <!-- Citas del Día -->
+      <div class="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-accent-dim">
+            <CalendarCheck class="w-4 h-4 text-accent" />
+          </div>
+          <p class="text-sm font-semibold text-black">Citas del Día</p>
+        </div>
         <div class="flex items-center justify-between">
-          <span class="text-3xl font-display font-extrabold text-black">{{ item.numero }}</span>
+          <span class="text-3xl font-display font-extrabold text-black">
+            <span v-if="isLoading" class="inline-block w-8 h-8 bg-surface rounded-lg animate-pulse" />
+            <template v-else>{{ totalCitasHoy }}</template>
+          </span>
           <span class="text-xs font-semibold text-muted px-3 py-1 bg-surface border border-border rounded-full">
-            {{ item.subtitulo }}
+            {{ citasPorConfirmar }} por confirmar
           </span>
           <button
             class="flex items-center gap-2 bg-ink/65 text-text-secondary hover:bg-ink/80 px-3 py-2 rounded-2xl text-xs font-medium transition-all hover:scale-105 active:scale-95"
-            @click="item.action"
+            @click="irACalendario"
           >
-            {{ item.textoBoton }}
+            Ver Agenda
           </button>
         </div>
       </div>
+
+      <!-- Sin Expediente -->
+      <div class="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-500/10">
+            <FolderOpen class="w-4 h-4 text-emerald-500" />
+          </div>
+          <p class="text-sm font-semibold text-black">Sin Expediente</p>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-3xl font-display font-extrabold text-black">
+            <span v-if="isLoading" class="inline-block w-8 h-8 bg-surface rounded-lg animate-pulse" />
+            <template v-else>{{ totalSinExpediente }}</template>
+          </span>
+          <span class="text-xs font-semibold text-muted px-3 py-1 bg-surface border border-border rounded-full">
+            Pendientes
+          </span>
+          <button
+            class="flex items-center gap-2 bg-ink/65 text-text-secondary hover:bg-ink/80 px-3 py-2 rounded-2xl text-xs font-medium transition-all hover:scale-105 active:scale-95"
+            @click="irAPacientes"
+          >
+            Gestionar
+          </button>
+        </div>
+      </div>
+
+      <!-- Citas Canceladas -->
+      <div class="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-500/10">
+            <ClipboardX class="w-4 h-4 text-amber-500" />
+          </div>
+          <p class="text-sm font-semibold text-black">Citas Canceladas</p>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-3xl font-display font-extrabold text-black">
+            <span v-if="isLoading" class="inline-block w-8 h-8 bg-surface rounded-lg animate-pulse" />
+            <template v-else>{{ citasCanceladas }}</template>
+          </span>
+          <span class="text-xs font-semibold text-muted px-3 py-1 bg-surface border border-border rounded-full">
+            Requieren atención
+          </span>
+          <button
+            class="flex items-center gap-2 bg-ink/65 text-text-secondary hover:bg-ink/80 px-3 py-2 rounded-2xl text-xs font-medium transition-all hover:scale-105 active:scale-95"
+            @click="irACalendario"
+          >
+            Revisar
+          </button>
+        </div>
+      </div>
+
     </section>
 
-    <!-- ── Main grid ───────────────────────────────────────────────────── -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- ── Agenda del Día (ancho completo) ────────────────────────────────── -->
+    <section class="bg-card border border-border rounded-2xl p-6 flex flex-col">
+      <h2 class="font-display font-bold text-black text-lg mb-5">Control de Agenda (Hoy)</h2>
 
-      <!-- Agenda table -->
-      <section class="bg-card border border-border rounded-2xl p-6 lg:col-span-2 flex flex-col">
-        <h2 class="font-display font-bold text-black text-lg mb-5">Control de Agenda (Hoy)</h2>
-
+      <!-- Skeleton -->
+      <template v-if="isLoading">
         <div class="flex-1 space-y-2 mb-6">
           <div
-            v-for="cita in proximasCitas"
+            v-for="i in 4"
+            :key="i"
+            class="bg-surface border border-border rounded-xl px-4 py-3 flex justify-between items-center animate-pulse"
+          >
+            <div class="w-1/3 space-y-1.5">
+              <div class="h-3.5 bg-border rounded w-3/4" />
+              <div class="h-2.5 bg-border rounded w-1/2" />
+            </div>
+            <div class="h-3.5 bg-border rounded w-16" />
+            <div class="flex gap-1">
+              <div class="w-8 h-8 bg-border rounded-lg" />
+              <div class="w-8 h-8 bg-border rounded-lg" />
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Empty state -->
+      <template v-else-if="agendaHoy.length === 0">
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+          <CalendarDays class="w-10 h-10 text-muted/40 mb-3" />
+          <p class="text-sm font-semibold text-black">Sin citas para hoy</p>
+          <p class="text-xs text-muted mt-1">No hay citas activas programadas para hoy.</p>
+        </div>
+      </template>
+
+      <!-- Lista de citas -->
+      <template v-else>
+        <div class="space-y-2 mb-6">
+          <div
+            v-for="cita in agendaHoy"
             :key="cita.id"
             class="bg-surface border border-border rounded-xl px-4 py-3 flex justify-between items-center text-sm group hover:border-accent/30 transition-colors"
           >
-            <!-- Patient + type -->
+            <!-- Paciente + tipo -->
             <div class="w-1/3">
               <span class="font-bold text-black block truncate">{{ cita.paciente }}</span>
               <span class="text-xs text-muted">{{ cita.tipo }}</span>
             </div>
 
-            <!-- Time -->
-            <span class="w-1/3 text-center text-sm font-medium text-black">{{ cita.hora }}</span>
+            <!-- Hora + badge de estado -->
+            <div class="w-1/3 flex flex-col items-center gap-1">
+              <span class="text-sm font-medium text-black">{{ cita.hora }}</span>
+              <span
+                :class="[
+                  'text-[10px] font-semibold px-2 py-0.5 rounded-full',
+                  estadoBadgeClass(cita.estado),
+                ]"
+              >
+                {{ cita.estado }}
+              </span>
+            </div>
 
-            <!-- Actions -->
+            <!-- Acciones -->
             <div class="w-1/3 flex justify-end gap-1">
               <button
                 class="p-2 rounded-lg text-muted hover:text-accent hover:bg-accent-dim transition-colors"
-                title="Reprogramar Cita"
-                @click="handleReprogramar(cita)"
+                title="Ir al calendario para reprogramar"
+                @click="irACalendario"
               >
                 <CalendarClock class="w-4 h-4" />
               </button>
               <button
-                class="p-2 rounded-lg text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                title="Cancelar Cita"
-                @click="handleCancelar(cita)"
+                class="p-2 rounded-lg text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Cancelar cita"
+                :disabled="cancellingId === cita.id || cita.estado === 'Cancelada'"
+                @click="handleCancelar(cita.id, cita.paciente)"
               >
-                <Ban class="w-4 h-4" />
+                <Loader2 v-if="cancellingId === cita.id" class="w-4 h-4 animate-spin" />
+                <Ban v-else class="w-4 h-4" />
               </button>
             </div>
           </div>
         </div>
+      </template>
 
-        <div class="flex justify-center mt-auto">
-          <button
-            class="flex items-center gap-2 bg-ink/65 text-text-secondary hover:bg-ink/80 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all hover:scale-105 active:scale-95"
-          >
-            Ver Calendario Completo
-          </button>
-        </div>
-      </section>
+      <div class="flex justify-center mt-auto pt-2">
+        <button
+          class="flex items-center gap-2 bg-ink/65 text-text-secondary hover:bg-ink/80 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all hover:scale-105 active:scale-95"
+          @click="irACalendario"
+        >
+          Ver Calendario Completo
+        </button>
+      </div>
+    </section>
 
-      <!-- Notifications -->
-      <section class="bg-card border border-border rounded-2xl p-6 flex flex-col">
-        <h2 class="font-display font-bold text-black text-lg mb-5">Notificaciones</h2>
-
-        <div class="flex-1 space-y-2 mb-6">
-          <div
-            v-for="(alerta, i) in alertas"
-            :key="i"
-            :class="['flex flex-col gap-1 rounded-xl px-4 py-3 text-xs font-semibold', alertClass(alerta.kind)]"
-          >
-            <div class="flex items-center gap-2">
-              <component :is="alertIcon(alerta.kind)" class="w-3.5 h-3.5 flex-shrink-0" />
-              <span>{{ alerta.tipo }}</span>
-            </div>
-            <div class="flex justify-between items-center mt-0.5 text-black/70 font-medium">
-              <span>{{ alerta.paciente }}</span>
-              <span class="text-[10px]">{{ alerta.hora }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex justify-center mt-auto">
-          <button
-            class="border border-border bg-surface text-muted hover:text-black hover:border-ghost px-5 py-2.5 rounded-2xl text-sm font-medium transition-all active:scale-95"
-          >
-            Limpiar Alertas
-          </button>
-        </div>
-      </section>
-
-    </div>
   </div>
 </template>
+
+<style scoped>
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast-slide-enter-from,
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+</style>

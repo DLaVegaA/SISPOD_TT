@@ -80,6 +80,7 @@
           <input
             v-model="form.fecha_nacimiento"
             type="date"
+            :max="maxDate"
             :class="inputCls(!!errors.fecha_nacimiento)"
           />
           <p v-if="errors.fecha_nacimiento" class="text-red-400 text-xs mt-1">
@@ -148,6 +149,8 @@ interface Props {
   errors: Record<string, string>
   isLoading?: boolean
 }
+
+const maxDate = new Date().toISOString().split('T')[0];
 
 defineProps<Props>()
 

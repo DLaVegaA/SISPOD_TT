@@ -142,6 +142,7 @@ export async function listDentistAppointments(
   const payload = await httpClient.get<ListCitasResponse>('/citas', {
     params: {
       ...filters,
+      limit: 500,
     },
   })
 

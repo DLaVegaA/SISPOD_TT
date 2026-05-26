@@ -104,10 +104,6 @@
                 <span class="opacity-50">Inicio:</span>
                 <span>{{ formatFecha(s.fecha_inicio) }}</span>
               </div>
-              <div class="flex items-center gap-1">
-                <span class="opacity-50">Fin:</span>
-                <span>{{ formatFecha(s.fecha_fin) }}</span>
-              </div>
             </div>
             <div class="w-8 h-8 rounded-full bg-surface flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-colors">
               <ChevronRight class="h-4 w-4" />

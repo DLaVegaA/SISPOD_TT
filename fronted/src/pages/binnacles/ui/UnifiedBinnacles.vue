@@ -14,7 +14,7 @@ import {
   Download,
   SlidersHorizontal,
   Pencil,
-  Trash2
+  Trash2,
 } from 'lucide-vue-next'
 import { useSessionStore } from '@/entities/session'
 import { useBitacoraStore } from '@/entities/bitacora'
@@ -25,20 +25,20 @@ import { BitacoraFormModal } from '@/widgets/bitacora-form-modal'
 const sessionStore = useSessionStore()
 const bitacoraStore = useBitacoraStore()
 
-const role      = computed(() => normalizeRole(sessionStore.role))
-const isDentist  = computed(() => role.value === 'dentist')
+const role = computed(() => normalizeRole(sessionStore.role))
+const isDentist = computed(() => role.value === 'dentist')
 const isAssistant = computed(() => role.value === 'assistant')
 
 // ── Filters ───────────────────────────────────────────────────────────────
-const searchQuery    = ref('')
+const searchQuery = ref('')
 const selectedStatus = ref<string>('todos')
 const selectedAuthor = ref<string>('todos')
-const expandedId     = ref<string | null>(null)
+const expandedId = ref<string | null>(null)
 
-const showCreateModal  = ref(false)
-const isEditMode       = ref(false)
-const currentEditData  = ref({ id_cita: '', descripcion: '', citaDisplay: '' })
-const editingId        = ref<string | null>(null)
+const showCreateModal = ref(false)
+const isEditMode = ref(false)
+const currentEditData = ref({ id_cita: '', descripcion: '', citaDisplay: '' })
+const editingId = ref<string | null>(null)
 
 const statusOptions = ['todos', 'Pendiente', 'Revisado']
 
@@ -48,7 +48,7 @@ const authors = computed(() => {
 })
 
 const filtered = computed(() => {
-  let result = bitacoraStore.logs.filter(l => l.status !== 'Anulada')
+  let result = bitacoraStore.logs.filter((l) => l.status !== 'Anulada')
 
   const q = searchQuery.value.toLowerCase().trim()
   if (q) {
@@ -77,20 +77,28 @@ const filtered = computed(() => {
 function formatDate(iso: string): string {
   if (!iso) return 'Fecha no disponible'
   return new Intl.DateTimeFormat('es-MX', {
-    day: '2-digit', month: 'short', year: 'numeric',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   }).format(new Date(iso))
 }
 
 function formatTime(iso: string): string {
   if (!iso) return '--:--'
   return new Intl.DateTimeFormat('es-MX', {
-    hour: '2-digit', minute: '2-digit', hour12: true,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
   }).format(new Date(iso))
 }
 
 function statusConfig(status: string) {
   if (status === 'Revisado')
-    return { bg: 'bg-emerald-500/10 border-emerald-400/30', text: 'text-emerald-600', icon: CheckCircle2 }
+    return {
+      bg: 'bg-emerald-500/10 border-emerald-400/30',
+      text: 'text-emerald-600',
+      icon: CheckCircle2,
+    }
   if (status === 'Pendiente')
     return { bg: 'bg-amber-400/10 border-amber-400/30', text: 'text-amber-600', icon: Clock }
   if (status === 'Requiere atención')
@@ -113,15 +121,19 @@ function clearSearch() {
 }
 
 function abrirModalNuevo() {
-  isEditMode.value  = false
-  editingId.value   = null
+  isEditMode.value = false
+  editingId.value = null
   showCreateModal.value = true
 }
 
 // CU27 Eliminar Bitácoras (RN8)
 async function anularBitacora(id: string) {
   if (!isDentist.value) return
-  if (confirm('¿Estás seguro de que deseas anular esta bitácora? Esta acción la ocultará de la vista principal.')) {
+  if (
+    confirm(
+      '¿Estás seguro de que deseas anular esta bitácora? Esta acción la ocultará de la vista principal.',
+    )
+  ) {
     try {
       await bitacoraStore.anularBitacora(id)
     } catch {
@@ -155,12 +167,12 @@ async function marcarComoRevisada(id: string) {
 }
 
 function iniciarEdicion(log: any) {
-  isEditMode.value  = true
-  editingId.value   = log.id
+  isEditMode.value = true
+  editingId.value = log.id
   const fecha = formatDate(log.date)
-  const hora  = formatTime(log.date)
+  const hora = formatTime(log.date)
   currentEditData.value = {
-    id_cita:     'bloqueado',
+    id_cita: 'bloqueado',
     descripcion: log.description,
     citaDisplay: `Cita registrada el ${fecha} a las ${hora} (${log.patientName})`,
   }
@@ -169,9 +181,11 @@ function iniciarEdicion(log: any) {
 
 // ── Stats ─────────────────────────────────────────────────────────────────
 const stats = computed(() => ({
-  total:      bitacoraStore.logs.filter(l => l.status !== 'Anulada').length,
-  completados: bitacoraStore.logs.filter(l => ['Completado', 'Revisada', 'Revisado'].includes(l.status)).length,
-  pendientes:  bitacoraStore.logs.filter(l => l.status === 'Pendiente').length,
+  total: bitacoraStore.logs.filter((l) => l.status !== 'Anulada').length,
+  completados: bitacoraStore.logs.filter((l) =>
+    ['Completado', 'Revisada', 'Revisado'].includes(l.status),
+  ).length,
+  pendientes: bitacoraStore.logs.filter((l) => l.status === 'Pendiente').length,
 }))
 
 onMounted(async () => {
@@ -181,8 +195,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="fade-in max-w-7xl mx-auto pb-10">
-
+  <div class="fade-in mx-auto pb-10">
     <!-- ── Header ──────────────────────────────────────────────────────── -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
       <div>
@@ -192,7 +205,9 @@ onMounted(async () => {
           <span class="bg-card border border-border px-2 py-0.5 rounded-lg">Bitácoras</span>
         </div>
         <h1 class="font-display text-4xl font-semibold text-black">Bitácoras</h1>
-        <p class="text-sm text-muted mt-1">Registro detallado de todas las atenciones y procedimientos.</p>
+        <p class="text-sm text-muted mt-1">
+          Registro detallado de todas las atenciones y procedimientos.
+        </p>
       </div>
 
       <button
@@ -226,10 +241,11 @@ onMounted(async () => {
     <!-- ── Filtros — FIX MÓVIL ─────────────────────────────────────────── -->
     <!-- flex-col en móvil, flex-row en sm+. Cada select tiene w-full en móvil -->
     <div class="bg-card border border-border rounded-2xl p-4 mb-6 flex flex-col sm:flex-row gap-3">
-
       <!-- Buscador -->
       <div class="relative flex-1">
-        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
+        <Search
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none"
+        />
         <input
           v-model="searchQuery"
           type="text"
@@ -247,7 +263,9 @@ onMounted(async () => {
 
       <!-- Select Estado — w-full en móvil, auto en sm+ -->
       <div class="relative w-full sm:w-auto">
-        <SlidersHorizontal class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
+        <SlidersHorizontal
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none"
+        />
         <select
           v-model="selectedStatus"
           class="w-full pl-9 pr-8 py-2.5 bg-surface border border-border rounded-xl text-sm text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all appearance-none cursor-pointer"
@@ -256,12 +274,16 @@ onMounted(async () => {
             {{ s === 'todos' ? 'Todos los estados' : s }}
           </option>
         </select>
-        <ChevronDown class="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
+        <ChevronDown
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none"
+        />
       </div>
 
       <!-- Select Autor — w-full en móvil, auto en sm+ -->
       <div class="relative w-full sm:w-auto">
-        <User class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
+        <User
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none"
+        />
         <select
           v-model="selectedAuthor"
           class="w-full pl-9 pr-8 py-2.5 bg-surface border border-border rounded-xl text-sm text-muted focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all appearance-none cursor-pointer"
@@ -270,33 +292,48 @@ onMounted(async () => {
             {{ a === 'todos' ? 'Todos los autores' : a }}
           </option>
         </select>
-        <ChevronDown class="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none" />
+        <ChevronDown
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted/40 pointer-events-none"
+        />
       </div>
-
     </div>
 
     <p class="text-xs text-muted mb-3">
-      {{ filtered.length }} bitácora{{ filtered.length !== 1 ? 's' : '' }} encontrada{{ filtered.length !== 1 ? 's' : '' }}
-      <span v-if="searchQuery || selectedStatus !== 'todos' || selectedAuthor !== 'todos'">(filtrado)</span>
+      {{ filtered.length }} bitácora{{ filtered.length !== 1 ? 's' : '' }} encontrada{{
+        filtered.length !== 1 ? 's' : ''
+      }}
+      <span v-if="searchQuery || selectedStatus !== 'todos' || selectedAuthor !== 'todos'"
+        >(filtrado)</span
+      >
     </p>
 
     <!-- ── Tabla ────────────────────────────────────────────────────────── -->
     <div class="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-
       <!-- Header desktop -->
-      <div class="hidden md:grid grid-cols-[2.5fr_1.5fr_1.5fr_110px_60px_80px] gap-4 px-6 py-3 bg-surface/50 border-b border-border">
+      <div
+        class="hidden md:grid grid-cols-[2.5fr_1.5fr_1.5fr_110px_60px_80px] gap-4 px-6 py-3 bg-surface/50 border-b border-border"
+      >
         <span class="text-[10px] font-bold text-muted uppercase tracking-widest">Paciente</span>
-        <span class="text-[10px] font-bold text-muted uppercase tracking-widest">Realizado por</span>
-        <span class="text-[10px] font-bold text-muted uppercase tracking-widest flex items-center gap-1">
+        <span class="text-[10px] font-bold text-muted uppercase tracking-widest"
+          >Realizado por</span
+        >
+        <span
+          class="text-[10px] font-bold text-muted uppercase tracking-widest flex items-center gap-1"
+        >
           <CalendarDays class="w-3 h-3" /> Fecha / Cita
         </span>
         <span class="text-[10px] font-bold text-muted uppercase tracking-widest">Estado</span>
         <span class="text-[10px] font-bold text-muted uppercase tracking-widest">ID</span>
-        <span class="text-[10px] font-bold text-muted uppercase tracking-widest text-right">Acciones</span>
+        <span class="text-[10px] font-bold text-muted uppercase tracking-widest text-right"
+          >Acciones</span
+        >
       </div>
 
       <!-- Vacío -->
-      <div v-if="filtered.length === 0" class="py-20 text-center text-muted/50 flex flex-col items-center gap-3">
+      <div
+        v-if="filtered.length === 0"
+        class="py-20 text-center text-muted/50 flex flex-col items-center gap-3"
+      >
         <ClipboardList class="w-12 h-12 opacity-40" />
         <p class="text-sm font-medium">No se encontraron bitácoras</p>
         <p class="text-xs">Intenta con otros criterios de búsqueda</p>
@@ -315,7 +352,9 @@ onMounted(async () => {
           >
             <!-- Paciente -->
             <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-bold text-sm shrink-0">
+              <div
+                class="w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-bold text-sm shrink-0"
+              >
                 {{ log.patientName.charAt(0) }}
               </div>
               <div class="min-w-0">
@@ -327,7 +366,12 @@ onMounted(async () => {
             <!-- Autor -->
             <div class="flex items-center gap-2 md:gap-0 md:flex-col md:items-start">
               <p class="text-sm font-semibold text-black">{{ log.authorName }}</p>
-              <span :class="['text-[10px] font-bold px-2 py-0.5 rounded-md border', roleColor(log.authorRole)]">
+              <span
+                :class="[
+                  'text-[10px] font-bold px-2 py-0.5 rounded-md border',
+                  roleColor(log.authorRole),
+                ]"
+              >
                 {{ log.authorRole }}
               </span>
             </div>
@@ -338,7 +382,9 @@ onMounted(async () => {
                 <CalendarDays class="w-3.5 h-3.5 text-muted/60 shrink-0" />
                 {{ formatDate(log.date) }}
               </div>
-              <p class="text-xs text-muted ml-5">{{ formatTime(log.date) }} · {{ log.appointmentType }}</p>
+              <p class="text-xs text-muted ml-5">
+                {{ formatTime(log.date) }} · {{ log.appointmentType }}
+              </p>
             </div>
 
             <!-- Estado -->
@@ -362,7 +408,10 @@ onMounted(async () => {
 
             <!-- Acciones -->
             <div class="flex items-center gap-1 justify-end" @click.stop>
-              <button class="p-2 rounded-lg text-muted hover:text-accent hover:bg-accent/5 transition-colors" title="Descargar">
+              <button
+                class="p-2 rounded-lg text-muted hover:text-accent hover:bg-accent/5 transition-colors"
+                title="Descargar"
+              >
                 <Download class="w-4 h-4" />
               </button>
               <button
@@ -370,7 +419,12 @@ onMounted(async () => {
                 :title="expandedId === log.id ? 'Colapsar' : 'Expandir'"
                 @click="toggleExpand(log.id)"
               >
-                <ChevronDown :class="['w-4 h-4 transition-transform duration-200', expandedId === log.id ? 'rotate-180' : '']" />
+                <ChevronDown
+                  :class="[
+                    'w-4 h-4 transition-transform duration-200',
+                    expandedId === log.id ? 'rotate-180' : '',
+                  ]"
+                />
               </button>
             </div>
           </div>
@@ -385,17 +439,23 @@ onMounted(async () => {
             leave-to-class="opacity-0 -translate-y-1"
           >
             <div v-if="expandedId === log.id" class="px-4 md:px-6 pb-5">
-              <div class="bg-surface/60 border border-border rounded-xl p-4 ml-0 md:ml-12 flex flex-col gap-4">
-
+              <div
+                class="bg-surface/60 border border-border rounded-xl p-4 ml-0 md:ml-12 flex flex-col gap-4"
+              >
                 <div class="flex items-start gap-2">
                   <FileText class="w-4 h-4 text-accent mt-0.5 shrink-0" />
                   <div>
-                    <p class="text-[10px] font-bold text-muted uppercase tracking-wider mb-1">Descripción</p>
+                    <p class="text-[10px] font-bold text-muted uppercase tracking-wider mb-1">
+                      Descripción
+                    </p>
                     <p class="text-sm text-black leading-relaxed">{{ log.description }}</p>
                   </div>
                 </div>
 
-                <div v-if="isDentist" class="flex flex-wrap justify-end gap-3 pt-3 border-t border-border/50">
+                <div
+                  v-if="isDentist"
+                  class="flex flex-wrap justify-end gap-3 pt-3 border-t border-border/50"
+                >
                   <button
                     class="px-4 py-2 rounded-xl text-xs font-semibold text-red-600 bg-red-500/10 hover:bg-red-500/20 transition-colors flex items-center gap-2"
                     @click.stop="anularBitacora(log.id)"
@@ -419,7 +479,6 @@ onMounted(async () => {
                     <CheckCircle2 class="w-4 h-4" /> Marcar como Revisada
                   </button>
                 </div>
-
               </div>
             </div>
           </Transition>
@@ -434,7 +493,6 @@ onMounted(async () => {
       :initial-data="currentEditData"
       @submit="handleSaveBitacora"
     />
-
   </div>
 </template>
 
@@ -443,7 +501,13 @@ onMounted(async () => {
   animation: fadeIn 0.25s ease;
 }
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

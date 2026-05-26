@@ -11,7 +11,8 @@ import {
     obtenerCuestionarioSeguimientoService,
     guardarRespuestasService,
     EditarSeguimientoData,
-    obtenerRespuestasSeguimientoService
+    obtenerRespuestasSeguimientoService,
+    resolverAlertaService
 } from '../services/seguimientoService';
 
 const ESTADOS_VALIDOS = ['en curso', 'alerta', 'finalizado', 'cancelado'];
@@ -219,6 +220,18 @@ export const obtenerRespuestasSeguimiento = async (
  
         const data = await obtenerRespuestasSeguimientoService(id_seguimiento);
         return res.json({ message: 'Respuestas del seguimiento', ...data });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const resolverAlerta = async (req: CustomRequest, res: Response, next: NextFunction) => {
+    const id_seguimiento = Number(req.params.id_seguimiento);
+    try {
+        if (!id_seguimiento || Number.isNaN(id_seguimiento))
+            throw new AppError('Seguimiento inválido', 400);
+        const seguimiento = await resolverAlertaService(id_seguimiento);
+        return res.json({ message: 'Alerta resuelta. El seguimiento regresó a "en curso".', seguimiento });
     } catch (error) {
         next(error);
     }

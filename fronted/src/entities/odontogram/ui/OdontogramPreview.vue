@@ -4,6 +4,7 @@ import OdontogramChart from './OdontogramChart.vue'
 defineProps<{
   updatedAt?: string
   patientId?: string | number
+  data?: unknown
 }>()
 </script>
 
@@ -18,6 +19,6 @@ defineProps<{
         Actualizado: {{ updatedAt }}
       </span>
     </div>
-    <OdontogramChart preview :patient-id="patientId" />
+    <OdontogramChart preview :patient-id="patientId" :initial-data="data" />
   </div>
 </template>

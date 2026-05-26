@@ -229,6 +229,18 @@ const navItems = computed(() => {
           label: 'Perfil',
         },
         {
+          key: 'assistant-calendar',
+          to: { name: ROUTE_NAMES.ASSISTANT_CALENDAR, params },
+          icon: CalendarDays,
+          label: 'Calendario',
+        },
+        {
+          key: 'assistant-patients',
+          to: { name: ROUTE_NAMES.ASSISTANT_PATIENTS, params },
+          icon: Users,
+          label: 'Pacientes',
+        },
+        {
           key: 'assistant-binnacle',
           to: { name: ROUTE_NAMES.ASSISTANT_BINNACLE, params },
           icon: FileText,

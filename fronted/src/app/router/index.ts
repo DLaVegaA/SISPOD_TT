@@ -82,7 +82,7 @@ const router = createRouter({
       path: ROUTE_PATHS.CONFIRM_APPOINTMENT,
       name: ROUTE_NAMES.CONFIRM_APPOINTMENT,
       component: ConfirmAppointmentPage,
-      meta: { title: 'Confirmar Cita', requiresAuth: true, allowedRoles: ['dentist'] },
+      meta: { title: 'Confirmar Cita', guestOnly: true },
     },
     {
       path: ROUTE_PATHS.ADMIN_HOME,
@@ -227,6 +227,18 @@ const router = createRouter({
       name: ROUTE_NAMES.ASSISTANT_PROFILE,
       component: AssistantProfile,
       meta: { title: 'Perfil del Asistente', requiresAuth: true, allowedRoles: ['assistant'] },
+    },
+    {
+      path: ROUTE_PATHS.ASSISTANT_CALENDAR,
+      name: ROUTE_NAMES.ASSISTANT_CALENDAR,
+      component: UnifiedAppointments,
+      meta: { title: 'Calendario del Asistente', requiresAuth: true, allowedRoles: ['assistant'] },
+    },
+    {
+      path: ROUTE_PATHS.ASSISTANT_PATIENTS,
+      name: ROUTE_NAMES.ASSISTANT_PATIENTS,
+      component: DentistPatients,
+      meta: { title: 'Pacientes del Asistente', requiresAuth: true, allowedRoles: ['assistant'] },
     },
     {
       path: ROUTE_PATHS.ASSISTANT_BINNACLE,
