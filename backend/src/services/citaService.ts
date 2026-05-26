@@ -142,18 +142,18 @@ export const obtenerDisponibilidad = async (
 
 const validarCitaActivaPaciente = async (id_paciente: number): Promise<void> => {
   const ahora = new Date();
- 
+
   const citaActiva = await Cita.findOne({
     where: {
       id_paciente,
-      estado: { [Op.in]: ['Pendiente', 'Confirmada'] },
+      estado: 'Pendiente',
       fecha_hora_inicio: { [Op.gt]: ahora },
     },
   });
- 
+
   if (citaActiva) {
     throw new AppError(
-      'Ya tienes una cita activa. Cancela o completa tu cita actual antes de agendar una nueva.',
+      'Ya tienes una cita activa. Cancela o reagenda tu cita actual antes de agendar una nueva.',
       400,
     );
   }
