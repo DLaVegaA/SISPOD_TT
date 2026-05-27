@@ -15,6 +15,10 @@ import {
   Calendar,
 } from 'lucide-vue-next'
 import { useSessionStore } from '@/entities/session'
+import { getBitacorasByEstado } from '@/entities/bitacora/api/bitacoraApi'
+import type { LogEntry } from '@/entities/bitacora/model/types'
+import { seguimientoApi, type SeguimientoListItem } from '@/entities/seguimiento'
+import { httpClient } from '@/shared/api/http'
 import { ROUTE_NAMES } from '@/shared/routes'
 import { listDentistAppointments, type DentistAppointment } from '@/shared/api/dentistAppointments'
 
@@ -22,8 +26,19 @@ const router = useRouter()
 const sessionStore = useSessionStore()
 
 const appointments = ref<DentistAppointment[]>([])
+const alertasSeguimiento = ref<SeguimientoListItem[]>([])
+const bitacoras = ref<LogEntry[]>([])
+const cuestionariosRecientes = ref<CuestionarioResumen[]>([])
+const totalCuestionarios = ref(0)
 const isLoading = ref(false)
 const errorMessage = ref('')
+
+type CuestionarioResumen = {
+  id_cuestionario: number
+  nombre_cuestionario: string
+  tipo_cuestionario: '24h' | '72h'
+  procedimiento: string
+}
 
 const currentUserId = computed(() =>
   String(sessionStore.user?.id ?? sessionStore.user?.id_usuario ?? 0),
@@ -91,27 +106,21 @@ function formatHour(value: string): string {
   }).format(new Date(value))
 }
 
-// Alertas basadas en citas (canceladas/pendientes) como en el original
+function formatShortDate(value: string): string {
+  return new Intl.DateTimeFormat('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+  }).format(new Date(value))
+}
+
+// Alertas basadas en seguimientos con estado "alerta"
 const alertas = computed(() => {
-  const fromAppointments = [...appointments.value]
-    .filter(
-      (appointment) => appointment.status === 'Cancelada' || appointment.status === 'Pendiente',
-    )
-    .slice(0, 7)
-    .map((appointment) => ({
-      tipo: appointment.status === 'Cancelada' ? 'Cita cancelada' : 'Cita pendiente',
-      paciente: appointment.patientName,
-      hora: formatHour(appointment.startAt),
-      kind: appointment.status === 'Cancelada' ? 'error' : 'warning',
-    }))
-
-  if (fromAppointments.length > 0) return fromAppointments
-
-  return [
-    { tipo: 'Cita pendiente', paciente: 'Maria Ramirez', hora: '08:30', kind: 'warning' },
-    { tipo: 'Cita cancelada', paciente: 'Jorge Torres', hora: '10:15', kind: 'error' },
-    { tipo: 'Cita pendiente', paciente: 'Sofia Lopez', hora: '11:00', kind: 'warning' },
-  ]
+  return alertasSeguimiento.value.slice(0, 7).map((seguimiento) => ({
+    tipo: `Seguimiento: ${seguimiento.procedimiento}`,
+    paciente: seguimiento.nombre,
+    hora: formatHour(seguimiento.fecha_inicio),
+    kind: 'error',
+  }))
 })
 
 const alertCount = computed(() => alertas.value.length)
@@ -134,54 +143,39 @@ const userInitials = computed(() => {
   return `${first}${second}`.toUpperCase()
 })
 
-const cuestionariosPendientes = ref([
-  { id: 'q1', paciente: 'Ana Flores', status: '72h', nota: 'Respondido', alerta: false },
-  { id: 'q2', paciente: 'Jorge Torres', status: '72h', nota: 'Con alerta', alerta: true },
-  { id: 'q3', paciente: 'Patricia Soto', status: '72h', nota: 'Pendiente de envío', alerta: false },
-  {
-    id: 'q4',
-    paciente: 'María Ramírez',
-    status: '24h',
-    nota: 'Respondido · Alerta crítica',
-    alerta: true,
-  },
-  {
-    id: 'q5',
-    paciente: 'Sofía López',
-    status: '24h',
-    nota: 'Enviado hace 22 hrs · Pendiente',
+const cuestionariosPendientes = computed(() =>
+  cuestionariosRecientes.value.map((item) => ({
+    id: item.id_cuestionario.toString(),
+    paciente: item.nombre_cuestionario,
+    status: item.tipo_cuestionario,
+    nota: item.procedimiento,
     alerta: false,
-  },
-] as Array<{ id: string; paciente: string; status: '72h' | '24h'; nota: string; alerta: boolean }>)
+  })),
+)
 
-const bitacorasPendientes = ref([
-  { id: 'b1', paciente: 'María Ramírez', nota: 'Extracción premolar — 24/05', urgente: true },
-  { id: 'b2', paciente: 'Jorge Torres', nota: 'Tratamiento de conducto — 23/05', urgente: false },
-  { id: 'b3', paciente: 'Sofía López', nota: 'Colocación corona — 22/05', urgente: false },
-  { id: 'b4', paciente: 'Roberto Vega', nota: 'Revisión brackets — 21/05', urgente: false },
-] as Array<{ id: string; paciente: string; nota: string; urgente: boolean }>)
+const bitacorasPendientes = computed(() =>
+  bitacoras.value.map((bitacora) => ({
+    id: bitacora.id,
+    paciente: bitacora.patientName,
+    nota: `${bitacora.appointmentType} — ${formatShortDate(bitacora.date)}`,
+    urgente: false,
+  })),
+)
 
 const historialesHoy = computed(() => {
-  const citasUnicas = citasHoy.value.slice(0, 5).map((cita) => ({
-    paciente: cita.paciente,
-    ultimaVisita: cita.tipo,
-    esPrimera: !cita.tipo?.includes('Extracción') && !cita.tipo?.includes('Limpieza'),
-  }))
-  if (citasUnicas.length === 0) {
-    return [
-      { paciente: 'Carlos Mendoza', ultimaVisita: 'Limpieza · 15/04', esPrimera: false },
-      { paciente: 'Ana Flores', ultimaVisita: 'Extracción · 03/04', esPrimera: false },
-      { paciente: 'Roberto Vega', ultimaVisita: 'Ortodoncia · 28/03', esPrimera: false },
-      { paciente: 'Patricia Soto', ultimaVisita: 'Primera visita hoy', esPrimera: true },
-    ]
-  }
-  return citasUnicas
+  const now = new Date().getTime()
+  return citasDelDia.value
+    .filter((cita) => new Date(cita.startAt).getTime() < now)
+    .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime())
+    .slice(0, 5)
+    .map((cita) => ({
+      paciente: cita.patientName,
+      ultimaVisita: `${cita.type} · ${formatHour(cita.startAt)}`,
+      esPrimera: !cita.type?.includes('Extracción') && !cita.type?.includes('Limpieza'),
+    }))
 })
 
 async function loadDashboardAppointments() {
-  isLoading.value = true
-  errorMessage.value = ''
-
   const start = new Date()
   const end = new Date()
   end.setDate(end.getDate() + 45)
@@ -193,8 +187,41 @@ async function loadDashboardAppointments() {
     })
   } catch {
     errorMessage.value = 'No se pudieron cargar las citas del dentista'
-  } finally {
-    isLoading.value = false
+  }
+}
+
+async function loadDashboardAlerts() {
+  try {
+    const response = await seguimientoApi.listar('alerta')
+    alertasSeguimiento.value = response.seguimientos ?? []
+  } catch {
+    errorMessage.value = 'No se pudieron cargar las alertas de seguimiento'
+  }
+}
+
+async function loadDashboardBinnacles() {
+  try {
+    bitacoras.value = await getBitacorasByEstado('Pendiente')
+  } catch {
+    errorMessage.value = 'No se pudieron cargar las bitácoras pendientes'
+  }
+}
+
+async function loadDashboardQuestionnaires() {
+  try {
+    const response = await httpClient.get<{ cuestionarios: any[] }>('/cuestionario?todos=true')
+    const lista = response.cuestionarios ?? []
+    totalCuestionarios.value = lista.length
+    cuestionariosRecientes.value = lista.slice(0, 5).map((item) => ({
+      id_cuestionario: item.id_cuestionario,
+      nombre_cuestionario: item.nombre_cuestionario,
+      tipo_cuestionario: item.tipo_cuestionario,
+      procedimiento:
+        item.procedimiento_asociado?.nombre_procedimiento ??
+        `Procedimiento #${item.id_procedimiento}`,
+    }))
+  } catch {
+    errorMessage.value = 'No se pudieron cargar los cuestionarios recientes'
   }
 }
 
@@ -219,7 +246,17 @@ function goToFollowUp() {
 }
 
 onMounted(async () => {
-  await loadDashboardAppointments()
+  isLoading.value = true
+  errorMessage.value = ''
+
+  await Promise.all([
+    loadDashboardAppointments(),
+    loadDashboardAlerts(),
+    loadDashboardBinnacles(),
+    loadDashboardQuestionnaires(),
+  ])
+
+  isLoading.value = false
 })
 </script>
 
@@ -298,13 +335,13 @@ onMounted(async () => {
         <div class="flex items-start justify-between">
           <div class="stat-label text-sm font-medium text-muted flex items-center gap-1">
             <ClipboardList class="h-4 w-4 text-amber-700" />
-            Cuestionarios pendientes
+            Total de cuestionarios
           </div>
           <div class="stat-val text-2xl font-bold text-amber-700">
-            {{ cuestionariosPendientes.length }}
+            {{ totalCuestionarios }}
           </div>
         </div>
-        <div class="stat-sub text-xs text-muted mt-2">3 de 72 hrs · 2 de 24 hrs</div>
+        <div class="stat-sub text-xs text-muted mt-2">Incluye activos e inactivos</div>
       </div>
 
       <div class="bg-card border border-border rounded-2xl p-4 shadow-sm">
@@ -315,7 +352,7 @@ onMounted(async () => {
           </div>
           <div class="stat-val text-2xl font-bold text-black">{{ bitacorasPendientes.length }}</div>
         </div>
-        <div class="stat-sub text-xs text-muted mt-2">Por completar después de consulta</div>
+        <div class="stat-sub text-xs text-muted mt-2">Por completar después de la consulta</div>
       </div>
     </div>
 
@@ -326,7 +363,7 @@ onMounted(async () => {
         <div class="flex items-center justify-between p-4 border-b border-border bg-surface/30">
           <div class="flex items-center gap-2 font-semibold text-black">
             <AlertTriangle class="h-5 w-5 text-red-500" />
-            Alertas de citas
+            Alertas de seguimiento
             <span
               class="bg-red-500 text-white text-[11px] font-bold rounded-full px-2 py-0.5 ml-1"
               >{{ alertCount }}</span
@@ -440,7 +477,7 @@ onMounted(async () => {
         <div class="flex items-center justify-between p-4 border-b border-border bg-surface/30">
           <div class="flex items-center gap-2 font-semibold text-black">
             <ClipboardList class="h-5 w-5 text-amber-600" />
-            Cuestionarios 72h y 24h
+            Últimos cuestionarios creados
           </div>
           <button
             @click="goToQuestionnaires"
@@ -491,7 +528,11 @@ onMounted(async () => {
             Completar ↗
           </button>
         </div>
-        <div class="divide-y divide-border">
+        <div v-if="bitacorasPendientes.length === 0" class="p-6 text-center text-sm text-muted">
+          <CheckCircle2 class="h-8 w-8 mx-auto text-muted/30 mb-2" />
+          Sin bitácoras pendientes
+        </div>
+        <div v-else class="divide-y divide-border">
           <div
             v-for="bit in bitacorasPendientes"
             :key="bit.id"
@@ -515,14 +556,14 @@ onMounted(async () => {
             </span>
           </div>
         </div>
-        <div class="p-4 border-t border-border">
+        <!-- <div class="p-4 border-t border-border">
           <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div class="h-full bg-green-600 rounded-full" style="width: 0%"></div>
           </div>
           <p class="text-[11px] text-muted mt-2">
             0 de {{ bitacorasPendientes.length }} bitácoras completadas hoy
           </p>
-        </div>
+        </div> -->
       </div>
 
       <!-- Historiales de citas de hoy -->
@@ -530,7 +571,7 @@ onMounted(async () => {
         <div class="flex items-center justify-between p-4 border-b border-border bg-surface/30">
           <div class="flex items-center gap-2 font-semibold text-black">
             <Files class="h-5 w-5 text-indigo-500" />
-            Historiales — citas de hoy
+            Historial de citas de hoy
           </div>
           <button
             @click="goToClinicalHistory"
@@ -539,7 +580,11 @@ onMounted(async () => {
             Ver expedientes ↗
           </button>
         </div>
-        <div class="divide-y divide-border">
+        <div v-if="historialesHoy.length === 0" class="p-6 text-center text-sm text-muted">
+          <CheckCircle2 class="h-8 w-8 mx-auto text-muted/30 mb-2" />
+          No se han atendido citas el día de hoy
+        </div>
+        <div v-else class="divide-y divide-border">
           <div
             v-for="(hist, idx) in historialesHoy.slice(0, 5)"
             :key="idx"

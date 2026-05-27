@@ -1,13 +1,10 @@
 import { httpClient } from '@/shared/api/http'
 import type { LogEntry } from '../model/types'
 
-export async function getBitacoras(): Promise<LogEntry[]> {
-  const data: any = await httpClient.get('/bitacora', { params: { limit: 100 } })
+function mapBitacoras(data: any): LogEntry[] {
+  const listaBitacoras = data?.bitacoras || []
 
-  const listaBitacoras = data.bitacoras || []
-  
-  // Mapeamos el backend a la interfaz del frontend justo aquí
-  return data.bitacoras.map((b: any) => ({
+  return listaBitacoras.map((b: any) => ({
     id: b.id_bitacora.toString(),
     patientName: b.nombre_paciente,
     patientId: `P${b.id_paciente}`,
@@ -15,10 +12,25 @@ export async function getBitacoras(): Promise<LogEntry[]> {
     authorRole: b.rol_autor || 'Staff',
     date: b.fecha_cita,
     appointmentType: b.accion_realizada,
-    description: b.descripcion || 'Sin descripción.',
+    description: b.descripcion || 'Sin descripcion.',
     status: b.estado_bitacora,
-    tags: [b.accion_realizada]
+    tags: [b.accion_realizada],
   }))
+}
+
+export async function getBitacoras(): Promise<LogEntry[]> {
+  const data: any = await httpClient.get('/bitacora', { params: { limit: 100 } })
+
+  // Mapeamos el backend a la interfaz del frontend justo aquí
+  return mapBitacoras(data)
+}
+
+export async function getBitacorasByEstado(estado: string): Promise<LogEntry[]> {
+  const data: any = await httpClient.get('/bitacora', {
+    params: { limit: 100, estado },
+  })
+
+  return mapBitacoras(data)
 }
 
 export async function anularBitacoraRequest(id: string): Promise<void> {
@@ -29,7 +41,7 @@ export async function createBitacoraRequest(payload: { id_cita: number; descripc
   // Ojo: usa /bitacora o /bitacoras dependiendo de lo que te funcionó hace un momento
   const data: any = await httpClient.post('/bitacora', payload)
   return data
-} 
+}
 
 export async function revisarBitacoraRequest(id: string): Promise<void> {
   // Usamos /bitacora en singular para que coincida con tu backend
