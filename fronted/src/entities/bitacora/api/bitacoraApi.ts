@@ -12,7 +12,7 @@ function mapBitacoras(data: any): LogEntry[] {
     authorRole: b.rol_autor || 'Staff',
     date: b.fecha_cita,
     appointmentType: b.accion_realizada,
-    description: b.descripcion || 'Sin descripcion.',
+    description: b.descripcion || 'Sin descripción.',
     status: b.estado_bitacora,
     tags: [b.accion_realizada],
   }))
