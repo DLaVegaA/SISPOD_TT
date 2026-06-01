@@ -213,6 +213,8 @@ export const listarSeguimientosService = async (
         // Flags de cuestionarios completados (para PatientFollowUp)
         enviado_24h:         s.enviado_24h,
         enviado_72h:         s.enviado_72h,
+        plan_cuidados: s.plan_cuidados ?? null,
+        indicaciones_medicas:s.indicaciones_medicas ?? null,
         // Info derivada para mostrar en cards
         procedimiento:       s.tipo_procedimiento.nombre_procedimiento,
         id_paciente:         s.cita.paciente.id_paciente,
