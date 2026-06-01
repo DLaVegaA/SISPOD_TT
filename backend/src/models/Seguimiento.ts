@@ -65,7 +65,7 @@ Seguimiento.init(
       allowNull: true,
     },
     fecha_inicio: {
-      type: DataTypes.DATEONLY,
+      type: DataTypes.DATE,
       allowNull: false,
     },
     fecha_fin: {

@@ -15,7 +15,7 @@ cron.schedule('0 7-22 * * *', async ()=>{
 
     const seguimientos24h = await Seguimiento.findAll({
       where:{
-        createdAt:{
+        fecha_inicio:{
           [Op.lte]: hace24
         },
         enviado_24h:false
@@ -67,7 +67,7 @@ cron.schedule('0 7-22 * * *', async ()=>{
 
     const seguimientos72h = await Seguimiento.findAll({
       where:{
-        createdAt:{
+        fecha_inicio:{
           [Op.lte]:hace72h
         },
         enviado_72h:false
