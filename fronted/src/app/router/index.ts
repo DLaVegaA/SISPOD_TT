@@ -15,6 +15,8 @@ const RecoverPasswordPage = () => import('@/pages/recuperarContrasena/ui/Recover
 const ResetPasswordPage = () => import('@/pages/restablecerContrasena/ui/ResetPasswordPage.vue')
 const ActivateAccountPage = () => import('@/pages/activarCuenta/ui/ActivateAccountPage.vue')
 const ConfirmAppointmentPage = () => import('@/pages/confirmarCita/ui/ConfirmAppointmentPage.vue')
+const TermsConditionsPage = () => import('@/pages/termsConditions/ui/TermsConditionsPage.vue')
+const PrivacyPolicyPage = () => import('@/pages/privacyPolicy/ui/PrivacyPolicyPage.vue')
 const UsersPage = () => import('@/pages/users')
 const RolesPage = () => import('@/pages/roles/ui/RolesPage.vue')
 const StatsPage = () => import('@/pages/stats/ui/StatsPage.vue')
@@ -83,6 +85,18 @@ const router = createRouter({
       name: ROUTE_NAMES.CONFIRM_APPOINTMENT,
       component: ConfirmAppointmentPage,
       meta: { title: 'Confirmar Cita', guestOnly: true },
+    },
+    {
+      path: ROUTE_PATHS.TERMS_CONDITIONS,
+      name: ROUTE_NAMES.TERMS_CONDITIONS,
+      component: TermsConditionsPage,
+      meta: { title: 'Términos y Condiciones' },
+    },
+    {
+      path: ROUTE_PATHS.PRIVACY_POLICY,
+      name: ROUTE_NAMES.PRIVACY_POLICY,
+      component: PrivacyPolicyPage,
+      meta: { title: 'Política de Privacidad' },
     },
     {
       path: ROUTE_PATHS.ADMIN_HOME,

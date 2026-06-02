@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { LoginForm } from '@/features/auth'
 import logoUrl from '@/shared/assets/logo_diente.png'
+import { ROUTE_NAMES } from '@/shared/routes';
 </script>
 
 <template>
@@ -35,6 +36,23 @@ import logoUrl from '@/shared/assets/logo_diente.png'
       <h1 class="text-2xl font-bold text-white text-center mb-8">Inicio de Sesión</h1>
 
       <LoginForm />
+    </div>
+
+    <!-- Links legales -->
+    <div class="absolute bottom-6 left-0 right-0 z-30 flex justify-center gap-6">
+      <router-link
+        :to="{ name: ROUTE_NAMES.PRIVACY_POLICY }"
+        class="text-white/40 hover:text-white/70 text-xs transition-colors"
+      >
+        Aviso de Privacidad
+      </router-link>
+      <span class="text-white/20">·</span>
+      <router-link
+        :to="{ name: ROUTE_NAMES.TERMS_CONDITIONS }"
+        class="text-white/40 hover:text-white/70 text-xs transition-colors"
+      >
+        Términos y Condiciones
+      </router-link>
     </div>
   </div>
 </template>
