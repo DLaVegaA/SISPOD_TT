@@ -184,7 +184,7 @@ import { ROUTE_NAMES } from '@/shared/routes'
               </p>
             </div>
             <div class="flex items-start gap-3 text-sm text-white/85">
-              <span class="text-white/40 shrink-0 mt-0.5">📍</span>
+              <span class="text-white/40 shrink-0 mt-0.5"></span>
               <p>
                 <strong class="text-white">Domicilio:</strong>
                 <span class="ml-1">Calle del deporte 26a, Colonia el mirador, Tlalnepantla de Baz, Estado de México, C.P. 54080</span>
