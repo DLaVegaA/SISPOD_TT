@@ -177,6 +177,56 @@
           </div>
         </div>
 
+        <div class="flex items-start gap-3 pt-2">
+          <button
+            type="button"
+            role="checkbox"
+            :aria-checked="aceptaTerminos"
+            :class="[
+              'mt-0.5 w-5 h-5 shrink-0 rounded-md border-2 transition-all flex items-center justify-center',
+              aceptaTerminos
+                ? 'bg-white border-white'
+                : 'border-white/40 bg-white/10 hover:border-white/70',
+            ]"
+            @click="aceptaTerminos = !aceptaTerminos"
+          >
+            <svg
+              v-if="aceptaTerminos"
+              class="w-3 h-3 text-black"
+              viewBox="0 0 12 12"
+              fill="none"
+            >
+              <path
+                d="M2 6l3 3 5-5"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <p class="text-white/70 text-xs leading-relaxed">
+            He leído y acepto los
+            <router-link
+              :to="{ name: ROUTE_NAMES.TERMS_CONDITIONS }"
+              target="_blank"
+              class="text-white underline underline-offset-2 hover:text-white/80 transition-colors"
+            >
+              Términos y Condiciones
+            </router-link>
+            y el
+            <router-link
+              :to="{ name: ROUTE_NAMES.PRIVACY_POLICY }"
+              target="_blank"
+              class="text-white underline underline-offset-2 hover:text-white/80 transition-colors"
+            >
+              Aviso de Privacidad
+            </router-link>
+            de SISPO  D. Entiendo que mis datos de salud serán tratados conforme a la LFPDPPP.
+            <span class="text-red-400">*</span>
+          </p>
+        </div>
+
         <!-- MENSAJE GLOBAL -->
         <Transition name="fade">
           <div v-if="globalError" class="flex items-center gap-2 p-3 bg-red-500/30 border border-red-500/50 rounded-xl text-white text-sm">
@@ -206,6 +256,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Eye, EyeOff } from 'lucide-vue-next'
 import { httpClient } from '@/shared/api/http'
 import logoUrl from '@/shared/assets/logo_diente.png'
+import { ROUTE_NAMES } from '@/shared/routes';
 
 const route = useRoute()
 const router = useRouter()
@@ -215,6 +266,7 @@ const globalError = ref('')
 const confirmPassword = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
+const aceptaTerminos = ref(false)
 
 const form = reactive({
   telefono: '',
@@ -286,6 +338,11 @@ const validateForm = () => {
 
   if (form.contrasena !== confirmPassword.value) {
     errors.confirmPassword = 'Las contraseñas no coinciden.'
+    isValid = false
+  }
+
+  if (!aceptaTerminos.value) {
+    globalError.value = 'Debes aceptar los Términos y Condiciones y el Aviso de Privacidad para continuar.'
     isValid = false
   }
 

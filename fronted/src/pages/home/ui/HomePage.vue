@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PublicNavbar } from '@/widgets/navbar';
+import { ROUTE_NAMES } from '@/shared/routes';
 
 const servicios = [
   {
@@ -117,8 +118,25 @@ const servicios = [
       </div>
     </section>
 
-    <footer class="py-12 text-center text-slate-400 border-t border-slate-100">
-      <p class="font-medium">© 2026 Consultorio Gonzalez</p>
+    <footer class="py-10 border-t border-slate-100">
+      <div class="max-w-7xl mx-auto px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-slate-400 font-medium text-sm">© 2026 Consultorio Dental González</p>
+        <nav class="flex items-center gap-6">
+          <router-link
+            :to="{ name: ROUTE_NAMES.PRIVACY_POLICY }"
+            class="text-slate-400 hover:text-[#4382B5] text-sm transition-colors"
+          >
+            Aviso de Privacidad
+          </router-link>
+          <span class="text-slate-200">·</span>
+          <router-link
+            :to="{ name: ROUTE_NAMES.TERMS_CONDITIONS }"
+            class="text-slate-400 hover:text-[#4382B5] text-sm transition-colors"
+          >
+            Términos y Condiciones
+          </router-link>
+        </nav>
+      </div>
     </footer>
   </div>
 </template>
