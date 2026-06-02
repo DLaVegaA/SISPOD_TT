@@ -3,12 +3,12 @@
     <!-- escala_1_10 ──────────────────────────────────────────────── -->
     <template v-if="pregunta.tipo_control === 'escala_1_10'">
       <div class="flex items-center justify-between px-2 mb-2">
-        <span class="text-[10px] font-bold text-muted uppercase tracking-wider">Sin dolor</span>
+        <span class="text-[10px] font-bold text-muted uppercase tracking-wider">Mínimo</span>
         <div class="flex flex-col items-center">
           <span class="text-2xl font-display font-black text-accent tabular-nums">{{ valorNumerico }}</span>
           <span class="text-[8px] font-bold text-muted uppercase">Nivel</span>
         </div>
-        <span class="text-[10px] font-bold text-muted uppercase tracking-wider">Dolor severo</span>
+        <span class="text-[10px] font-bold text-muted uppercase tracking-wider">Máximo</span>
       </div>
       
       <div class="relative px-2 py-4">

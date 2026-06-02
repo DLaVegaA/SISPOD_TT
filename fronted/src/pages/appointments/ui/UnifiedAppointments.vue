@@ -1657,7 +1657,7 @@ onMounted(async () => {
             </div>
             <div class="flex items-center gap-3 text-xs">
               <AlertCircle class="w-4 h-4 text-red-500" />
-              <span class="text-muted font-medium">Requiere Atención</span>
+              <span class="text-muted font-medium">Cancelada</span>
             </div>
           </div>
         </div>
