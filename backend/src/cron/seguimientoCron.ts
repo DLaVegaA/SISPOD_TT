@@ -56,9 +56,6 @@ cron.schedule('0 7-22 * * *', async ()=>{
             'Hola 👋\n\nYa puedes responder tu cuetionario de seguimiento de 24 horas');
       }
 
-      await seg.update({
-        enviado_24h:true
-      });
     }
 
     const hace72h = new Date(
@@ -113,9 +110,6 @@ cron.schedule('0 7-22 * * *', async ()=>{
         );
       }
 
-      await seguimiento.update({
-        enviado_72h:true
-      })
     }
   }catch(error){
     console.log('Error cron seguimientos')
