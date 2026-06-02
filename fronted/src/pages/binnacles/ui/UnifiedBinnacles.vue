@@ -408,12 +408,12 @@ onMounted(async () => {
 
             <!-- Acciones -->
             <div class="flex items-center gap-1 justify-end" @click.stop>
-              <button
+              <!-- <button
                 class="p-2 rounded-lg text-muted hover:text-accent hover:bg-accent/5 transition-colors"
                 title="Descargar"
               >
                 <Download class="w-4 h-4" />
-              </button>
+              </button> -->
               <button
                 class="p-2 rounded-lg text-muted hover:text-black transition-colors"
                 :title="expandedId === log.id ? 'Colapsar' : 'Expandir'"
