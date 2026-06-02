@@ -4,6 +4,7 @@ import 'dotenv/config'
 
 import { connectBD, sequelize } from './config/database'
 import './cron/recordatorioCron'
+import './cron/seguimientoCron'
 import app from './app'
 import { startBot } from './bot' 
 
