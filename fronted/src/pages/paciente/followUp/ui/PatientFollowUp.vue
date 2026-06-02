@@ -373,11 +373,11 @@
             <div>
               <h3 class="font-display font-bold text-black text-2xl">¡Evaluación enviada!</h3>
               <p class="text-sm text-muted mt-2 leading-relaxed">
-                Tus respuestas han sido registradas. Tu dentista revisará tu progreso en breve.
+                Tus respuestas han sido registradas. Tu dentista revisará tu progreso en breve. Si tienes dudas, no dudes en contactarlo.
               </p>
             </div>
             <button
-              class="w-full rounded-2xl bg-black text-white text-sm font-bold py-4 hover:bg-black/80 transition-all active:scale-95 shadow-xl"
+              class="w-full rounded-2xl bg-accent text-white text-sm font-bold py-4 hover:bg-accent/90 transition-all active:scale-95 shadow-lg shadow-accent/20"
               @click="cerrarTrasExito"
             >
               Entendido
@@ -426,7 +426,7 @@
             </div>
             <div class="flex flex-col gap-2">
               <button
-                class="w-full rounded-2xl bg-black text-white text-sm font-bold py-3.5 hover:bg-black/80 transition-all active:scale-95"
+                class="w-full rounded-2xl bg-accent text-white text-sm font-bold py-3.5 hover:bg-accent/90 transition-all active:scale-95 shadow-lg shadow-accent/20"
                 @click="confirmarSalir"
               >
                 Salir sin guardar
