@@ -5,7 +5,7 @@ import { enviarRecordatorioTelegram } from '../services/telegramService';
 import {enviarCuestionario24h,enviarCuestionario72h } from '../services/emailService';
 
 //Cron para el envio de contestar cuestionario 
-cron.schedule('0 7-22 * * *', async ()=>{
+cron.schedule('0 8,20 * * *', async ()=>{
   try{
     const ahora = new Date()
 
